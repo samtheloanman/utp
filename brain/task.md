@@ -1,0 +1,38 @@
+# United the People (UtP) Task List
+
+## 🧠 Brain & Planning
+- [ ] Initialize Brain Docs (PRD, Roadmap, ADRs) [/]
+- [ ] Create AGENTS.md for Jules/Agentic Orchestration
+- [ ] Define V1 Completion Tests
+- [ ] Request User Approval for Implementation Plan
+
+## 🏗️ Technical Foundation
+- [ ] Setup Repository Structure (Next.js, FastAPI/Node, DB)
+- [ ] Design Database Schema (V1 Normalized)
+- [ ] Configure Supabase/PostgreSQL & Auth (Email/OAuth)
+- [ ] Implement SourceRegistry for API Compliance
+
+## 🔌 Data Ingestion (Congress.gov)
+- [ ] Implement Congress.gov API Connector
+- [ ] Build Idempotent Ingestion Job
+- [ ] Store Raw Payloads + Normalized Entities
+
+## 🤖 AI Summarization (Citizen Digest)
+- [ ] Design Grounded Summarization Prompt (Citations required)
+- [ ] Build Summarization Pipeline with Caching
+- [ ] Implement QA Grounding Test
+
+## 🗳️ Participation & API
+- [ ] Implement Shadow Voting System (V1 - Off-chain)
+- [ ] Implement IP-based Abuse Prevention (Privacy-first)
+- [ ] Build Public Read-only API (OpenAPI/Swagger)
+
+## 🌐 Web Portal (Frontend)
+- [ ] Build Activity Stream (All bills)
+- [ ] Build Bill Detail Pages (Digest + Actions + Voting)
+- [ ] Implement Iran Portal (Info + Voting + Disclaimers)
+
+## 🚀 Verification & Launch
+- [ ] Run V1 Completion Tests
+- [ ] Final Bug Scrub & Performance Optimization
+- [ ] Create Demo Script & PRD Walkthrough
