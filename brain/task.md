@@ -1,19 +1,20 @@
 # United the People (UtP) Task List
 
 ## 🧠 Brain & Planning
-- [ ] Initialize Brain Docs (PRD, Roadmap, ADRs) [/]
-- [ ] Create AGENTS.md for Jules/Agentic Orchestration
-- [ ] Define V1 Completion Tests
-- [ ] Request User Approval for Implementation Plan
+- [x] Initialize Brain Docs (PRD, Roadmap, ADRs)
+- [x] Create AGENTS.md for Jules/Agentic Orchestration
+- [x] Define V1 Completion Tests
+- [x] Request User Approval for Implementation Plan
+- [x] Jules Integration & Remote Setup
 
 ## 🏗️ Technical Foundation
-- [ ] Setup Repository Structure (Next.js, FastAPI/Node, DB)
-- [ ] Design Database Schema (V1 Normalized)
+- [/] Setup Repository Structure (Next.js, Supabase, DB)
+- [/] Design Database Schema (V1 Normalized)
 - [ ] Configure Supabase/PostgreSQL & Auth (Email/OAuth)
 - [ ] Implement SourceRegistry for API Compliance
 
 ## 🔌 Data Ingestion (Congress.gov)
-- [ ] Implement Congress.gov API Connector
+- [/] Implement Congress.gov API Connector (TypeScript)
 - [ ] Build Idempotent Ingestion Job
 - [ ] Store Raw Payloads + Normalized Entities
 
