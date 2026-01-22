@@ -15,8 +15,8 @@ Build a decentralized autonomous organization (DAO) framework for Bitcoin Layer 
 
 ## Tech Stack
 - **L2 Baseline**: Rootstock (RSK) for EVM compatibility and BTC-settlement.
-- **Smart Contracts**: Solidity ^0.8.20.
-- **Framework**: Foundry (for fast cryptographic testing).
+- **Smart Contracts**: Solidity ^0.8.24.
+- **Framework**: Hardhat (for EVM-compatible development and testing).
 - **Crypto Agility**: Custom `IQuantumVerifier` and `IZKVerifier` interfaces.
 - **Identity/Treasury**: Aragon-inspired Permission Manager + Safe-inspired Executor.
 
@@ -83,7 +83,7 @@ test/
 6. [ ] Implement `StablecoinController.sol` skeleton.
 
 ## Phase X: Final Verification
-- [ ] Run `forge test` - All tests pass.
+- [ ] Run `npx hardhat test` - All tests pass.
 - [ ] Run `python scripts/security_scan.py .` - No critical findings.
 - [ ] Verify no "magic numbers" or hardcoded addresses in core contracts.
 - [ ] Documentation check: `docs/THREAT_MODEL.md` exists and covers bridge risks.
