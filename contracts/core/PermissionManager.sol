@@ -17,7 +17,6 @@ contract PermissionManager {
     event PermissionRevoked(bytes32 indexed permissionId, address indexed who, address indexed where);
 
     error AccessDenied(address who, address where, bytes32 permissionId);
-    error UnauthorizedModification();
 
     /**
      * @notice Checks if a user has a specific permission at a target contract.

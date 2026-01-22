@@ -12,6 +12,15 @@ contract DAO is PermissionManager {
     /// @notice Permission ID required to execute actions through the DAO.
     bytes32 public constant EXECUTE_PERMISSION_ID = keccak256("EXECUTE_PERMISSION");
 
+    bool private _locked;
+
+    modifier nonReentrant() {
+        require(!_locked, "ReentrancyGuard: reentrant call");
+        _locked = true;
+        _;
+        _locked = false;
+    }
+
     /**
      * @notice Initializes the DAO with the deployer as the initial ROOT admin.
      */
@@ -31,7 +40,7 @@ contract DAO is PermissionManager {
         address[] calldata targets,
         uint256[] calldata values,
         bytes[] calldata callDatas
-    ) external returns (bytes[] memory results) {
+    ) external nonReentrant returns (bytes[] memory results) {
         if (!hasPermission(address(this), msg.sender, EXECUTE_PERMISSION_ID)) {
             revert AccessDenied(msg.sender, address(this), EXECUTE_PERMISSION_ID);
         }

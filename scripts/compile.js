@@ -53,7 +53,12 @@ for (const file of contractFiles) {
 }
 
 function findImports(importPath) {
-    const fullPath = path.resolve(rootDir, importPath);
+    let fullPath = path.resolve(rootDir, importPath);
+    if (!fs.existsSync(fullPath)) {
+        // Try node_modules
+        fullPath = path.resolve(rootDir, 'node_modules', importPath);
+    }
+    
     if (fs.existsSync(fullPath)) {
         return { content: fs.readFileSync(fullPath, 'utf8') };
     }
