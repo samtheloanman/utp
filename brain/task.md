@@ -8,13 +8,13 @@
 - [x] Jules Integration & Remote Setup
 
 ## 🏗️ Technical Foundation
-- [/] Setup Repository Structure (Next.js, Supabase, DB)
-- [/] Design Database Schema (V1 Normalized)
+- [x] Setup Repository Structure (Next.js, Supabase, DB)
+- [x] Design Database Schema (V1 Normalized)
 - [ ] Configure Supabase/PostgreSQL & Auth (Email/OAuth)
 - [ ] Implement SourceRegistry for API Compliance
 
 ## 🔌 Data Ingestion (Congress.gov)
-- [/] Implement Congress.gov API Connector (TypeScript)
+- [x] Implement Congress.gov API Connector (TypeScript)
 - [ ] Build Idempotent Ingestion Job
 - [ ] Store Raw Payloads + Normalized Entities
 
