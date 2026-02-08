@@ -4,3 +4,5 @@ cache
 .env
 package-lock.json
 *.log
+__pycache__/
+*.pyc
