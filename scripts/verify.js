@@ -13,18 +13,17 @@ const voterWallet = new ethers.Wallet('0x59c6995e998f97a5a0044966f0945389dc9e86d
 const otherAccount = new ethers.Wallet('0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a', provider);
 
 function getArtifact(name) {
-    const filePath = path.join(rootDir, 'artifacts', 'contracts', name.includes('/') ? name + '.json' : `core/${name}.json`);
-    if (!fs.existsSync(filePath)) {
-        // Try crypto or plugins if core fails
-        const paths = [
-            path.join(rootDir, 'artifacts', 'contracts', `crypto/${name}.json`),
-            path.join(rootDir, 'artifacts', 'contracts', `plugins/${name}.json`)
-        ];
-        for (const p of paths) {
-            if (fs.existsSync(p)) return JSON.parse(fs.readFileSync(p, 'utf8'));
-        }
+    const searchPaths = [
+        path.join(rootDir, 'artifacts', 'contracts', 'core', `${name}.sol`, `${name}.json`),
+        path.join(rootDir, 'artifacts', 'contracts', 'crypto', `${name}.sol`, `${name}.json`),
+        path.join(rootDir, 'artifacts', 'contracts', 'plugins', `${name}.sol`, `${name}.json`),
+        path.join(rootDir, 'artifacts', 'contracts', 'crypto', `MockVerifiers.sol`, `${name}.json`),
+        path.join(rootDir, 'artifacts', 'contracts', name.includes('/') ? name + '.json' : `core/${name}.json`)
+    ];
+    for (const p of searchPaths) {
+        if (fs.existsSync(p)) return JSON.parse(fs.readFileSync(p, 'utf8'));
     }
-    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    throw new Error(`Artifact for ${name} not found`);
 }
 
 async function deploy(name, args = []) {
