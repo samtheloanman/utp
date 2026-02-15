@@ -1,80 +1,121 @@
 import configparser
+import json
+import logging
+import sqlite3
 import requests
-import time
 from ratelimit import limits, sleep_and_retry
-from tinydb import TinyDB, Query
 
-# --- Configuration ---
-CONFIG_FILE = 'config.ini'
-DB_FILE = 'congress_data.json'
-API_BASE_URL = 'https://api.congress.gov/v3/'
-# Rate limit: 5000 calls per hour = ~1.38 calls per second.
-# We'll be conservative and stick to 1 call per second.
-CALLS = 1
-RATE_LIMIT_PERIOD = 1 # in seconds
+# --- Logging Configuration ---
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger('CongressConnector')
 
-# --- Database Setup ---
-db = TinyDB(DB_FILE)
-raw_payloads = db.table('raw_payloads')
-Record = Query()
+class CongressConnector:
+    def __init__(self, config_file='config.ini', db_file='congress_data.db'):
+        self.config_file = config_file
+        self.db_file = db_file
+        self.api_base_url = 'https://api.congress.gov/v3/'
+        self.api_key = self._get_api_key()
+        self._init_db()
 
-# --- API Interaction ---
-def get_api_key():
-    """Reads the API key from the config file."""
-    config = configparser.ConfigParser()
-    config.read(CONFIG_FILE)
-    return config['congress_api']['api_key']
-
-@sleep_and_retry
-@limits(calls=CALLS, period=RATE_LIMIT_PERIOD)
-def make_api_request(url, api_key):
-    """Makes a rate-limited API request."""
-    headers = {'X-Api-Key': api_key}
-    response = requests.get(url, headers=headers)
-    response.raise_for_status()  # Raise an exception for bad status codes
-    return response.json()
-
-def process_page(data):
-    """Processes a page of results, storing new records."""
-    new_records_added = 0
-    for item in data:
-        # Use the 'url' as a unique identifier for idempotency
-        if not raw_payloads.contains(Record.url == item['url']):
-            raw_payloads.insert(item)
-            new_records_added += 1
-    return new_records_added
-
-def fetch_data(endpoint, api_key):
-    """Fetches all data from a given endpoint, handling pagination."""
-    url = f"{API_BASE_URL}{endpoint}"
-    while url:
-        print(f"Fetching data from: {url}")
+    def _get_api_key(self):
+        """Reads the API key from the config file."""
+        config = configparser.ConfigParser()
+        config.read(self.config_file)
         try:
-            response_data = make_api_request(url, api_key)
+            return config['congress_api']['api_key']
+        except KeyError:
+            logger.warning(f"API key not found in {self.config_file}. Using placeholder.")
+            return 'YOUR_API_KEY_HERE'
 
-            # The actual data is in a key that is the plural of the endpoint name (e.g., 'bills')
-            data_key = endpoint.split('/')[0] + 's' # get the base endpoint name and pluralize
-            if data_key in response_data:
-                new_records = process_page(response_data[data_key])
-                print(f"Added {new_records} new records.")
-            else:
-                print(f"Warning: Could not find key '{data_key}' in the response.")
+    def _init_db(self):
+        """Initializes the SQLite database."""
+        with sqlite3.connect(self.db_file) as conn:
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS raw_payloads (
+                    url TEXT PRIMARY KEY,
+                    data TEXT,
+                    fetched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            conn.commit()
 
-            # Get the next page URL
-            url = response_data.get('pagination', {}).get('next')
+    @sleep_and_retry
+    @limits(calls=1, period=1)
+    def _make_api_request(self, url):
+        """Makes a rate-limited API request."""
+        headers = {'X-Api-Key': self.api_key}
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        return response.json()
 
-        except requests.exceptions.RequestException as e:
-            print(f"Error making API request: {e}")
-            break
-        except Exception as e:
-            print(f"An unexpected error occurred: {e}")
-            break
+    def _store_record(self, record):
+        """Stores a single record in the database if it doesn't exist."""
+        url = record.get('url')
+        if not url:
+            logger.warning("Record missing URL, skipping.")
+            return False
 
-# --- Main Execution ---
+        with sqlite3.connect(self.db_file) as conn:
+            # Idempotency: skip if URL already exists
+            cursor = conn.execute('SELECT 1 FROM raw_payloads WHERE url = ?', (url,))
+            if cursor.fetchone():
+                return False
+
+            conn.execute(
+                'INSERT INTO raw_payloads (url, data) VALUES (?, ?)',
+                (url, json.dumps(record))
+            )
+            conn.commit()
+            return True
+
+    def _extract_data(self, response_data, endpoint):
+        """Extracts the data list from the API response."""
+        # Try pluralized key
+        data_key = endpoint.split('/')[0] + 's'
+        if data_key in response_data:
+            return response_data[data_key]
+
+        # Try exact endpoint name
+        if endpoint in response_data:
+            return response_data[endpoint]
+
+        # Try common keys if above fail
+        for key in ['results', 'items', 'data']:
+            if key in response_data:
+                return response_data[key]
+
+        return None
+
+    def fetch_endpoint(self, endpoint):
+        """Fetches all data from a given endpoint, handling pagination."""
+        url = f"{self.api_base_url}{endpoint}"
+
+        while url:
+            logger.info(f"Fetching: {url}")
+            try:
+                response_data = self._make_api_request(url)
+                data_list = self._extract_data(response_data, endpoint)
+
+                if data_list is not None:
+                    new_count = 0
+                    for item in data_list:
+                        if self._store_record(item):
+                            new_count += 1
+                    logger.info(f"Processed page. Added {new_count} new records.")
+                else:
+                    logger.warning(f"No data found for endpoint '{endpoint}' in response.")
+
+                url = response_data.get('pagination', {}).get('next')
+            except Exception as e:
+                logger.error(f"Error during fetch: {e}")
+                break
+
 if __name__ == "__main__":
-    api_key = get_api_key()
-    if api_key == 'YOUR_API_KEY_HERE':
-        print("Please replace 'YOUR_API_KEY_HERE' with your actual API key in config.ini")
+    connector = CongressConnector()
+    if connector.api_key == 'YOUR_API_KEY_HERE':
+        print("Please set your API key in config.ini")
     else:
-        # Example: Fetch all bills
-        fetch_data('bill', api_key)
+        connector.fetch_endpoint('bill')
