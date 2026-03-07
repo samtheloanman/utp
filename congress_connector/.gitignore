@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.pyc
+
+# Database
+*.db
+*.json
+
+# Configuration (contains secrets)
+config.ini
+
+# Env
+.venv/
+env/
