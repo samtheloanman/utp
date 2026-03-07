@@ -7,9 +7,9 @@
 ## 📋 Overview
 
 Antigravity Kit is a modular system consisting of:
-- **16 Specialist Agents** - Role-based AI personas
+- **17 Specialist Agents** - Role-based AI personas
 - **40 Skills** - Domain-specific knowledge modules
-- **11 Workflows** - Slash command procedures
+- **12 Workflows** - Slash command procedures
 
 ---
 
@@ -27,7 +27,7 @@ Antigravity Kit is a modular system consisting of:
 
 ---
 
-## 🤖 Agents (16)
+## 🤖 Agents (17)
 
 Specialist AI personas for different domains.
 
@@ -49,6 +49,7 @@ Specialist AI personas for different domains.
 | `seo-specialist` | Ranking, visibility | seo-fundamentals, geo-fundamentals |
 | `documentation-writer` | Manuals, docs | documentation-templates |
 | `explorer-agent` | Codebase analysis | - |
+| `blockchain-quantum-specialist` | Solidity, PQ Crypto, ZK Proofs, DAO, L2 | vulnerability-scanner, architecture, testing-patterns |
 
 ---
 
@@ -150,7 +151,7 @@ Domain-specific knowledge modules. Skills are loaded on-demand based on task con
 
 ---
 
-## 🔄 Workflows (11)
+## 🔄 Workflows (12)
 
 Slash command procedures. Invoke with `/command`.
 
@@ -167,6 +168,7 @@ Slash command procedures. Invoke with `/command`.
 | `/status` | Check project status |
 | `/test` | Run tests |
 | `/ui-ux-pro-max` | Design with 50 styles |
+| `/improve-contracts` | Recursive contract hardening |
 
 ---
 
@@ -204,9 +206,9 @@ skill-name/
 
 | Metric | Value |
 |--------|-------|
-| **Total Agents** | 16 |
+| **Total Agents** | 17 |
 | **Total Skills** | 40 |
-| **Total Workflows** | 11 |
+| **Total Workflows** | 12 |
 | **Coverage** | ~90% web/mobile development |
 
 ---
@@ -223,3 +225,4 @@ skill-name/
 | Testing | `test-engineer` | testing-patterns, webapp-testing |
 | Debug | `debugger` | systematic-debugging |
 | Plan | `project-planner` | brainstorming, plan-writing |
+| Blockchain | `blockchain-quantum-specialist` | vulnerability-scanner, architecture |
