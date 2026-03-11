@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "workspace": {
+    "name": "utp",
+    "createdAt": 1769313434176,
+    "preset": "starter"
+  },
+  "authorizedRoots": [
+    "/Users/maysamtehranchi/Code/utp"
+  ]
+}

@@ -1,8 +1,8 @@
 import React from 'react';
 import ShadowVote from '@/components/ShadowVote';
 
-export default async function BillPage({ params }: { params: { id: string } }) {
-  const { id } = params;
+export default async function BillPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
 
   // In a real app, we would fetch the bill details here
   const bill = {

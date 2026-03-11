@@ -41,7 +41,7 @@ export default function ShadowVote({ billId }: ShadowVoteProps) {
         .single();
 
       if (data) {
-        setVote(data.vote as any);
+        setVote(data.vote as 'for' | 'against' | 'unsure');
       }
     } catch (err) {
       console.error('Error fetching vote:', err);
@@ -92,8 +92,8 @@ export default function ShadowVote({ billId }: ShadowVoteProps) {
 
       setVote(selectedVote);
       fetchAggregates();
-    } catch (err: any) {
-      setError(err.message || 'An error occurred');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
     }
@@ -112,11 +112,10 @@ export default function ShadowVote({ billId }: ShadowVoteProps) {
           <button
             onClick={() => castVote('for')}
             disabled={loading}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-3 transition-all ${
-              vote === 'for'
+            className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-3 transition-all ${vote === 'for'
                 ? 'bg-green-600 text-white shadow-md'
                 : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800'
-            }`}
+              }`}
           >
             <ThumbsUp size={18} />
             <span className="font-medium">For</span>
@@ -125,11 +124,10 @@ export default function ShadowVote({ billId }: ShadowVoteProps) {
           <button
             onClick={() => castVote('against')}
             disabled={loading}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-3 transition-all ${
-              vote === 'against'
+            className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-3 transition-all ${vote === 'against'
                 ? 'bg-red-600 text-white shadow-md'
                 : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800'
-            }`}
+              }`}
           >
             <ThumbsDown size={18} />
             <span className="font-medium">Against</span>
@@ -138,11 +136,10 @@ export default function ShadowVote({ billId }: ShadowVoteProps) {
           <button
             onClick={() => castVote('unsure')}
             disabled={loading}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-3 transition-all ${
-              vote === 'unsure'
+            className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-3 transition-all ${vote === 'unsure'
                 ? 'bg-zinc-600 text-white shadow-md'
                 : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800'
-            }`}
+              }`}
           >
             <HelpCircle size={18} />
             <span className="font-medium">Unsure</span>

@@ -54,8 +54,8 @@ export async function POST(req: NextRequest) {
     // Let's assume a RPC or trigger handles it for better consistency.
 
     return NextResponse.json({ message: 'Vote recorded' });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error in vote API:', err);
-    return NextResponse.json({ message: err.message || 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ message: err instanceof Error ? err.message : 'Internal Server Error' }, { status: 500 });
   }
 }

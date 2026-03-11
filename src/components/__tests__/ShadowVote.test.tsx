@@ -31,8 +31,8 @@ describe('ShadowVote Component', () => {
   });
 
   it('renders correctly', async () => {
-    (supabase.auth.getUser as any).mockResolvedValue({ data: { user: null } });
-    (supabase.from as any).mockReturnValue({
+    vi.mocked(supabase.auth.getUser).mockResolvedValue({ data: { user: null } } as ReturnType<typeof supabase.auth.getUser> extends Promise<infer R> ? R : never);
+    vi.mocked(supabase.from).mockReturnValue({
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({ data: null, error: null }),
@@ -48,13 +48,13 @@ describe('ShadowVote Component', () => {
 
   it('handles voting for', async () => {
     const user = { id: 'test-user' };
-    (supabase.auth.getUser as any).mockResolvedValue({ data: { user } });
-    (supabase.from as any).mockReturnValue({
+    vi.mocked(supabase.auth.getUser).mockResolvedValue({ data: { user } } as ReturnType<typeof supabase.auth.getUser> extends Promise<infer R> ? R : never);
+    vi.mocked(supabase.from).mockReturnValue({
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({ data: null, error: null }),
     });
-    (global.fetch as any).mockResolvedValue({ ok: true, json: async () => ({}) });
+    vi.mocked(global.fetch).mockResolvedValue({ ok: true, json: async () => ({}) } as Response);
 
     render(<ShadowVote billId="test-bill" />);
 
