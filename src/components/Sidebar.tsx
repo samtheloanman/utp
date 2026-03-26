@@ -26,44 +26,66 @@ export function Sidebar() {
             top: 0,
             display: 'flex',
             flexDirection: 'column',
-            padding: '1.25rem 0.75rem',
+            padding: 0,
             borderRight: '1px solid var(--border)',
             background: 'var(--bg-secondary)',
             zIndex: 50,
         }}>
-            {/* Logo */}
+            {/* Logo Header — teal accent bar */}
             <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                padding: '0 0.5rem 1.25rem',
+                padding: '1.25rem 1rem',
                 borderBottom: '1px solid var(--border)',
-                marginBottom: '1rem',
+                background: 'var(--bg-primary)',
             }}>
                 <div style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 'var(--radius-md)',
-                    background: 'linear-gradient(135deg, var(--btc-orange), var(--btc-orange-light))',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                    fontWeight: 800,
-                    fontSize: '1rem',
-                    color: '#000',
+                    gap: 10,
                 }}>
-                    U
-                </div>
-                <div>
-                    <div style={{ fontWeight: 700, fontSize: '1rem', letterSpacing: '-0.02em' }}>UTP</div>
-                    <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', letterSpacing: '0.05em' }}>
-                        PROTOCOL
+                    <div style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 'var(--radius-md)',
+                        background: 'linear-gradient(135deg, var(--btc-orange), var(--btc-orange-light))',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 800,
+                        fontSize: '1rem',
+                        color: '#000',
+                    }}>
+                        U
+                    </div>
+                    <div>
+                        <div style={{
+                            fontFamily: "'Bebas Neue', sans-serif",
+                            fontWeight: 400,
+                            fontSize: '1.3rem',
+                            letterSpacing: '0.06em',
+                            color: 'var(--text-primary)',
+                        }}>UTP</div>
+                        <div style={{
+                            fontSize: '0.6rem',
+                            color: 'var(--teal)',
+                            letterSpacing: '0.12em',
+                            fontWeight: 600,
+                            textTransform: 'uppercase',
+                        }}>
+                            PROTOCOL
+                        </div>
                     </div>
                 </div>
             </div>
 
             {/* Nav Items */}
-            <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <nav style={{
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 1,
+                padding: '0.75rem 0.5rem',
+                overflowY: 'auto',
+            }}>
                 {NAV_ITEMS.map((item) => {
                     const isActive = pathname === item.href ||
                         (item.href !== '/' && pathname.startsWith(item.href));
@@ -77,25 +99,17 @@ export function Sidebar() {
                                 gap: 10,
                                 padding: '10px 12px',
                                 borderRadius: 'var(--radius-md)',
-                                fontSize: '0.875rem',
-                                fontWeight: isActive ? 600 : 400,
-                                color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
-                                background: isActive ? 'var(--btc-orange-dim)' : 'transparent',
+                                fontSize: '0.85rem',
+                                fontWeight: isActive ? 600 : 500,
+                                color: isActive ? 'var(--teal-dark)' : 'var(--text-secondary)',
+                                background: isActive ? 'var(--teal-light)' : 'transparent',
                                 textDecoration: 'none',
-                                transition: 'all 0.15s',
+                                transition: 'all 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
+                                borderLeft: isActive ? '3px solid var(--teal)' : '3px solid transparent',
                             }}
                         >
-                            <span style={{ fontSize: '1.1rem' }}>{item.icon}</span>
+                            <span style={{ fontSize: '1rem' }}>{item.icon}</span>
                             {item.label}
-                            {isActive && (
-                                <div style={{
-                                    width: 3,
-                                    height: 16,
-                                    borderRadius: 2,
-                                    background: 'var(--btc-orange)',
-                                    marginLeft: 'auto',
-                                }} />
-                            )}
                         </Link>
                     );
                 })}
@@ -104,7 +118,8 @@ export function Sidebar() {
             {/* Wallet */}
             <div style={{
                 borderTop: '1px solid var(--border)',
-                paddingTop: '1rem',
+                padding: '0.75rem',
+                background: 'var(--bg-primary)',
             }}>
                 <ConnectButton
                     accountStatus="avatar"
