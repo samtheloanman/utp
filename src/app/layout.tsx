@@ -1,11 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import dynamic from "next/dynamic";
-
-const ClientLayout = dynamic(
-  () => import("@/components/ClientLayout").then((mod) => mod.ClientLayout),
-  { ssr: false }
-);
+import { ClientLayout } from "@/components/ClientLayout";
 
 export const metadata: Metadata = {
   title: "UTP — Universal Transaction Protocol",
