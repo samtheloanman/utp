@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 
 interface Bill {
   id: string;
@@ -103,9 +104,8 @@ export default function LegislaturePage() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           {bills.map((bill) => (
-            <a key={bill.id} href={bill.url} target="_blank" rel="noopener noreferrer"
-              style={{ textDecoration: 'none', color: 'inherit' }}>
-              <div className="card">
+            <Link key={bill.id} href={`/bill/${bill.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+              <div className="card" style={{ cursor: 'pointer', transition: 'border-color 0.15s' }}>
                 <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
                   <span className={`tag ${STATUS_COLORS[bill.status] || 'tag-btc'}`}>
                     {bill.status}
@@ -120,11 +120,16 @@ export default function LegislaturePage() {
                 <h3 style={{ fontSize: '0.95rem', fontWeight: 600, lineHeight: 1.4, marginBottom: 8 }}>
                   {bill.title}
                 </h3>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                  Sponsor: {bill.sponsor} · Introduced: {bill.introduced}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    Sponsor: {bill.sponsor} · Introduced: {bill.introduced}
+                  </div>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--btc-orange)' }}>
+                    Vote →
+                  </span>
                 </div>
               </div>
-            </a>
+            </Link>
           ))}
         </div>
       )}

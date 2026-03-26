@@ -1,77 +1,106 @@
 'use client';
 
 import Link from 'next/link';
-
-const MODULES = [
-  {
-    title: 'DAO Governance',
-    icon: '🏛️',
-    href: '/governance',
-    stats: [
-      { label: 'Active Proposals', value: '—' },
-      { label: 'Total Votes', value: '—' },
-    ],
-    description: 'Create proposals, vote with UTP tokens, execute via quorum.',
-    color: 'var(--btc-orange)',
-  },
-  {
-    title: 'Event Voting',
-    icon: '📊',
-    href: '/events',
-    stats: [
-      { label: 'Active Events', value: '—' },
-      { label: 'Total Staked', value: '—' },
-    ],
-    description: 'Polymarket-style prediction markets on world events.',
-    color: 'var(--blue)',
-  },
-  {
-    title: 'UBTC Stablecoin',
-    icon: '🪙',
-    href: '/stablecoin',
-    stats: [
-      { label: 'Total Collateral', value: '—' },
-      { label: 'UBTC Supply', value: '—' },
-    ],
-    description: 'BTC-backed stablecoin with collateral vault and liquidation.',
-    color: 'var(--green)',
-  },
-  {
-    title: 'UTP Token',
-    icon: '🔶',
-    href: '/token',
-    stats: [
-      { label: 'Total Supply', value: '1B' },
-      { label: 'Your Balance', value: '—' },
-    ],
-    description: 'Governance token with voting power, delegation, and permits.',
-    color: 'var(--btc-orange)',
-  },
-  {
-    title: 'News Hub',
-    icon: '📰',
-    href: '/news',
-    stats: [
-      { label: 'Articles', value: '—' },
-      { label: 'Fact-Checked', value: '—' },
-    ],
-    description: 'Aggregated world news with AI fact-checking and bias scoring.',
-    color: 'var(--yellow)',
-  },
-  {
-    title: 'Legislature',
-    icon: '⚖️',
-    href: '/legislature',
-    stats: [
-      { label: 'Countries', value: '5' },
-      { label: 'Active Bills', value: '—' },
-    ],
-    description: 'Track legislation from USA, UK, EU, Brazil, and India.',
-    color: 'var(--blue)',
-  },
-];
+import { useAccount } from 'wagmi';
+import { formatEther } from 'viem';
+import {
+  useUTPTotalSupply, useUTPBalance, useUTPVotingPower,
+  useEventCount, useTotalCollateral,
+} from '@/lib/hooks';
 
 export default function OverviewPage() {
+  const { isConnected } = useAccount();
+
+  const { data: totalSupply } = useUTPTotalSupply();
+  const { data: balance } = useUTPBalance();
+  const { data: votingPower } = useUTPVotingPower();
+  const { data: eventCount } = useEventCount();
+  const { data: totalCollateral } = useTotalCollateral();
+
+  const fmt = (v: bigint | undefined) => {
+    if (!v) return '—';
+    const n = Number(formatEther(v));
+    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+    if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+    return n.toFixed(2);
+  };
+
+  const STATS = [
+    { label: 'Smart Contracts', value: '11', sub: 'Deployed', color: 'var(--text-primary)' },
+    { label: 'UTP Supply', value: fmt(totalSupply as bigint | undefined), sub: 'Total Minted', color: 'var(--btc-orange)' },
+    { label: 'Proposals', value: '—', sub: 'Governance', color: 'var(--blue)' },
+    { label: 'Events', value: eventCount ? String(Number(eventCount)) : '0', sub: 'Prediction Markets', color: 'var(--green)' },
+  ];
+
+  const MODULES = [
+    {
+      title: 'DAO Governance',
+      icon: '🏛️',
+      href: '/governance',
+      stats: [
+        { label: 'Proposals', value: '—' },
+        { label: 'Your VP', value: isConnected ? fmt(votingPower as bigint | undefined) : '—' },
+      ],
+      description: 'Create proposals, vote with UTP tokens, execute via quorum.',
+      color: 'var(--btc-orange)',
+    },
+    {
+      title: 'Event Voting',
+      icon: '📊',
+      href: '/events',
+      stats: [
+        { label: 'Active Events', value: eventCount ? String(Number(eventCount)) : '—' },
+        { label: 'Total Staked', value: '—' },
+      ],
+      description: 'Polymarket-style prediction markets on world events.',
+      color: 'var(--blue)',
+    },
+    {
+      title: 'UBTC Stablecoin',
+      icon: '🪙',
+      href: '/stablecoin',
+      stats: [
+        { label: 'Total Collateral', value: fmt(totalCollateral as bigint | undefined) },
+        { label: 'UBTC Supply', value: '—' },
+      ],
+      description: 'BTC-backed stablecoin with collateral vault and liquidation.',
+      color: 'var(--green)',
+    },
+    {
+      title: 'UTP Token',
+      icon: '🔶',
+      href: '/token',
+      stats: [
+        { label: 'Total Supply', value: fmt(totalSupply as bigint | undefined) },
+        { label: 'Your Balance', value: isConnected ? fmt(balance as bigint | undefined) : '—' },
+      ],
+      description: 'Governance token with voting power, delegation, and permits.',
+      color: 'var(--btc-orange)',
+    },
+    {
+      title: 'News Hub',
+      icon: '📰',
+      href: '/news',
+      stats: [
+        { label: 'Source', value: 'GDELT' },
+        { label: 'Updates', value: 'Live' },
+      ],
+      description: 'Aggregated world news with AI fact-checking and bias scoring.',
+      color: 'var(--yellow)',
+    },
+    {
+      title: 'Legislature',
+      icon: '⚖️',
+      href: '/legislature',
+      stats: [
+        { label: 'Countries', value: '5' },
+        { label: 'Shadow Vote', value: '✅' },
+      ],
+      description: 'Track legislation from USA, UK, EU, Brazil, and India.',
+      color: 'var(--blue)',
+    },
+  ];
+
   return (
     <div className="animate-in">
       {/* Header */}
@@ -85,7 +114,7 @@ export default function OverviewPage() {
           Universal Transaction Protocol
         </h1>
         <p style={{ color: 'var(--text-secondary)', fontSize: '1rem' }}>
-          Decentralized governance, prediction markets, BTC-backed stablecoin, and global transparency.
+          Decentralized governance, prediction markets, BTC-backed stablecoin, and global transparency — on Rootstock (Bitcoin L2).
         </p>
       </div>
 
@@ -96,14 +125,9 @@ export default function OverviewPage() {
         gap: '1rem',
         marginBottom: '2rem',
       }}>
-        {[
-          { label: 'Smart Contracts', value: '11', sub: 'Deployed' },
-          { label: 'Test Coverage', value: '161', sub: 'Tests Passing' },
-          { label: 'Networks', value: '2', sub: 'RSK Testnet + Mainnet' },
-          { label: 'Token Supply', value: '1B', sub: 'UTP Max' },
-        ].map((stat) => (
+        {STATS.map((stat) => (
           <div key={stat.label} className="card">
-            <div className="stat-value">{stat.value}</div>
+            <div className="stat-value" style={{ color: stat.color }}>{stat.value}</div>
             <div className="stat-label">{stat.label}</div>
             <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 2 }}>
               {stat.sub}

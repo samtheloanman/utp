@@ -1,48 +1,20 @@
 'use client';
 
 import { useState } from 'react';
-
-const MOCK_EVENTS = [
-    {
-        id: 0,
-        description: 'Will the US pass the Stablecoin Transparency Act by 2026?',
-        regionTag: 'US',
-        numOptions: 2,
-        options: ['Yes', 'No'],
-        totalStaked: '125,000',
-        deadline: '2026-06-01',
-        resolved: false,
-    },
-    {
-        id: 1,
-        description: 'Will the EU finalize MiCA implementation by Q2 2026?',
-        regionTag: 'EU',
-        numOptions: 2,
-        options: ['Yes', 'No'],
-        totalStaked: '89,500',
-        deadline: '2026-07-01',
-        resolved: false,
-    },
-    {
-        id: 2,
-        description: 'Will India legalize BTC as a payment method?',
-        regionTag: 'IN',
-        numOptions: 3,
-        options: ['Yes', 'No', 'Partial'],
-        totalStaked: '200,000',
-        deadline: '2026-12-31',
-        resolved: false,
-    },
-];
-
-const REGIONS = ['ALL', 'US', 'EU', 'IN', 'GLOBAL'];
+import { useAccount, useReadContract } from 'wagmi';
+import { formatEther, type Address } from 'viem';
+import { useEventCount, useStakeVote, getAddresses } from '@/lib/hooks';
+import { EventMarketABI } from '@/lib/contracts';
 
 export default function EventsPage() {
-    const [regionFilter, setRegionFilter] = useState('ALL');
+    const { isConnected, chainId } = useAccount();
+    const addrs = getAddresses(chainId);
+    const [stakeAmounts, setStakeAmounts] = useState<Record<string, string>>({});
 
-    const filtered = regionFilter === 'ALL'
-        ? MOCK_EVENTS
-        : MOCK_EVENTS.filter((e) => e.regionTag === regionFilter);
+    const { data: eventCount } = useEventCount();
+    const { stakeVote, isPending: staking, isSuccess: staked, error: stakeError } = useStakeVote();
+
+    const eCount = eventCount ? Number(eventCount) : 0;
 
     return (
         <div className="animate-in">
@@ -58,87 +30,149 @@ export default function EventsPage() {
             {/* Stats */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
                 <div className="card">
-                    <div className="stat-value">3</div>
+                    <div className="stat-value">{eCount}</div>
                     <div className="stat-label">Active Events</div>
                 </div>
                 <div className="card">
-                    <div className="stat-value" style={{ color: 'var(--btc-orange)' }}>414.5K</div>
+                    <div className="stat-value" style={{ color: 'var(--btc-orange)' }}>—</div>
                     <div className="stat-label">UTP Staked</div>
                 </div>
                 <div className="card">
-                    <div className="stat-value" style={{ color: 'var(--green)' }}>3</div>
-                    <div className="stat-label">Regions Active</div>
+                    <div className="stat-value" style={{ color: 'var(--green)' }}>
+                        {isConnected ? '✅' : '—'}
+                    </div>
+                    <div className="stat-label">{isConnected ? 'Connected' : 'Connect Wallet'}</div>
                 </div>
             </div>
 
-            {/* Region Filter */}
-            <div style={{ display: 'flex', gap: 8, marginBottom: '1.5rem' }}>
-                {REGIONS.map((r) => (
-                    <button
-                        key={r}
-                        onClick={() => setRegionFilter(r)}
-                        className={regionFilter === r ? 'btn btn-primary' : 'btn btn-secondary'}
-                        style={{ padding: '6px 16px', fontSize: '0.8rem' }}
-                    >
-                        {r}
-                    </button>
-                ))}
+            {stakeError && (
+                <div style={{ padding: '8px 12px', marginBottom: 12, borderRadius: 'var(--radius-sm)', background: 'rgba(239,68,68,0.1)', color: 'var(--red)', fontSize: '0.8rem' }}>
+                    {stakeError.message?.substring(0, 120)}
+                </div>
+            )}
+            {staked && (
+                <div style={{ padding: '8px 12px', marginBottom: 12, borderRadius: 'var(--radius-sm)', background: 'rgba(34,197,94,0.1)', color: 'var(--green)', fontSize: '0.8rem' }}>
+                    ✅ Vote staked successfully!
+                </div>
+            )}
+
+            {/* Events List */}
+            {eCount === 0 ? (
+                <div className="card" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                    No events created yet. Events are created on-chain via the EventMarket contract.
+                </div>
+            ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {Array.from({ length: eCount }, (_, i) => (
+                        <EventCard
+                            key={i}
+                            eventId={i}
+                            marketAddr={addrs.EventMarket as Address}
+                            stakeAmt={stakeAmounts[i] || ''}
+                            onStakeAmtChange={(v) => setStakeAmounts((p) => ({ ...p, [i]: v }))}
+                            onStake={(optionIndex) => stakeVote(BigInt(i), BigInt(optionIndex), stakeAmounts[i] || '0')}
+                            staking={staking}
+                        />
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
+interface EventCardProps {
+    eventId: number;
+    marketAddr: Address;
+    stakeAmt: string;
+    onStakeAmtChange: (v: string) => void;
+    onStake: (optionIndex: number) => void;
+    staking: boolean;
+}
+
+function EventCard({ eventId, marketAddr, stakeAmt, onStakeAmtChange, onStake, staking }: EventCardProps) {
+    const { isConnected } = useAccount();
+
+    const { data: eventData } = useReadContract({
+        address: marketAddr,
+        abi: EventMarketABI,
+        functionName: 'events',
+        args: [BigInt(eventId)],
+    });
+
+    if (!eventData) return null;
+
+    const evt = eventData as unknown as {
+        description: string;
+        regionTag: string;
+        numOptions: bigint;
+        totalStaked: bigint;
+        deadline: bigint;
+        resolved: boolean;
+    };
+
+    const optionCount = Number(evt.numOptions || BigInt(0));
+    const totalStaked = Number(formatEther(evt.totalStaked || BigInt(0))).toFixed(0);
+    const deadline = evt.deadline ? new Date(Number(evt.deadline) * 1000).toLocaleDateString() : '—';
+
+    return (
+        <div className="card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                        <span className="tag tag-btc">{evt.regionTag || 'GLOBAL'}</span>
+                        <span className="tag tag-green">{optionCount} options</span>
+                        {evt.resolved && <span className="tag" style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)' }}>Resolved</span>}
+                    </div>
+                    <h3 style={{ fontSize: '1rem', fontWeight: 600, lineHeight: 1.4 }}>
+                        {evt.description || `Event #${eventId}`}
+                    </h3>
+                </div>
+                <div style={{ textAlign: 'right', minWidth: 120 }}>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--btc-orange)' }}>
+                        {totalStaked}
+                    </div>
+                    <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                        UTP Staked
+                    </div>
+                </div>
             </div>
 
-            {/* Events Grid */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {filtered.map((evt) => (
-                    <div key={evt.id} className="card">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                            <div style={{ flex: 1 }}>
-                                <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                                    <span className="tag tag-btc">{evt.regionTag}</span>
-                                    <span className="tag tag-green">{evt.numOptions} options</span>
-                                </div>
-                                <h3 style={{ fontSize: '1rem', fontWeight: 600, lineHeight: 1.4 }}>
-                                    {evt.description}
-                                </h3>
-                            </div>
-                            <div style={{ textAlign: 'right', minWidth: 120 }}>
-                                <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--btc-orange)' }}>
-                                    {evt.totalStaked}
-                                </div>
-                                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                                    UTP Staked
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Options */}
-                        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-                            {evt.options.map((opt, i) => (
-                                <button key={i} className="btn btn-secondary" style={{ flex: 1, fontSize: '0.8rem' }}>
-                                    {opt}
-                                </button>
-                            ))}
-                        </div>
-
-                        {/* Stake Input */}
-                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                            <input
-                                type="number"
-                                placeholder="Amount (UTP)"
-                                style={{
-                                    flex: 1, padding: '8px 12px', borderRadius: 'var(--radius-sm)',
-                                    background: 'var(--bg-elevated)', border: '1px solid var(--border)',
-                                    color: 'var(--text-primary)', fontSize: '0.85rem',
-                                }}
-                            />
-                            <button className="btn btn-primary" style={{ fontSize: '0.8rem' }}>
-                                Stake Vote
+            {/* Options */}
+            {!evt.resolved && (
+                <>
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                        {Array.from({ length: optionCount }, (_, i) => (
+                            <button
+                                key={i}
+                                className="btn btn-secondary"
+                                style={{ flex: 1, fontSize: '0.8rem' }}
+                                disabled={staking || !isConnected || !stakeAmt}
+                                onClick={() => onStake(i)}
+                            >
+                                Option {i + 1}
                             </button>
-                        </div>
-
-                        <div style={{ marginTop: 8, fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                            Deadline: {evt.deadline}
-                        </div>
+                        ))}
                     </div>
-                ))}
+
+                    {/* Stake Input */}
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <input
+                            type="number"
+                            value={stakeAmt}
+                            onChange={(e) => onStakeAmtChange(e.target.value)}
+                            placeholder="Amount (UTP)"
+                            style={{
+                                flex: 1, padding: '8px 12px', borderRadius: 'var(--radius-sm)',
+                                background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+                                color: 'var(--text-primary)', fontSize: '0.85rem',
+                            }}
+                        />
+                    </div>
+                </>
+            )}
+
+            <div style={{ marginTop: 8, fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                Deadline: {deadline}
             </div>
         </div>
     );

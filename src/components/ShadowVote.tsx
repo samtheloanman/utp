@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { ThumbsUp, ThumbsDown, HelpCircle, Loader2 } from 'lucide-react';
 
 interface ShadowVoteProps {
   billId: string;
@@ -33,7 +32,7 @@ export default function ShadowVote({ billId }: ShadowVoteProps) {
         return;
       }
 
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('shadow_votes')
         .select('vote')
         .eq('bill_id', billId)
@@ -52,7 +51,7 @@ export default function ShadowVote({ billId }: ShadowVoteProps) {
 
   const fetchAggregates = async () => {
     try {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('vote_aggregates')
         .select('*')
         .eq('bill_id', billId)
@@ -77,8 +76,6 @@ export default function ShadowVote({ billId }: ShadowVoteProps) {
         return;
       }
 
-      // We use a server action or edge function ideally for IP hashing.
-      // For this UI component, we'll assume the storage is handled via a server-side call.
       const response = await fetch('/api/vote', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -100,76 +97,113 @@ export default function ShadowVote({ billId }: ShadowVoteProps) {
   };
 
   if (fetching) {
-    return <div className="flex justify-center p-4"><Loader2 className="animate-spin" /></div>;
+    return (
+      <div className="card" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+        Loading...
+      </div>
+    );
   }
 
-  return (
-    <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-      <h3 className="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-50">Shadow Voting</h3>
+  const forPct = aggregates.total_votes ? Math.round((aggregates.count_for / aggregates.total_votes) * 100) : 0;
+  const againstPct = aggregates.total_votes ? Math.round((aggregates.count_against / aggregates.total_votes) * 100) : 0;
+  const unsurePct = aggregates.total_votes ? Math.round((aggregates.count_unsure / aggregates.total_votes) * 100) : 0;
 
-      <div className="flex flex-col gap-4">
-        <div className="flex gap-2">
+  return (
+    <div className="card">
+      <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '1rem' }}>Shadow Voting</h3>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        {/* Vote buttons */}
+        <div style={{ display: 'flex', gap: 8 }}>
           <button
             onClick={() => castVote('for')}
             disabled={loading}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-3 transition-all ${vote === 'for'
-                ? 'bg-green-600 text-white shadow-md'
-                : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800'
-              }`}
+            className={vote === 'for' ? 'btn btn-primary' : 'btn btn-secondary'}
+            style={{
+              flex: 1,
+              padding: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              ...(vote === 'for' ? { background: 'var(--green)', borderColor: 'var(--green)' } : {}),
+            }}
           >
-            <ThumbsUp size={18} />
-            <span className="font-medium">For</span>
+            👍 <span style={{ fontWeight: 500 }}>For</span>
           </button>
 
           <button
             onClick={() => castVote('against')}
             disabled={loading}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-3 transition-all ${vote === 'against'
-                ? 'bg-red-600 text-white shadow-md'
-                : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800'
-              }`}
+            className={vote === 'against' ? 'btn btn-primary' : 'btn btn-secondary'}
+            style={{
+              flex: 1,
+              padding: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              ...(vote === 'against' ? { background: 'var(--red)', borderColor: 'var(--red)' } : {}),
+            }}
           >
-            <ThumbsDown size={18} />
-            <span className="font-medium">Against</span>
+            👎 <span style={{ fontWeight: 500 }}>Against</span>
           </button>
 
           <button
             onClick={() => castVote('unsure')}
             disabled={loading}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-3 transition-all ${vote === 'unsure'
-                ? 'bg-zinc-600 text-white shadow-md'
-                : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800'
-              }`}
+            className={vote === 'unsure' ? 'btn btn-primary' : 'btn btn-secondary'}
+            style={{
+              flex: 1,
+              padding: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+            }}
           >
-            <HelpCircle size={18} />
-            <span className="font-medium">Unsure</span>
+            🤷 <span style={{ fontWeight: 500 }}>Unsure</span>
           </button>
         </div>
 
-        {error && <p className="text-sm text-red-500">{error}</p>}
+        {error && (
+          <div style={{
+            padding: '8px 12px', borderRadius: 'var(--radius-sm)',
+            background: 'rgba(239,68,68,0.1)', color: 'var(--red)', fontSize: '0.8rem',
+          }}>
+            {error}
+          </div>
+        )}
 
-        <div className="mt-4 space-y-2">
-          <div className="flex justify-between text-sm text-zinc-500">
+        {/* Sentiment bar */}
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 6 }}>
             <span>Community Sentiment</span>
             <span>{aggregates.total_votes} total votes</span>
           </div>
-          <div className="flex h-3 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
-            <div
-              className="bg-green-600 transition-all duration-500"
-              style={{ width: `${aggregates.total_votes ? (aggregates.count_for / aggregates.total_votes) * 100 : 0}%` }}
-            />
-            <div
-              className="bg-red-600 transition-all duration-500"
-              style={{ width: `${aggregates.total_votes ? (aggregates.count_against / aggregates.total_votes) * 100 : 0}%` }}
-            />
-            <div
-              className="bg-zinc-500 transition-all duration-500"
-              style={{ width: `${aggregates.total_votes ? (aggregates.count_unsure / aggregates.total_votes) * 100 : 0}%` }}
-            />
+          <div style={{
+            height: 8, borderRadius: 4, overflow: 'hidden',
+            display: 'flex', background: 'var(--bg-elevated)',
+          }}>
+            <div style={{
+              width: `${forPct}%`,
+              background: 'var(--green)',
+              transition: 'width 0.5s ease',
+            }} />
+            <div style={{
+              width: `${againstPct}%`,
+              background: 'var(--red)',
+              transition: 'width 0.5s ease',
+            }} />
+            <div style={{
+              width: `${unsurePct}%`,
+              background: 'var(--text-muted)',
+              transition: 'width 0.5s ease',
+            }} />
           </div>
-          <div className="flex justify-between text-xs text-zinc-400">
-            <span>{Math.round(aggregates.total_votes ? (aggregates.count_for / aggregates.total_votes) * 100 : 0)}% For</span>
-            <span>{Math.round(aggregates.total_votes ? (aggregates.count_against / aggregates.total_votes) * 100 : 0)}% Against</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 4 }}>
+            <span>{forPct}% For</span>
+            <span>{againstPct}% Against</span>
           </div>
         </div>
       </div>
