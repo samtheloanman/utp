@@ -146,7 +146,7 @@ This document identifies threats, attack vectors, and mitigations for the Bitcoi
 
 | Threat | Severity | Status |
 |--------|----------|--------|
-| Cross-chain replay (same contracts on different chains) | **High** | ⚠️ Active Risk — no chainId in vote hash |
+| Cross-chain replay (same contracts on different chains) | **High** | ✅ Mitigated — `chainId` included in vote hash |
 | Nonce-based replay | **Medium** | ⚠️ Active Risk — no nonce tracking |
 | Same-chain tx replay | **Low** | ✅ Mitigated — Ethereum nonce prevents raw tx replay |
 
@@ -161,7 +161,6 @@ This document identifies threats, attack vectors, and mitigations for the Bitcoi
 
 | Priority | Issue | Impact | Effort |
 |----------|-------|--------|--------|
-| **P1** | No chainId in vote hash | Cross-chain replay | Low |
 | **P1** | Mock verifiers in production | No real cryptographic security | High |
 | **P1** | No multisig/timelock for ROOT | Single key compromise = total loss | Medium |
 | **P2** | Plugin permissions persist after uninstall | Stale permissions | Medium |
