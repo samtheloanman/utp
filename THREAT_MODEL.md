@@ -117,7 +117,7 @@ This document identifies threats, attack vectors, and mitigations for the Bitcoi
 | Threat | Severity | Status |
 |--------|----------|--------|
 | Malicious plugin installation | **High** | ✅ Mitigated — ROOT_PERMISSION required |
-| Plugin-granted permissions persist after uninstall | **Medium** | ⚠️ Active Risk — uninstall doesn't revoke permissions |
+| Plugin-granted permissions persist after uninstall | **Medium** | ✅ Mitigated — `EXECUTE_PERMISSION` is revoked on uninstall |
 | Plugin index manipulation | **Low** | ✅ Mitigated — swap-and-pop pattern |
 
 **Recommendations:**
@@ -163,7 +163,6 @@ This document identifies threats, attack vectors, and mitigations for the Bitcoi
 |----------|-------|--------|--------|
 | **P1** | Mock verifiers in production | No real cryptographic security | High |
 | **P1** | No multisig/timelock for ROOT | Single key compromise = total loss | Medium |
-| **P2** | Plugin permissions persist after uninstall | Stale permissions | Medium |
 | **P2** | No daily mint aggregation | Mint limit can be bypassed per-tx | Medium |
 | **P3** | No emergency pause on Treasury | Cannot stop in emergency | Low |
 

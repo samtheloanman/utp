@@ -82,6 +82,8 @@ contract PluginRegistry {
         pluginList.pop();
         delete plugins[plugin];
 
+        dao.revoke(address(dao), plugin, dao.EXECUTE_PERMISSION_ID());
+
         emit PluginUninstalled(plugin);
     }
 
