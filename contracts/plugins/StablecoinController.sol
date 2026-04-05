@@ -79,7 +79,7 @@ contract StablecoinController is ReentrancyGuard {
             dailyMinted = 0;
             lastMintDay = block.timestamp / 1 days;
         }
-        if (dailyMinted + amount > mintLimitPerDay) revert("Exceeds daily mint limit");
+        require(dailyMinted + amount <= mintLimitPerDay, "Exceeds daily mint limit");
         _;
     }
 
