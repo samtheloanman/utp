@@ -41,6 +41,9 @@ contract StablecoinController is ReentrancyGuard {
     uint256 public feeBps;
     bool public paused;
 
+    uint256 public dailyMinted;
+    uint256 public lastMintDay;
+
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     mapping(address => bool) public hasRole;
 
@@ -68,6 +71,15 @@ contract StablecoinController is ReentrancyGuard {
 
     modifier onlyDAO() {
         if (msg.sender != address(dao)) revert Unauthorized();
+        _;
+    }
+
+    modifier checkMintLimit(uint256 amount) {
+        if (block.timestamp / 1 days != lastMintDay) {
+            dailyMinted = 0;
+            lastMintDay = block.timestamp / 1 days;
+        }
+        if (dailyMinted + amount > mintLimitPerDay) revert("Exceeds daily mint limit");
         _;
     }
 
@@ -101,7 +113,7 @@ contract StablecoinController is ReentrancyGuard {
      * @notice Deposits RBTC collateral and mints UBTC.
      * @param ubtcAmount Amount of UBTC to mint.
      */
-    function deposit(uint256 ubtcAmount) external payable whenNotPaused nonReentrant onlyMinter {
+    function deposit(uint256 ubtcAmount) external payable whenNotPaused nonReentrant onlyMinter checkMintLimit(ubtcAmount) {
         if (msg.value == 0) revert ZeroAmount();
         if (ubtcAmount == 0) revert ZeroAmount();
         _checkOracleFreshness();
@@ -116,6 +128,7 @@ contract StablecoinController is ReentrancyGuard {
 
         // Mint UBTC to depositor
         ubtc.mint(msg.sender, ubtcAmount);
+        dailyMinted += ubtcAmount;
 
         emit Deposit(msg.sender, msg.value, ubtcAmount);
     }

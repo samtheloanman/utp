@@ -132,7 +132,7 @@ This document identifies threats, attack vectors, and mitigations for the Bitcoi
 | Threat | Severity | Status |
 |--------|----------|--------|
 | Unauthorized parameter changes | **High** | ✅ Mitigated — onlyDAO modifier |
-| Mint limit bypass (no cumulative tracking) | **Medium** | ⚠️ Active Risk — per-tx check, not daily aggregate |
+| No daily mint aggregation | **Medium** | ✅ Mitigated — `dailyMinted` state tracks daily mints |
 | No access control on mint() | **High** | ✅ Mitigated — `onlyMinter` modifier restricts access |
 
 **Recommendations:**
@@ -163,7 +163,6 @@ This document identifies threats, attack vectors, and mitigations for the Bitcoi
 |----------|-------|--------|--------|
 | **P1** | Mock verifiers in production | No real cryptographic security | High |
 | **P1** | No multisig/timelock for ROOT | Single key compromise = total loss | Medium |
-| **P2** | No daily mint aggregation | Mint limit can be bypassed per-tx | Medium |
 | **P3** | No emergency pause on Treasury | Cannot stop in emergency | Low |
 
 ---
