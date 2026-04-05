@@ -146,6 +146,28 @@ async function main() {
     await dao.grant(deployed.UTPToken, deployer.address, MINTER_PERMISSION_ID);
     console.log("  ✔ Deployer → MINTER_PERMISSION");
 
+    // ---- Step 10: Timelock ----
+    console.log("\n[10/10] Deploying Timelock and transferring ownership...");
+    const TimelockController = await hre.ethers.getContractFactory("TimelockController");
+    const timelock = await TimelockController.deploy(deployer.address, deployer.address, deployer.address);
+    await timelock.waitForDeployment();
+    const timelockAddr = await timelock.getAddress();
+    deployed.TimelockController = timelockAddr;
+    console.log(`  TimelockController: ${timelockAddr}`);
+
+    const PROPOSER_ROLE = await timelock.PROPOSER_ROLE();
+    await timelock.grantRole(PROPOSER_ROLE, deployed.GovernancePlugin);
+    console.log(`  ✔ Granted PROPOSER_ROLE to GovernancePlugin`);
+
+    const TIMELOCK_ADMIN_ROLE = await timelock.TIMELOCK_ADMIN_ROLE();
+    await timelock.renounceRole(TIMELOCK_ADMIN_ROLE, deployer.address);
+    console.log("  ✔ Renounced TIMELOCK_ADMIN_ROLE from deployer");
+
+    const ROOT_PERMISSION_ID = await dao.ROOT_PERMISSION_ID();
+    await dao.grant(deployed.DAO, timelockAddr, ROOT_PERMISSION_ID);
+    await dao.revoke(deployed.DAO, deployer.address, ROOT_PERMISSION_ID);
+    console.log(`  ✔ Transferred DAO ROOT ownership to TimelockController`);
+
     // ---- Save Deployment Record ----
     console.log("\n" + "=".repeat(60));
     console.log("DEPLOYMENT COMPLETE");

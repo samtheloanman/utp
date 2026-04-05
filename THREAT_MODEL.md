@@ -40,7 +40,7 @@ This document identifies threats, attack vectors, and mitigations for the Bitcoi
 | Threat | Severity | Status |
 |--------|----------|--------|
 | Unauthorized ROOT_PERMISSION escalation | **Critical** | ✅ Mitigated — only ROOT holders can grant/revoke |
-| ROOT holder compromise (private key theft) | **Critical** | ⚠️ Ongoing Risk — no multisig or timelock |
+| ROOT holder compromise (private key theft) | **Critical** | ✅ Mitigated — DAO ownership transferred to TimelockController |
 | Permission bypass via direct contract call | **High** | ✅ Mitigated — `onlyDAO` modifier on Treasury/Stablecoin |
 
 **Recommendations:**
@@ -162,7 +162,6 @@ This document identifies threats, attack vectors, and mitigations for the Bitcoi
 | Priority | Issue | Impact | Effort |
 |----------|-------|--------|--------|
 | **P1** | Mock verifiers in production | No real cryptographic security | High |
-| **P1** | No multisig/timelock for ROOT | Single key compromise = total loss | Medium |
 | 
 
 ---
