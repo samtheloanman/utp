@@ -39,6 +39,7 @@
     "zustand": "^5.0.11"
   },
   "devDependencies": {
+    "@0xsequence/sstore2": "github:0xsequence/sstore2",
     "@nomicfoundation/hardhat-chai-matchers": "^2.1.0",
     "@nomicfoundation/hardhat-ethers": "^3.1.0",
     "@nomicfoundation/hardhat-ignition": "^0.15.16",

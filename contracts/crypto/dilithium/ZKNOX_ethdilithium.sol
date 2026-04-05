@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import "sstore2/SSTORE2.sol";
+import "../../lib/SSTORE2.sol";
 import {nttFw} from "./ZKNOX_NTT_dilithium.sol";
 import {dilithiumCore1, dilithiumCore2} from "./ZKNOX_dilithium_core.sol";
 import {sampleInBallKeccakPrng} from "./ZKNOX_SampleInBall.sol";
