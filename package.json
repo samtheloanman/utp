@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "compile": "node scripts/compile.js",
+    "compile": "hardhat compile",
+    "postcompile": "node scripts/generate-abis.js",
     "verify": "node scripts/verify.js",
     "test": "node scripts/verify.js"
   },

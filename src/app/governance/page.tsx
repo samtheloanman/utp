@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useAccount, useReadContract } from 'wagmi';
 import { parseEther, type Address } from 'viem';
 import { useGovernanceQuorum, useCreateProposal, useUTPVotingPower, getAddresses } from '@/lib/hooks';
-import { GovernancePluginABI } from '@/lib/contracts';
+import { ProposalList } from '@/components/ProposalList';
 
 export default function GovernancePage() {
     const { isConnected, chainId } = useAccount();
@@ -138,16 +138,7 @@ export default function GovernancePage() {
                 </div>
             </div>
 
-            {/* Proposals List */}
-            <div className="card">
-                <h2 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '1rem' }}>Active Proposals</h2>
-                {/* Proposals require contract getter for enumeration */}
-                    <div style={{
-                        textAlign: 'center', padding: '3rem', color: 'var(--text-muted)', fontSize: '0.9rem',
-                    }}>
-                        No proposals yet. Connect your wallet and create the first one.
-                    </div>
-            </div>
+            <ProposalList />
         </div>
     );
 }

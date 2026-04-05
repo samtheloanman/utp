@@ -2031,6 +2031,19 @@ export const GovernancePluginABI = [
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "getProposalsCount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "uint256",
@@ -2796,6 +2809,16 @@ export const StablecoinControllerABI = [
   },
   {
     "inputs": [],
+    "name": "ReentrancyGuardReentrantCall",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "StaleOracle",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "TransferFailed",
     "type": "error"
   },
@@ -2937,6 +2960,32 @@ export const StablecoinControllerABI = [
   },
   {
     "inputs": [],
+    "name": "MAX_ORACLE_STALENESS",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "MINTER_ROLE",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "collateralRatioBps",
     "outputs": [
       {
@@ -3001,6 +3050,38 @@ export const StablecoinControllerABI = [
         "internalType": "uint256",
         "name": "",
         "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "minter",
+        "type": "address"
+      }
+    ],
+    "name": "grantMinterRole",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "hasRole",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
       }
     ],
     "stateMutability": "view",
@@ -3223,18 +3304,23 @@ export const StablecoinControllerABI = [
   }
 ] as const;
 
-
-// Contract addresses — update after deployment
 export const ADDRESSES = {
-  hardhat: {
-    DAO: '0x5FbDB2315678afecb367f032d93F642f64180aa3',
-    Treasury: '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512',
-    UTPToken: '0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0',
-    GovernancePlugin: '0x5FC8d32690cc91D4c39d9d3abcBD16989F875707',
-    EventMarket: '0x0165878A594ca255338adfa4d48449f69242Eb8F',
-    UBTC: '0xa513E6E4b8f2a923D98304ec87F64353C4D5C853',
-    StablecoinController: '0x8A791620dd6260079BF849Dc5567aDC3F2FdC318',
-  },
-  rskTestnet: {} as Record<string, string>,
-  rskMainnet: {} as Record<string, string>,
+  "hardhat-1772988733444": {
+    "network": "hardhat",
+    "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "timestamp": "2026-03-08T16:52:13.444Z",
+    "contracts": {
+      "DAO": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+      "Treasury": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+      "UTPToken": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+      "QuantumVerifier": "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
+      "ZKVerifier": "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
+      "GovernancePlugin": "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
+      "EventMarket": "0x0165878A594ca255338adfa4d48449f69242Eb8F",
+      "UBTC": "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+      "PriceOracle": "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
+      "StablecoinController": "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
+      "PluginRegistry": "0xA51c1fc2f0D1a1b8494Ed1FE312d7C3a78Ed91C0"
+    }
+  }
 } as const;

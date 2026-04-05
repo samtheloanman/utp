@@ -139,7 +139,6 @@ contract GovernancePlugin {
 
         // Get vote weight from token balance at snapshot
         uint256 weight = votingToken.getPastVotes(msg.sender, p.snapshotBlock);
-        if (weight == 0) weight = 1; // Minimum 1 vote for PQ-authenticated participants
 
         p.voteWeight += weight;
         p.hasVoted[msg.sender] = true;
@@ -182,6 +181,10 @@ contract GovernancePlugin {
         emit VoteCastAnonymous(proposalId, 1);
 
         _tryExecute(proposalId);
+    }
+
+    function getProposalsCount() external view returns (uint256) {
+        return proposals.length;
     }
 
     /**

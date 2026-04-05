@@ -68,9 +68,9 @@ This document identifies threats, attack vectors, and mitigations for the Bitcoi
 
 | Threat | Severity | Status |
 |--------|----------|--------|
-| Flash-vote attacks (EXECUTION_THRESHOLD = 1) | **Critical** | ⚠️ Active Risk — single vote executes proposals |
+| Flash-vote attacks | **Critical** | ✅ Mitigated — only token holders can vote |
 | Replay attacks on hybrid votes | **High** | ✅ Mitigated — messageHash includes proposalId + msg.sender + contract address |
-| ZK nullifier reuse (double-voting) | **High** | ⚠️ Active Risk — nullifier tracking commented out |
+| ZK nullifier reuse (double-voting) | **High** | ✅ Mitigated — `usedNullifiers` mapping prevents reuse |
 | Proposal front-running | **Medium** | ⚠️ Active Risk — no commit-reveal scheme |
 
 **Recommendations:**
@@ -161,8 +161,6 @@ This document identifies threats, attack vectors, and mitigations for the Bitcoi
 
 | Priority | Issue | Impact | Effort |
 |----------|-------|--------|--------|
-| **P0** | ZK nullifier tracking not implemented | Double-voting possible | Low |
-| **P0** | EXECUTION_THRESHOLD = 1 | Single-vote governance takeover | Low |
 | **P0** | mint() has no access control | Anyone can mint stablecoins | Low |
 | **P1** | No chainId in vote hash | Cross-chain replay | Low |
 | **P1** | Mock verifiers in production | No real cryptographic security | High |

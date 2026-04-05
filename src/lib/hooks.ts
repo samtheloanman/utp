@@ -92,6 +92,30 @@ export function useUTPTransfer() {
 
 // ---- Governance Hooks ----
 
+export function useProposalsCount() {
+    const { chainId } = useAccount();
+    const addrs = getAddresses(chainId);
+    return useReadContract({
+        address: addrs.GovernancePlugin as Address,
+        abi: GovernancePluginABI,
+        functionName: 'getProposalsCount',
+    });
+}
+
+export function useProposal(proposalId: bigint) {
+    const { chainId } = useAccount();
+    const addrs = getAddresses(chainId);
+    return useReadContract({
+        address: addrs.GovernancePlugin as Address,
+        abi: GovernancePluginABI,
+        functionName: 'proposals',
+        args: [proposalId],
+        query: {
+            enabled: proposalId !== undefined,
+        }
+    });
+}
+
 export function useGovernanceQuorum() {
   const { chainId } = useAccount();
   const addrs = getAddresses(chainId);

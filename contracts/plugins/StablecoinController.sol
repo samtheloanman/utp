@@ -41,6 +41,9 @@ contract StablecoinController is ReentrancyGuard {
     uint256 public feeBps;
     bool public paused;
 
+    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+    mapping(address => bool) public hasRole;
+
     /// @notice Per-user collateral positions
     mapping(address => Position) public positions;
 
@@ -65,6 +68,11 @@ contract StablecoinController is ReentrancyGuard {
 
     modifier onlyDAO() {
         if (msg.sender != address(dao)) revert Unauthorized();
+        _;
+    }
+
+    modifier onlyMinter() {
+        if (!hasRole[msg.sender]) revert Unauthorized();
         _;
     }
 
@@ -93,7 +101,7 @@ contract StablecoinController is ReentrancyGuard {
      * @notice Deposits RBTC collateral and mints UBTC.
      * @param ubtcAmount Amount of UBTC to mint.
      */
-    function deposit(uint256 ubtcAmount) external payable whenNotPaused nonReentrant {
+    function deposit(uint256 ubtcAmount) external payable whenNotPaused nonReentrant onlyMinter {
         if (msg.value == 0) revert ZeroAmount();
         if (ubtcAmount == 0) revert ZeroAmount();
         _checkOracleFreshness();
@@ -201,6 +209,10 @@ contract StablecoinController is ReentrancyGuard {
     }
 
     // ---- DAO Governance Functions ----
+
+    function grantMinterRole(address minter) external onlyDAO {
+        hasRole[minter] = true;
+    }
 
     function setMintLimit(uint256 _newLimit) external onlyDAO {
         mintLimitPerDay = _newLimit;
