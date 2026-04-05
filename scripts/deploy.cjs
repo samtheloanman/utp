@@ -49,10 +49,10 @@ async function main() {
     deployed.UTPToken = await utpToken.getAddress();
     console.log(`  UTPToken: ${deployed.UTPToken}`);
 
-    // ---- Step 4: Mock Verifiers (testnet only) ----
+    // ---- Step 4: Verifiers ----
     console.log("\n[4/9] Deploying Verifiers...");
-    const MockQuantumVerifier = await hre.ethers.getContractFactory("MockQuantumVerifier");
-    const quantumVerifier = await MockQuantumVerifier.deploy();
+    const ZKNOX_ethdilithium = await hre.ethers.getContractFactory("ZKNOX_ethdilithium");
+    const quantumVerifier = await ZKNOX_ethdilithium.deploy();
     await quantumVerifier.waitForDeployment();
     deployed.QuantumVerifier = await quantumVerifier.getAddress();
 

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 import "../core/DAO.sol";
-import "../crypto/IQuantumVerifier.sol";
+import "../crypto/dilithium/ZKNOX_ethdilithium.sol";
 import "../crypto/IZKVerifier.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 
@@ -34,7 +34,7 @@ contract GovernancePlugin {
     DAO public immutable dao;
 
     /// @notice The Post-Quantum verifier.
-    IQuantumVerifier public quantumVerifier;
+    ZKNOX_ethdilithium public quantumVerifier;
 
     /// @notice The Zero-Knowledge verifier.
     IZKVerifier public zkVerifier;
@@ -87,7 +87,7 @@ contract GovernancePlugin {
         uint256 _votingPeriod
     ) {
         dao = DAO(payable(_dao));
-        quantumVerifier = IQuantumVerifier(_quantumVerifier);
+        quantumVerifier = ZKNOX_ethdilithium(payable(_quantumVerifier));
         zkVerifier = IZKVerifier(_zkVerifier);
         votingToken = ERC20Votes(_votingToken);
         quorumBps = _quorumBps;
@@ -133,7 +133,7 @@ contract GovernancePlugin {
         bytes32 messageHash = keccak256(
             abi.encodePacked(proposalId, msg.sender, address(this), block.chainid)
         );
-        if (!quantumVerifier.verify(pqPublicKey, messageHash, pqSignature)) {
+        if (!quantumVerifier.verify(pqPublicKey, abi.encodePacked(messageHash), pqSignature, "")) {
             revert InvalidAuth();
         }
 
