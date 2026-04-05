@@ -133,7 +133,7 @@ This document identifies threats, attack vectors, and mitigations for the Bitcoi
 |--------|----------|--------|
 | Unauthorized parameter changes | **High** | ✅ Mitigated — onlyDAO modifier |
 | Mint limit bypass (no cumulative tracking) | **Medium** | ⚠️ Active Risk — per-tx check, not daily aggregate |
-| No access control on mint() | **High** | ⚠️ Active Risk — anyone can call mint() |
+| No access control on mint() | **High** | ✅ Mitigated — `onlyMinter` modifier restricts access |
 
 **Recommendations:**
 - Add MINTER_ROLE permission check on mint()
@@ -161,7 +161,6 @@ This document identifies threats, attack vectors, and mitigations for the Bitcoi
 
 | Priority | Issue | Impact | Effort |
 |----------|-------|--------|--------|
-| **P0** | mint() has no access control | Anyone can mint stablecoins | Low |
 | **P1** | No chainId in vote hash | Cross-chain replay | Low |
 | **P1** | Mock verifiers in production | No real cryptographic security | High |
 | **P1** | No multisig/timelock for ROOT | Single key compromise = total loss | Medium |
