@@ -163,7 +163,7 @@ This document identifies threats, attack vectors, and mitigations for the Bitcoi
 |----------|-------|--------|--------|
 | **P1** | Mock verifiers in production | No real cryptographic security | High |
 | **P1** | No multisig/timelock for ROOT | Single key compromise = total loss | Medium |
-| **P3** | No emergency pause on Treasury | Cannot stop in emergency | Low |
+| 
 
 ---
 
