@@ -12,7 +12,10 @@ module.exports = {
                 runs: 200,
             },
             remappings: [
-                "sstore2/=contracts/lib/"
+                "sstore2/=contracts/lib/",
+                "@openzeppelin/=node_modules/@openzeppelin/",
+                "forge-std/=node_modules/forge-std/src/",
+                "ds-test/=node_modules/ds-test/src/"
             ]
         },
     },
