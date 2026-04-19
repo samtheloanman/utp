@@ -3,9 +3,16 @@
 ## Milestone 1: MVP - AI Debates & L2 Stablecoin Ecosystem
 
 ### Phase 1: Stablecoin Collateral & Tokenomics Foundation
-- Implement `UBTC.sol` and stablecoin controller logic.
-- Integrate with RSK to handle BTC-backed collaterals securely.
-- Basic Next.js dashboard for users to mint/wrap and view stablecoin balances.
+
+**Goal:** Implement the `UBTC.sol` stablecoin, its collateral management contract, and a basic Next.js dashboard for users to mint tokens and view balances on the RSK Testnet.
+
+**Requirements:** `[P1-STBL-1, P1-STBL-2, P1-STBL-3]`
+**Plans:** 4 plans
+
+- [ ] `01-01-PLAN.md` — Core `UBTC.sol` ERC20 Token Contract
+- [ ] `01-02-PLAN.md` — Frontend Foundation (Next.js, Wagmi)
+- [ ] `01-03-PLAN.md` — Collateral Manager Contract & Deployment Scripts
+- [ ] `01-04-PLAN.md` — Frontend Integration for Minting and Balance Display
 
 ### Phase 2: AI Debate Fact-Generation Engine
 - Build the off-chain AI debate generation engine (using LLM integration/Supabase functions).
