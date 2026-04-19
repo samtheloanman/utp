@@ -1,23 +1,21 @@
-# UtP Project Roadmap
+# UtP Project Roadmap (Pivot v2.0)
 
-## Phase 1: The Trust Portal (Weeks 1-6)
-**Goal:** Prove demand for readable civic data.
-- [ ] M1: Repository Scaffold & Brain Init
-- [ ] M2: Congress.gov API Integration
-- [ ] M3: Grounded AI "Citizen Digest" Pipeline
-- [ ] M4: Shadow Voting with Email/OAuth
-- [ ] M5: Public API v1 Release
+## Phase 1: The Foundation (Weeks 1-4)
+**Goal:** Deploy the "Freedom Stack" MVP on Testnet.
+- [ ] M1: **Repo Pivot**: Clean up old code, install Stacks/Clarinet dev tools.
+- [ ] M2: **Smart Contract**: Develop `utp-stable` (10k sats peg) and `utp-vote` contracts.
+- [ ] M3: **Truth Engine Alpha**: Basic news aggregation for Iran/Venezuela topics.
+- [ ] M4: **Wallet Integration**: Connect Next.js to Hiro/Xverse wallets.
 
-## Phase 2: Regional & Narrative Expansion (Months 2-6)
-**Goal:** Grow audience and provide deeper context.
-- [ ] M6: 5-State Pilot (CA, TX, NY, FL, IL)
-- [ ] M7: Iran Portal "Voting + Info" Upgrade
-- [ ] M8: Narrative Gap Dashboard (Media vs. Legislation)
-- [ ] M9: Issue Groups & User Communities
+## Phase 2: The Pilot (Weeks 5-8)
+**Goal:** Beta launch with 100 trusted users.
+- [ ] M5: **Mainnet Deployment**: Deploy contracts to Bitcoin L2.
+- [ ] M6: **PWA Launch**: Mobile-optimized web app (censorship resistant).
+- [ ] M7: **Content Feed**: Live "Truth" feed for Iran/Venezuela.
+- [ ] M8: **First Vote**: "Global Sentiment on Sanctions" (Test Vote).
 
-## Phase 3: The Governance Layer (Months 6-12)
-**Goal:** Deploy the "DAO on Bitcoin" architecture.
-- [ ] M10: Legal/Regulatory Clearance for Rootstock/Stacks
-- [ ] M11: Non-custodial Governance Primitives (Signed Proposals)
-- [ ] M12: Reputation-weighted Voting
-- [ ] M13: Merit-based Contributor Rewards
+## Phase 3: The Economy (Months 3-6)
+**Goal:** Real economic utility.
+- [ ] M9: **Merchant Tools**: Simple QR code POS for local merchants.
+- [ ] M10: **P2P Marketplace**: Allow users to swap goods for UtP tokens.
+- [ ] M11: **Mesh Networking**: Bluetooth/Offline transaction broadcasting.
