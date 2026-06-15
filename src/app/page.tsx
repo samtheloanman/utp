@@ -8,6 +8,8 @@ import { Icon } from '@/components/ui/icons';
 import { useWriteContract } from 'wagmi';
 import { usePrivy } from '@privy-io/react-auth';
 import { UTP_POLLING_ADDRESS, UTP_POLLING_ABI } from '@/lib/contracts';
+import { HeroCanvas } from '@/components/ui/HeroCanvas';
+import gsap from 'gsap';
 
 export default function FeedView() {
   const router = useRouter();
@@ -20,6 +22,17 @@ export default function FeedView() {
   const [votes, setVotes] = useState<Record<string, string>>({});
   const { writeContract } = useWriteContract();
   const { authenticated, login } = usePrivy();
+
+  // Intro Animation
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      gsap.fromTo('.intro-elem > *', 
+        { y: 30, opacity: 0 },
+        { y: 0, opacity: 1, duration: 1, stagger: 0.1, ease: 'power3.out', delay: 0.2 }
+      );
+    });
+    return () => ctx.revert();
+  }, []);
 
   useEffect(() => {
     try {
@@ -77,6 +90,7 @@ export default function FeedView() {
       (cat === 'All' || i.category === cat) &&
       (!q || (i.question + ' ' + i.region + ' ' + i.category).toLowerCase().includes(q))
     );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return { ...byScale, _filtered: filtered } as any;
   }, [scale, cat, query]);
 
@@ -123,14 +137,14 @@ export default function FeedView() {
 
       <div className="wrap">
         {showHero && (
-          <div className="hero">
-            <div className="hero-photo" />
-            <div className="hero-veil" />
-            <div className="hero-content">
+          <div className="hero hero-container overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-[#082A33] via-[#0A5466] to-[#0E7C96] z-0" />
+            <HeroCanvas />
+            <div className="hero-content relative z-10 intro-elem">
               <span className="hero-eyebrow"><span className="live-dot" /> {fmt(totalVoices)} voices · {ISSUES.length} live issues</span>
-              <h1>Vote on what shapes your world</h1>
-              <p>From your city council to the United Nations, weigh in on the decisions that matter — every claim backed by neutral, citation-grounded evidence.</p>
-              <div className="hstats">
+              <h1 className="intro-title">Vote on what shapes your world</h1>
+              <p className="intro-desc">From your city council to the United Nations, weigh in on the decisions that matter — every claim backed by neutral, citation-grounded evidence.</p>
+              <div className="hstats intro-stats">
                 <span className="hstat"><b>{fmt(totalVoices)}</b><span><Icon name="users" size={13} stroke={1.9} /> Voices cast</span></span>
                 <span className="hstat"><b>{ISSUES.length}</b><span><Icon name="layers" size={13} stroke={1.9} /> Open issues</span></span>
                 <span className="hstat"><b>4</b><span><Icon name="global" size={13} stroke={1.9} /> Local → global</span></span>
@@ -148,6 +162,7 @@ export default function FeedView() {
         {counts._filtered.length === 0
           ? <div className="empty"><Icon name="search" size={28} stroke={1.6} /><p>No issues match. Try a different scale or category.</p></div>
           : <div className="feed-grid">
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {counts._filtered.map((issue: any) => (
                 <IssueCard key={issue.id} issue={issue} vote={votes[issue.id]} onVote={onVote} onOpen={goOpen} />
               ))}

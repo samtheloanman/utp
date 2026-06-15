@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSourceProfile, getBiasScore, isUnbiasedSource, type BiasRating } from '@/lib/bias-map';
+import { getSourceProfile, getBiasScore, type BiasRating } from '@/lib/bias-map';
 import { dedup, type DeduplicableArticle } from '@/lib/dedup';
 
 // ── Types ──────────────────────────────────────────────────

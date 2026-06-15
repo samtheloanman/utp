@@ -17,6 +17,7 @@ function getArtifact(name) {
         path.join(rootDir, 'artifacts', 'contracts', 'core', `${name}.sol`, `${name}.json`),
         path.join(rootDir, 'artifacts', 'contracts', 'crypto', `${name}.sol`, `${name}.json`),
         path.join(rootDir, 'artifacts', 'contracts', 'plugins', `${name}.sol`, `${name}.json`),
+        path.join(rootDir, 'artifacts', 'contracts', 'test', `${name}.sol`, `${name}.json`),
         path.join(rootDir, 'artifacts', 'contracts', 'crypto', `MockVerifiers.sol`, `${name}.json`),
         path.join(rootDir, 'artifacts', 'contracts', name.includes('/') ? name + '.json' : `core/${name}.json`)
     ];
@@ -41,10 +42,15 @@ async function main() {
     const mockZKVerifier = await deploy('MockZKVerifier');
     const dao = await deploy('DAO');
     
+    const mockToken = await deploy('MockToken');
+
     const governancePlugin = await deploy('GovernancePlugin', [
         await dao.getAddress(),
         await mockQuantumVerifier.getAddress(),
-        await mockZKVerifier.getAddress()
+        await mockZKVerifier.getAddress(),
+        await mockToken.getAddress(),
+        5000,
+        86400
     ]);
     
     const treasury = await deploy('Treasury', [await dao.getAddress()]);
@@ -53,14 +59,15 @@ async function main() {
     const EXECUTE_PERMISSION_ID = ethers.keccak256(ethers.toUtf8Bytes("EXECUTE_PERMISSION"));
     
     // Grant GovernancePlugin permission to execute via DAO
-    const tx1 = await dao.grant(await dao.getAddress(), await governancePlugin.getAddress(), EXECUTE_PERMISSION_ID);
+    const tx1 = await dao.grant(await dao.getAddress(), await governancePlugin.getAddress(), EXECUTE_PERMISSION_ID, { nonce: await wallet.getNonce() });
     await tx1.wait();
     console.log('Execution permission granted to GovernancePlugin');
 
     // Fund Treasury
     const tx2 = await wallet.sendTransaction({
         to: await treasury.getAddress(),
-        value: ethers.parseUnits('1.0', 'ether')
+        value: ethers.parseUnits('1.0', 'ether'),
+        nonce: await wallet.getNonce()
     });
     await tx2.wait();
     console.log('Treasury funded with 1.0 RBTC');

@@ -52,8 +52,8 @@ export default function HowItWorks() {
           <ul style={{ paddingLeft: '20px', marginTop: '16px', color: 'var(--muted)', lineHeight: '1.6', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <li><b>Authentication:</b> Users sign in using an email address, Google account, or a native Web3 wallet.</li>
             <li><b>Wallet Provisioning:</b> For users signing in via email/social, a secure embedded wallet is provisioned automatically behind the scenes. This wallet holds the cryptographic keys needed to interact with the blockchain.</li>
-            <li><b>Casting a Vote:</b> Users review the AI-synthesized, citation-grounded arguments and select 'For', 'Against', or 'Unsure'.</li>
-            <li><b>On-chain Settlement:</b> The vote is signed by the user's wallet and broadcasted to the RSK Smart Contract, adding it to the immutable public tally.</li>
+            <li><b>Casting a Vote:</b> Users review the AI-synthesized, citation-grounded arguments and select &apos;For&apos;, &apos;Against&apos;, or &apos;Unsure&apos;.</li>
+            <li><b>On-chain Settlement:</b> The vote is signed by the user&apos;s wallet and broadcasted to the RSK Smart Contract, adding it to the immutable public tally.</li>
           </ul>
         </div>
 
@@ -81,7 +81,7 @@ export default function HowItWorks() {
                 <Icon name="question" size={16} stroke={2} /> How are the AI summaries generated?
               </h4>
               <p style={{ color: 'var(--muted)', lineHeight: '1.6', marginTop: '6px' }}>
-                Our AI agents pull information exclusively from a curated registry of verified sources. Every claim in the "Citizen Digest" includes a direct citation to the original source material.
+                Our AI agents pull information exclusively from a curated registry of verified sources. Every claim in the &quot;Citizen Digest&quot; includes a direct citation to the original source material.
               </p>
             </div>
           </div>

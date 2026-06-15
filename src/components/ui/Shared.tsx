@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { SCALES, CATEGORIES, Issue, photoUrl } from '@/lib/data';
+import { SCALES, Issue, photoUrl } from '@/lib/data';
 import { Icon, BrandMark, Flag, CAT_COLOR } from './icons';
 import { usePrivy } from '@privy-io/react-auth';
 import Link from 'next/link';

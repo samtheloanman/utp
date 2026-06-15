@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
   try {
-    const { issueId, question } = await req.json();
+    const { question } = await req.json();
 
     // In a real application, this would call an LLM (e.g., Anthropic Claude or OpenAI)
     // with a prompt like: "Given the civic issue: {question}, generate a neutral TLDR, arguments for, and arguments against. Include citations."

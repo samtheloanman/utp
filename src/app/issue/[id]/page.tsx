@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ISSUES, Issue, makeActivity } from '@/lib/data';
 import { scaleMeta, Media, SentimentBar, TrendChart, TopBar, fmt } from '@/components/ui/Shared';
-import { Icon, BrandMark, Flag } from '@/components/ui/icons';
+import { Icon, Flag } from '@/components/ui/icons';
 import { useWriteContract } from 'wagmi';
 import { usePrivy } from '@privy-io/react-auth';
 import { UTP_POLLING_ADDRESS, UTP_POLLING_ABI } from '@/lib/contracts';
@@ -41,6 +41,7 @@ function VotePanel({ issue, vote, onVote }: { issue: Issue, vote: string | null,
 }
 
 function AiDebate({ issue }: { issue: Issue }) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [debate, setDebate] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -91,6 +92,7 @@ function AiDebate({ issue }: { issue: Issue }) {
           <div className="debate-cols">
             <div className="debate-col for">
               <h4><Icon name="up" size={15} stroke={2.4} /> Arguments For</h4>
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {displayData.argsFor.map((a: any, i: number) => (
                 <div className="arg" key={i}>
                   <span className="marker">{i + 1}</span>
@@ -100,6 +102,7 @@ function AiDebate({ issue }: { issue: Issue }) {
             </div>
             <div className="debate-col against">
               <h4><Icon name="down" size={15} stroke={2.4} /> Arguments Against</h4>
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {displayData.argsAgainst.map((a: any, i: number) => (
                 <div className="arg" key={i}>
                   <span className="marker">{i + 1}</span>

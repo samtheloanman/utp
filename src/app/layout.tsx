@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
+import { SmoothScroll } from "@/components/ui/SmoothScroll";
 
 export const metadata: Metadata = {
   title: "UTP — Universal Transaction Protocol",
@@ -16,7 +17,9 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <Providers>
-          {children}
+          <SmoothScroll>
+            {children}
+          </SmoothScroll>
         </Providers>
       </body>
     </html>
