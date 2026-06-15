@@ -141,7 +141,7 @@ export default function FeedView() {
         {counts._filtered.length === 0
           ? <div className="empty"><Icon name="search" size={28} stroke={1.6} /><p>No issues match. Try a different scale or category.</p></div>
           : <div className="feed-grid">
-              {counts._filtered.map(issue => (
+              {counts._filtered.map((issue: any) => (
                 <IssueCard key={issue.id} issue={issue} vote={votes[issue.id]} onVote={onVote} onOpen={goOpen} />
               ))}
             </div>}
