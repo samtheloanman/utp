@@ -1,8 +1,6 @@
-import '@rainbow-me/rainbowkit/styles.css';
 import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
-import { Header } from "@/components/ui/header";
 
 export const metadata: Metadata = {
   title: "UTP — Universal Transaction Protocol",

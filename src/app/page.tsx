@@ -6,6 +6,7 @@ import { SCALES, CATEGORIES, ISSUES } from '@/lib/data';
 import { TopBar, IssueCard, fmt } from '@/components/ui/Shared';
 import { Icon } from '@/components/ui/icons';
 import { useWriteContract } from 'wagmi';
+import { usePrivy } from '@privy-io/react-auth';
 import { UTP_POLLING_ADDRESS, UTP_POLLING_ABI } from '@/lib/contracts';
 
 export default function FeedView() {
@@ -18,6 +19,7 @@ export default function FeedView() {
   
   const [votes, setVotes] = useState<Record<string, string>>({});
   const { writeContract } = useWriteContract();
+  const { authenticated, login } = usePrivy();
 
   useEffect(() => {
     try {
@@ -34,6 +36,11 @@ export default function FeedView() {
   }, []);
 
   const onVote = (id: string, v: string) => {
+    if (!authenticated) {
+      login();
+      return;
+    }
+
     // 1=for, 2=against, 3=unsure
     const voteMap: Record<string, number> = { 'for': 1, 'against': 2, 'unsure': 3 };
     const voteType = voteMap[v];

@@ -5,11 +5,12 @@ import { useParams, useRouter } from 'next/navigation';
 import { ISSUES, Issue, makeActivity } from '@/lib/data';
 import { scaleMeta, Media, SentimentBar, TrendChart, TopBar, fmt } from '@/components/ui/Shared';
 import { Icon, BrandMark, Flag } from '@/components/ui/icons';
-import { useAccount, useWriteContract } from 'wagmi';
+import { useWriteContract } from 'wagmi';
+import { usePrivy } from '@privy-io/react-auth';
 import { UTP_POLLING_ADDRESS, UTP_POLLING_ABI } from '@/lib/contracts';
 
 function VotePanel({ issue, vote, onVote }: { issue: Issue, vote: string | null, onVote: (id: string, vote: string) => void }) {
-  const { isConnected } = useAccount();
+  const { authenticated, login } = usePrivy();
   
   const opts = [
     { k: 'for', cls: 'for-opt', label: 'For', pct: issue.for, ico: 'up' },
@@ -23,7 +24,7 @@ function VotePanel({ issue, vote, onVote }: { issue: Issue, vote: string | null,
       <div className="vopts">
         {opts.map(o => (
           <button key={o.k} className={'vopt ' + o.cls + (vote === o.k ? ' sel' : '')}
-            onClick={() => isConnected ? onVote(issue.id, o.k) : alert('Please connect your wallet using the Top Bar to vote.')}>
+            onClick={() => authenticated ? onVote(issue.id, o.k) : login()}>
             <i className="fillbar" style={{ width: o.pct + '%' }} />
             <span className="vleft"><span className="vico"><Icon name={o.ico} size={16} stroke={2.4} /></span>{o.label}</span>
             <span className="vpct">{o.pct}%</span>
@@ -32,9 +33,9 @@ function VotePanel({ issue, vote, onVote }: { issue: Issue, vote: string | null,
       </div>
       {vote
         ? <div className="voted-note"><Icon name="check" size={15} stroke={2.4} /> Your voice is counted as <b>{vote}</b> · change anytime</div>
-        : isConnected
+        : authenticated
           ? <p className="signin-note">Select an option above to add your voice.</p>
-          : <p className="signin-note">Connect wallet to vote.</p>}
+          : <p className="signin-note">Connect wallet or email to vote.</p>}
     </div>
   );
 }

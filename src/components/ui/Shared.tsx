@@ -3,7 +3,8 @@
 import React, { useState } from 'react';
 import { SCALES, CATEGORIES, Issue, photoUrl } from '@/lib/data';
 import { Icon, BrandMark, Flag, CAT_COLOR } from './icons';
-import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { usePrivy } from '@privy-io/react-auth';
+import Link from 'next/link';
 
 export function fmt(n: number) {
   if (n >= 1000000) return (n / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
@@ -164,6 +165,8 @@ export function IssueCard({ issue, vote, onVote, onOpen }: { issue: Issue, vote:
 }
 
 export function TopBar({ query, onQuery, onHome }: { query?: string, onQuery?: (q: string) => void, onHome?: () => void }) {
+  const { login, authenticated, logout } = usePrivy();
+  
   return (
     <header className="topbar">
       <div className="topbar-inner">
@@ -185,8 +188,14 @@ export function TopBar({ query, onQuery, onHome }: { query?: string, onQuery?: (
         </div>
 
         <div className="topbar-actions">
-          <button className="btn btn-quiet btn-sm"><Icon name="shield" size={15} stroke={1.9} />How it works</button>
-          <ConnectButton />
+          <Link href="/how-it-works" className="btn btn-quiet btn-sm" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <Icon name="shield" size={15} stroke={1.9} />How it works
+          </Link>
+          {authenticated ? (
+            <button className="btn" style={{ background: 'var(--for)', color: 'white', border: 'none' }} onClick={logout}>Sign Out</button>
+          ) : (
+            <button className="btn" style={{ background: 'var(--accent)', color: 'white', border: 'none' }} onClick={login}>Sign In</button>
+          )}
         </div>
       </div>
     </header>
