@@ -1,170 +1,150 @@
 'use client';
 
-import Link from 'next/link';
-import { useAccount } from 'wagmi';
-import { formatEther } from 'viem';
-import {
-  useUTPTotalSupply, useUTPBalance, useUTPVotingPower,
-  useEventCount, useTotalCollateral,
-} from '@/lib/hooks';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { SCALES, CATEGORIES, ISSUES } from '@/lib/data';
+import { TopBar, IssueCard, fmt } from '@/components/ui/Shared';
+import { Icon } from '@/components/ui/icons';
+import { useWriteContract } from 'wagmi';
+import { UTP_POLLING_ADDRESS, UTP_POLLING_ABI } from '@/lib/contracts';
 
-export default function OverviewPage() {
-  const { isConnected } = useAccount();
+export default function FeedView() {
+  const router = useRouter();
+  
+  // App state
+  const [scale, setScale] = useState('all');
+  const [cat, setCat] = useState('All');
+  const [query, setQuery] = useState('');
+  
+  const [votes, setVotes] = useState<Record<string, string>>({});
+  const { writeContract } = useWriteContract();
 
-  const { data: totalSupply } = useUTPTotalSupply();
-  const { data: balance } = useUTPBalance();
-  const { data: votingPower } = useUTPVotingPower();
-  const { data: eventCount } = useEventCount();
-  const { data: totalCollateral } = useTotalCollateral();
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('utp_votes');
+      if (saved) setVotes(JSON.parse(saved));
+    } catch {}
+    
+    // Set theme variables on mount
+    const r = document.documentElement;
+    r.setAttribute('data-palette', 'civic');
+    r.setAttribute('data-density', 'comfortable');
+    r.setAttribute('data-display', 'grotesk');
+    r.setAttribute('data-photos', 'on');
+  }, []);
 
-  const fmt = (v: bigint | undefined) => {
-    if (!v) return '—';
-    const n = Number(formatEther(v));
-    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-    if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-    return n.toFixed(2);
+  const onVote = (id: string, v: string) => {
+    // 1=for, 2=against, 3=unsure
+    const voteMap: Record<string, number> = { 'for': 1, 'against': 2, 'unsure': 3 };
+    const voteType = voteMap[v];
+
+    writeContract({
+      address: UTP_POLLING_ADDRESS,
+      abi: UTP_POLLING_ABI,
+      functionName: 'castVote',
+      args: [id, voteType],
+    }, {
+      onSuccess: () => {
+        setVotes(prev => {
+          const next = { ...prev, [id]: prev[id] === v ? undefined : v };
+          if (next[id] === undefined) delete next[id];
+          try { localStorage.setItem('utp_votes', JSON.stringify(next)); } catch {}
+          return next as Record<string, string>;
+        });
+      },
+      onError: (err) => {
+        console.error('Failed to vote:', err);
+        alert('Failed to vote on-chain. Make sure you are connected to the right network.');
+      }
+    });
   };
 
-  const STATS = [
-    { label: 'Smart Contracts', value: '11', sub: 'Deployed', color: 'var(--text-primary)' },
-    { label: 'UTP Supply', value: fmt(totalSupply as bigint | undefined), sub: 'Total Minted', color: 'var(--btc-orange)' },
-    { label: 'Proposals', value: '—', sub: 'Governance', color: 'var(--blue)' },
-    { label: 'Events', value: eventCount ? String(Number(eventCount)) : '0', sub: 'Prediction Markets', color: 'var(--green)' },
-  ];
+  const counts = useMemo(() => {
+    const byScale: Record<string, number> = { all: ISSUES.length };
+    SCALES.forEach(s => { 
+      if (s.key !== 'all') byScale[s.key] = ISSUES.filter(i => i.scale === s.key).length; 
+    });
+    const q = query.trim().toLowerCase();
+    const filtered = ISSUES.filter(i =>
+      (scale === 'all' || i.scale === scale) &&
+      (cat === 'All' || i.category === cat) &&
+      (!q || (i.question + ' ' + i.region + ' ' + i.category).toLowerCase().includes(q))
+    );
+    return { ...byScale, _filtered: filtered } as any;
+  }, [scale, cat, query]);
 
-  const MODULES = [
-    {
-      title: 'DAO Governance',
-      icon: '🏛️',
-      href: '/governance',
-      stats: [
-        { label: 'Proposals', value: '—' },
-        { label: 'Your VP', value: isConnected ? fmt(votingPower as bigint | undefined) : '—' },
-      ],
-      description: 'Create proposals, vote with UTP tokens, execute via quorum.',
-      color: 'var(--btc-orange)',
-    },
-    {
-      title: 'Event Voting',
-      icon: '📊',
-      href: '/events',
-      stats: [
-        { label: 'Active Events', value: eventCount ? String(Number(eventCount)) : '—' },
-        { label: 'Total Staked', value: '—' },
-      ],
-      description: 'Polymarket-style prediction markets on world events.',
-      color: 'var(--blue)',
-    },
-    {
-      title: 'UBTC Stablecoin',
-      icon: '🪙',
-      href: '/stablecoin',
-      stats: [
-        { label: 'Total Collateral', value: fmt(totalCollateral as bigint | undefined) },
-        { label: 'UBTC Supply', value: '—' },
-      ],
-      description: 'BTC-backed stablecoin with collateral vault and liquidation.',
-      color: 'var(--green)',
-    },
-    {
-      title: 'UTP Token',
-      icon: '🔶',
-      href: '/token',
-      stats: [
-        { label: 'Total Supply', value: fmt(totalSupply as bigint | undefined) },
-        { label: 'Your Balance', value: isConnected ? fmt(balance as bigint | undefined) : '—' },
-      ],
-      description: 'Governance token with voting power, delegation, and permits.',
-      color: 'var(--btc-orange)',
-    },
-    {
-      title: 'News Hub',
-      icon: '📰',
-      href: '/news',
-      stats: [
-        { label: 'Source', value: 'GDELT' },
-        { label: 'Updates', value: 'Live' },
-      ],
-      description: 'Aggregated world news with AI fact-checking and bias scoring.',
-      color: 'var(--yellow)',
-    },
-    {
-      title: 'Legislature',
-      icon: '⚖️',
-      href: '/legislature',
-      stats: [
-        { label: 'Countries', value: '5' },
-        { label: 'Shadow Vote', value: '✅' },
-      ],
-      description: 'Track legislation from USA, UK, EU, Brazil, and India.',
-      color: 'var(--blue)',
-    },
-  ];
+  const totalVoices = useMemo(() => ISSUES.reduce((s, i) => s + i.voices, 0), []);
+
+  const goOpen = (id: string) => { 
+    router.push('/issue/' + id); 
+  };
+  
+  const goHome = () => { 
+    setScale('all'); 
+    setCat('All'); 
+    setQuery(''); 
+  };
+
+  const showHero = scale === 'all' && cat === 'All' && !query;
+  const activeScaleMeta = SCALES.find(s => s.key === scale) || { label: '' };
 
   return (
-    <div className="animate-in">
-      {/* Header */}
-      <div style={{ marginBottom: '2rem' }}>
-        <h1 style={{
-          fontSize: '2rem',
-          fontWeight: 800,
-          letterSpacing: '-0.03em',
-          marginBottom: 8,
-        }}>
-          Universal Transaction Protocol
-        </h1>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '1rem' }}>
-          Decentralized governance, prediction markets, BTC-backed stablecoin, and global transparency — on Rootstock (Bitcoin L2).
-        </p>
+    <div className="app">
+      <TopBar 
+        query={query} 
+        onQuery={(v) => setQuery(v)} 
+        onHome={goHome} 
+      />
+
+      <div className="scalebar">
+        <div className="scalebar-inner">
+          {SCALES.map(s => (
+            <button key={s.key} className={'scaletab' + (scale === s.key ? ' active' : '')} onClick={() => setScale(s.key)}>
+              <span className="ico"><Icon name={s.ico} size={17} stroke={1.9} /></span>{s.label}
+              <span className="cnt">{counts[s.key]}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Protocol Stats */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(4, 1fr)',
-        gap: '1rem',
-        marginBottom: '2rem',
-      }}>
-        {STATS.map((stat) => (
-          <div key={stat.label} className="card">
-            <div className="stat-value" style={{ color: stat.color }}>{stat.value}</div>
-            <div className="stat-label">{stat.label}</div>
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 2 }}>
-              {stat.sub}
+      <div className="catrow">
+        <span className="catrow-lead"><Icon name="filter" size={14} stroke={1.9} /></span>
+        {CATEGORIES.map(c => (
+          <button key={c} className={'catchip' + (cat === c ? ' active' : '')} onClick={() => setCat(c)}>{c}</button>
+        ))}
+      </div>
+
+      <div className="wrap">
+        {showHero && (
+          <div className="hero">
+            <div className="hero-photo" />
+            <div className="hero-veil" />
+            <div className="hero-content">
+              <span className="hero-eyebrow"><span className="live-dot" /> {fmt(totalVoices)} voices · {ISSUES.length} live issues</span>
+              <h1>Vote on what shapes your world</h1>
+              <p>From your city council to the United Nations, weigh in on the decisions that matter — every claim backed by neutral, citation-grounded evidence.</p>
+              <div className="hstats">
+                <span className="hstat"><b>{fmt(totalVoices)}</b><span><Icon name="users" size={13} stroke={1.9} /> Voices cast</span></span>
+                <span className="hstat"><b>{ISSUES.length}</b><span><Icon name="layers" size={13} stroke={1.9} /> Open issues</span></span>
+                <span className="hstat"><b>4</b><span><Icon name="global" size={13} stroke={1.9} /> Local → global</span></span>
+                <span className="hstat"><b className="accent-num">100%</b><span><Icon name="shield" size={13} stroke={1.9} /> Sources cited</span></span>
+              </div>
             </div>
           </div>
-        ))}
-      </div>
+        )}
 
-      {/* Module Grid */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(3, 1fr)',
-        gap: '1rem',
-      }}>
-        {MODULES.map((mod) => (
-          <Link key={mod.href} href={mod.href} style={{ textDecoration: 'none', color: 'inherit' }}>
-            <div className="card" style={{ cursor: 'pointer', height: '100%' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                <span style={{ fontSize: '1.5rem' }}>{mod.icon}</span>
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 700 }}>{mod.title}</h3>
-              </div>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: 16, lineHeight: 1.5 }}>
-                {mod.description}
-              </p>
-              <div style={{ display: 'flex', gap: '1.5rem' }}>
-                {mod.stats.map((s) => (
-                  <div key={s.label}>
-                    <div style={{ fontSize: '1.1rem', fontWeight: 700, color: mod.color }}>{s.value}</div>
-                    <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                      {s.label}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </Link>
-        ))}
+        <div className="section-head">
+          <h2>{scale === 'all' ? 'Trending now' : activeScaleMeta.label + ' issues'}</h2>
+          <span className="sub">{counts[scale]} {counts[scale] === 1 ? 'issue' : 'issues'}{cat !== 'All' ? ' · ' + cat : ''}{query ? ' · “' + query + '”' : ''}</span>
+        </div>
+
+        {counts._filtered.length === 0
+          ? <div className="empty"><Icon name="search" size={28} stroke={1.6} /><p>No issues match. Try a different scale or category.</p></div>
+          : <div className="feed-grid">
+              {counts._filtered.map(issue => (
+                <IssueCard key={issue.id} issue={issue} vote={votes[issue.id]} onVote={onVote} onOpen={goOpen} />
+              ))}
+            </div>}
       </div>
     </div>
   );

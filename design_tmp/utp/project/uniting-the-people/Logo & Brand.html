@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Uniting the People — Brand Mark</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --aqua:#6FD9EC; --cyan:#17A6C8; --teal:#0E7C96; --deep:#0A5466; --ink:#082A33;
+  --sand:#CBB996; --mist:#EAF3F5; --paper:#F7FAFB; --line:#DCE7EA; --line2:#C7D7DB;
+  --muted:#5E7A82; --faint:#8AA2A8;
+  --font:'Schibsted Grotesk',system-ui,sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);font-family:var(--font);-webkit-font-smoothing:antialiased;}
+h1,h2,h3,h4{margin:0;letter-spacing:-.02em;}
+.mono{font-family:var(--mono);}
+.wrap{max-width:1180px;margin:0 auto;padding:0 32px;}
+
+/* hidden master defs */
+.defs{position:absolute;width:0;height:0;overflow:hidden;}
+
+/* nav */
+.nav{position:sticky;top:0;z-index:20;background:rgba(247,250,251,.82);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);}
+.nav-in{max-width:1180px;margin:0 auto;padding:14px 32px;display:flex;align-items:center;gap:14px;}
+.nav-logo{display:flex;align-items:center;gap:11px;}
+.nav-logo svg{width:34px;height:34px;}
+.nav-logo .wm{font-weight:700;font-size:1.05rem;letter-spacing:-.025em;}
+.nav-spacer{margin-left:auto;display:flex;gap:26px;}
+.nav-spacer a{color:var(--muted);font-size:.85rem;font-weight:500;text-decoration:none;}
+.nav-spacer a:hover{color:var(--ink);}
+
+/* hero */
+.hero{position:relative;overflow:hidden;border-bottom:1px solid var(--line);
+  background:radial-gradient(120% 100% at 50% -10%, #fff 0%, var(--mist) 55%, #DCEDF1 100%);}
+.hero-in{max-width:1180px;margin:0 auto;padding:88px 32px 96px;display:flex;flex-direction:column;align-items:center;text-align:center;}
+.hero .eyebrow{font-size:.74rem;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--teal);margin-bottom:34px;}
+.hero-mark{width:184px;height:184px;filter:drop-shadow(0 24px 44px rgba(8,42,51,.26));}
+.hero-lockup{margin-top:26px;display:flex;flex-direction:column;align-items:center;gap:10px;}
+.hero-lockup .name{font-size:3.4rem;font-weight:800;letter-spacing:-.035em;line-height:.96;}
+.hero-lockup .name .light{font-weight:500;color:var(--teal);}
+.hero-lockup .tag{font-size:.82rem;font-weight:600;letter-spacing:.32em;text-transform:uppercase;color:var(--muted);}
+.hero-sub{margin-top:30px;max-width:54ch;color:var(--muted);font-size:1.06rem;line-height:1.6;}
+
+/* section scaffold */
+section{padding:74px 0;border-bottom:1px solid var(--line);}
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:20px;margin-bottom:34px;flex-wrap:wrap;}
+.sec-num{font-family:var(--mono);font-size:.78rem;color:var(--faint);font-weight:500;}
+.sec-title{font-size:1.7rem;font-weight:700;letter-spacing:-.03em;}
+.sec-desc{color:var(--muted);font-size:.96rem;max-width:46ch;line-height:1.55;}
+
+/* mark grid */
+.mark-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;}
+.mark-card{border:1px solid var(--line);border-radius:18px;overflow:hidden;background:#fff;}
+.mark-stage{aspect-ratio:1;display:grid;place-items:center;padding:30px;}
+.mark-stage svg{width:100%;height:100%;}
+.mark-stage.on-mist{background:var(--mist);}
+.mark-stage.on-deep{background:linear-gradient(150deg,var(--deep),var(--ink));}
+.mark-stage.on-cyan{background:linear-gradient(150deg,var(--cyan),var(--teal));}
+.mark-meta{padding:14px 18px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:2px;}
+.mark-meta b{font-size:.9rem;font-weight:650;}
+.mark-meta span{font-size:.78rem;color:var(--muted);}
+
+/* construction */
+.constr{display:grid;grid-template-columns:1.1fr 1fr;gap:48px;align-items:center;}
+.constr-stage{position:relative;border:1px solid var(--line);border-radius:20px;background:
+  linear-gradient(0deg,rgba(23,166,200,.05),rgba(23,166,200,.05)),var(--paper);
+  background-size:100% 100%;aspect-ratio:1.1;display:grid;place-items:center;overflow:hidden;}
+.constr-stage::before{content:"";position:absolute;inset:0;
+  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:38px 38px;opacity:.5;}
+.constr-stage svg{width:64%;height:64%;position:relative;}
+.meaning{display:flex;flex-direction:column;gap:22px;}
+.meaning .row{display:flex;gap:16px;align-items:flex-start;}
+.meaning .ico{flex-shrink:0;width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:var(--mist);color:var(--teal);}
+.meaning h4{font-size:1.05rem;font-weight:700;margin-bottom:5px;}
+.meaning p{margin:0;color:var(--muted);font-size:.92rem;line-height:1.55;}
+
+/* lockups */
+.lockups{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+.lockup-card{border:1px solid var(--line);border-radius:18px;background:#fff;padding:40px;display:grid;place-items:center;min-height:200px;}
+.lockup-card.span2{grid-column:span 2;}
+.lk-h{display:flex;align-items:center;gap:18px;}
+.lk-h svg{width:62px;height:62px;}
+.lk-h .txt{display:flex;flex-direction:column;line-height:1;}
+.lk-h .txt b{font-size:1.7rem;font-weight:800;letter-spacing:-.035em;}
+.lk-h .txt b .light{font-weight:500;color:var(--teal);}
+.lk-h .txt span{font-size:.62rem;font-weight:600;letter-spacing:.28em;text-transform:uppercase;color:var(--muted);margin-top:6px;}
+.lk-v{display:flex;flex-direction:column;align-items:center;gap:16px;}
+.lk-v svg{width:72px;height:72px;}
+.lk-v .txt{display:flex;flex-direction:column;align-items:center;line-height:1.05;}
+.lk-v .txt b{font-size:1.5rem;font-weight:800;letter-spacing:-.03em;text-align:center;}
+.lk-v .txt b .light{font-weight:500;color:var(--teal);}
+.lk-v .txt span{font-size:.6rem;font-weight:600;letter-spacing:.26em;text-transform:uppercase;color:var(--muted);margin-top:8px;}
+.lk-label{margin-top:18px;font-size:.74rem;color:var(--faint);font-family:var(--mono);}
+.lockup-card{position:relative;}
+.lockup-card .pin{position:absolute;top:16px;left:18px;font-size:.7rem;font-family:var(--mono);color:var(--faint);}
+
+/* palette */
+.pal-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+.sw{border:1px solid var(--line);border-radius:16px;overflow:hidden;background:#fff;}
+.sw-chip{height:120px;}
+.sw-meta{padding:14px 16px;}
+.sw-meta b{display:block;font-size:.92rem;font-weight:650;}
+.sw-meta .hex{font-family:var(--mono);font-size:.8rem;color:var(--muted);margin-top:3px;text-transform:uppercase;}
+.sw-meta .use{font-size:.74rem;color:var(--faint);margin-top:7px;}
+
+/* app icons */
+.icons-row{display:flex;gap:22px;align-items:flex-end;flex-wrap:wrap;}
+.appicon{border-radius:24%;overflow:hidden;box-shadow:0 14px 30px rgba(8,42,51,.18);display:grid;place-items:center;
+  background:linear-gradient(150deg,#0C617A,#06323E);}
+.appicon svg{width:62%;height:62%;}
+.appicon.light{background:linear-gradient(150deg,#fff,#E4F1F4);}
+.fav-row{display:flex;gap:16px;align-items:flex-end;margin-top:8px;}
+.fav{border-radius:22%;overflow:hidden;display:grid;place-items:center;background:linear-gradient(150deg,#0C617A,#06323E);}
+.fav svg{width:64%;height:64%;}
+
+/* context */
+.ctx-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:18px;}
+.ctx-photo{position:relative;border-radius:20px;overflow:hidden;min-height:340px;border:1px solid var(--line);
+  background:linear-gradient(160deg,#0A5466,#082A33);}
+.ctx-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.55;}
+.ctx-photo .veil{position:absolute;inset:0;background:linear-gradient(160deg,rgba(10,84,102,.55),rgba(8,42,51,.82));}
+.ctx-photo .badge{position:absolute;left:34px;bottom:34px;z-index:2;display:flex;align-items:center;gap:14px;}
+.ctx-photo .badge svg{width:50px;height:50px;}
+.ctx-photo .badge .t b{color:#fff;font-size:1.3rem;font-weight:800;letter-spacing:-.03em;display:block;line-height:1;}
+.ctx-photo .badge .t span{color:rgba(255,255,255,.7);font-size:.6rem;font-weight:600;letter-spacing:.26em;text-transform:uppercase;}
+.ctx-side{display:flex;flex-direction:column;gap:18px;}
+.ctx-btn-card{border:1px solid var(--line);border-radius:20px;background:#fff;padding:30px;display:flex;flex-direction:column;gap:16px;justify-content:center;flex:1;}
+.ctx-btn{display:inline-flex;align-items:center;gap:10px;background:var(--cyan);color:#fff;border:none;border-radius:11px;
+  padding:13px 20px;font-family:var(--font);font-weight:650;font-size:.95rem;cursor:pointer;align-self:flex-start;
+  box-shadow:0 8px 20px rgba(23,166,200,.32);}
+.ctx-btn svg{width:22px;height:22px;}
+.ctx-btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line2);box-shadow:none;}
+.ctx-chip{display:inline-flex;align-items:center;gap:8px;align-self:flex-start;background:var(--mist);color:var(--teal);
+  border-radius:999px;padding:7px 14px;font-size:.82rem;font-weight:650;}
+.ctx-chip svg{width:16px;height:16px;}
+
+/* clearspace + minsize */
+.cs-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+.cs-card{border:1px solid var(--line);border-radius:18px;background:#fff;padding:34px;}
+.cs-stage{position:relative;display:grid;place-items:center;padding:30px;background:var(--mist);border-radius:12px;}
+.cs-stage svg{width:120px;height:120px;}
+.cs-pad{position:absolute;border:1px dashed var(--line2);border-radius:6px;inset:18px;}
+.minsizes{display:flex;gap:26px;align-items:flex-end;margin-top:8px;}
+.minsizes .ms{display:flex;flex-direction:column;align-items:center;gap:8px;}
+.minsizes .ms span{font-family:var(--mono);font-size:.72rem;color:var(--faint);}
+
+/* misuse */
+.dont-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:6px;}
+.dont{border:1px solid var(--line);border-radius:16px;background:#fff;overflow:hidden;}
+.dont-stage{aspect-ratio:1.3;display:grid;place-items:center;background:var(--mist);padding:24px;position:relative;}
+.dont-stage svg{width:78px;height:78px;}
+.dont-label{padding:11px 14px;display:flex;align-items:center;gap:8px;font-size:.8rem;color:var(--muted);border-top:1px solid var(--line);}
+.dont-label .x{width:16px;height:16px;border-radius:50%;background:#E0524D;color:#fff;display:grid;place-items:center;font-size:.7rem;flex-shrink:0;}
+
+footer{padding:50px 0 70px;}
+.foot-in{display:flex;align-items:center;gap:14px;color:var(--muted);font-size:.85rem;}
+.foot-in svg{width:30px;height:30px;}
+
+@media(max-width:900px){
+  .mark-grid{grid-template-columns:repeat(2,1fr);}
+  .pal-grid{grid-template-columns:repeat(2,1fr);}
+  .constr,.lockups,.ctx-grid,.cs-grid{grid-template-columns:1fr;}
+  .dont-grid{grid-template-columns:repeat(2,1fr);}
+  .hero-lockup .name{font-size:2.4rem;}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ MASTER SVG DEFS + SYMBOLS ============ -->
+<svg class="defs" aria-hidden="true">
+  <defs>
+    <linearGradient id="ringGlass" x1="120" y1="28" x2="120" y2="212" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#90E9F6"/>
+      <stop offset=".34" stop-color="#2BB0D0"/>
+      <stop offset=".62" stop-color="#118AA6"/>
+      <stop offset="1" stop-color="#06495A"/>
+    </linearGradient>
+    <linearGradient id="ringRim" x1="120" y1="28" x2="120" y2="212" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff" stop-opacity=".85"/>
+      <stop offset=".5" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="sphA" cx=".36" cy=".30" r=".92">
+      <stop offset="0" stop-color="#EAFBFE"/>
+      <stop offset=".16" stop-color="#A6EAF6"/>
+      <stop offset=".44" stop-color="#2EB6D6"/>
+      <stop offset=".74" stop-color="#127F9B"/>
+      <stop offset="1" stop-color="#06414F"/>
+    </radialGradient>
+    <radialGradient id="sphB" cx=".36" cy=".30" r=".92">
+      <stop offset="0" stop-color="#E2F8FD"/>
+      <stop offset=".18" stop-color="#86DBEF"/>
+      <stop offset=".46" stop-color="#1B9FC0"/>
+      <stop offset=".76" stop-color="#0B5E73"/>
+      <stop offset="1" stop-color="#04323F"/>
+    </radialGradient>
+    <radialGradient id="sphHi" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#ffffff" stop-opacity=".9"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- GLASS mark -->
+    <symbol id="mark-glass" viewBox="0 0 240 240">
+      <ellipse cx="120" cy="208" rx="66" ry="11" fill="#06414F" opacity=".18"/>
+      <!-- lower-left sphere (behind) -->
+      <g>
+        <circle cx="94" cy="148" r="33" fill="url(#sphB)"/>
+        <ellipse cx="83" cy="136" rx="13" ry="9" fill="url(#sphHi)" opacity=".85" transform="rotate(-32 83 136)"/>
+        <circle cx="105" cy="161" r="20" fill="#04323F" opacity=".12"/>
+      </g>
+      <!-- ring -->
+      <circle cx="120" cy="120" r="80" fill="none" stroke="url(#ringGlass)" stroke-width="26"/>
+      <circle cx="120" cy="120" r="92.5" fill="none" stroke="url(#ringRim)" stroke-width="1.6"/>
+      <circle cx="120" cy="120" r="67.5" fill="none" stroke="#ffffff" stroke-opacity=".22" stroke-width="1.4"/>
+      <!-- upper-right sphere (front) -->
+      <g>
+        <circle cx="146" cy="92" r="33" fill="url(#sphA)"/>
+        <ellipse cx="135" cy="80" rx="14" ry="9.5" fill="url(#sphHi)" transform="rotate(-32 135 80)"/>
+        <circle cx="157" cy="105" r="20" fill="#04323F" opacity=".10"/>
+        <circle cx="133" cy="79" r="3.4" fill="#ffffff" opacity=".9"/>
+      </g>
+    </symbol>
+
+    <!-- FLAT mark (two-tone tints of one hue) -->
+    <symbol id="mark-flat" viewBox="0 0 240 240">
+      <circle cx="94" cy="148" r="33" fill="#6FD9EC"/>
+      <circle cx="120" cy="120" r="80" fill="none" stroke="#0E7C96" stroke-width="26"/>
+      <circle cx="146" cy="92" r="33" fill="#17A6C8"/>
+    </symbol>
+
+    <!-- REVERSED flat (for dark bg) -->
+    <symbol id="mark-rev" viewBox="0 0 240 240">
+      <circle cx="94" cy="148" r="33" fill="#6FD9EC"/>
+      <circle cx="120" cy="120" r="80" fill="none" stroke="#ffffff" stroke-width="26"/>
+      <circle cx="146" cy="92" r="33" fill="#BFEAF3"/>
+    </symbol>
+
+    <!-- MONO (single colour, non-overlapping for legibility) -->
+    <symbol id="mark-mono" viewBox="0 0 240 240">
+      <circle cx="120" cy="120" r="80" fill="none" stroke="currentColor" stroke-width="24"/>
+      <circle cx="145" cy="95" r="29" fill="currentColor"/>
+      <circle cx="95" cy="145" r="29" fill="currentColor"/>
+    </symbol>
+  </defs>
+</svg>
+
+<!-- ============ NAV ============ -->
+<div class="nav">
+  <div class="nav-in">
+    <div class="nav-logo">
+      <svg><use href="#mark-glass"/></svg>
+      <span class="wm">Uniting the People</span>
+    </div>
+    <div class="nav-spacer">
+      <a href="#mark">The Mark</a>
+      <a href="#lockups">Lockups</a>
+      <a href="#color">Color</a>
+      <a href="#app">Application</a>
+    </div>
+  </div>
+</div>
+
+<!-- ============ HERO ============ -->
+<div class="hero">
+  <div class="hero-in">
+    <div class="eyebrow">Brand Mark &nbsp;·&nbsp; v1.0</div>
+    <svg class="hero-mark"><use href="#mark-glass"/></svg>
+    <div class="hero-lockup">
+      <h1 class="name">Uniting <span class="light">the</span> People</h1>
+      <div class="tag">Make your voice heard</div>
+    </div>
+    <p class="hero-sub">Two voices held within one world. The ring is the shared planet we all answer to; the two spheres are people on either side of an issue, brought into balance. A single idea that scales from a city block to the globe.</p>
+  </div>
+</div>
+
+<!-- ============ THE MARK ============ -->
+<section id="mark">
+  <div class="wrap">
+    <div class="sec-head">
+      <div>
+        <div class="sec-num">01 — Identity</div>
+        <h2 class="sec-title">The mark, four ways</h2>
+      </div>
+      <p class="sec-desc">One geometry, rendered for every surface. The dimensional mark leads brand moments; the flat and monochrome marks carry the interface and small sizes.</p>
+    </div>
+    <div class="mark-grid">
+      <div class="mark-card">
+        <div class="mark-stage on-mist"><svg><use href="#mark-glass"/></svg></div>
+        <div class="mark-meta"><b>Dimensional</b><span>Hero & brand moments</span></div>
+      </div>
+      <div class="mark-card">
+        <div class="mark-stage"><svg><use href="#mark-flat"/></svg></div>
+        <div class="mark-meta"><b>Flat</b><span>UI, web, print</span></div>
+      </div>
+      <div class="mark-card">
+        <div class="mark-stage on-deep"><svg><use href="#mark-rev"/></svg></div>
+        <div class="mark-meta"><b>Reversed</b><span>Dark & photo grounds</span></div>
+      </div>
+      <div class="mark-card">
+        <div class="mark-stage on-cyan"><svg style="color:#fff"><use href="#mark-mono"/></svg></div>
+        <div class="mark-meta"><b>Monochrome</b><span>Stamps, favicons, ≤16px</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CONSTRUCTION / MEANING ============ -->
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <div>
+        <div class="sec-num">02 — Concept</div>
+        <h2 class="sec-title">Built on one idea</h2>
+      </div>
+      <p class="sec-desc">Nothing in the mark is decorative. Every form earns its place.</p>
+    </div>
+    <div class="constr">
+      <div class="constr-stage"><svg><use href="#mark-flat"/></svg></div>
+      <div class="meaning">
+        <div class="row">
+          <div class="ico">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M3 12h18" stroke="currentColor" stroke-width="1.8"/><path d="M12 3c3 2.6 3 15.4 0 18M12 3c-3 2.6-3 15.4 0 18" stroke="currentColor" stroke-width="1.8"/></svg>
+          </div>
+          <div>
+            <h4>The ring — one world</h4>
+            <p>A continuous circle with no beginning or end: the shared planet and the common rules we all live under. It holds every issue, at every scale.</p>
+          </div>
+        </div>
+        <div class="row">
+          <div class="ico">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="8" cy="9" r="3.4" fill="currentColor"/><circle cx="16" cy="15" r="3.4" fill="currentColor" opacity=".5"/></svg>
+          </div>
+          <div>
+            <h4>Two spheres — two voices</h4>
+            <p>People on either side of a question. Offset and balanced rather than opposed — dialogue, not a tug of war. Distinct tones keep both sides equally present.</p>
+          </div>
+        </div>
+        <div class="row">
+          <div class="ico">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M5 19V9m0 10H3m2 0h4m-4-10 4-3 5 4 5-3v12m0 0h2m-2 0h-4m0 0V9" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+          </div>
+          <div>
+            <h4>Balance — the outcome</h4>
+            <p>The spheres settle on a diagonal axis through the ring's center: weight given to both sides until the people decide. The mark literally depicts a vote in balance.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ LOCKUPS ============ -->
+<section id="lockups">
+  <div class="wrap">
+    <div class="sec-head">
+      <div>
+        <div class="sec-num">03 — Lockups</div>
+        <h2 class="sec-title">Wordmark & lockups</h2>
+      </div>
+      <p class="sec-desc">Schibsted Grotesk — a clear, civic grotesque. “the” drops to medium weight in the brand teal to give the name rhythm.</p>
+    </div>
+    <div class="lockups">
+      <div class="lockup-card span2">
+        <span class="pin">Primary · horizontal</span>
+        <div class="lk-h">
+          <svg><use href="#mark-glass"/></svg>
+          <div class="txt"><b>Uniting <span class="light">the</span> People</b><span>Make your voice heard</span></div>
+        </div>
+      </div>
+      <div class="lockup-card">
+        <span class="pin">Stacked</span>
+        <div class="lk-v">
+          <svg><use href="#mark-glass"/></svg>
+          <div class="txt"><b>Uniting <span class="light">the</span><br/>People</b><span>Make your voice heard</span></div>
+        </div>
+      </div>
+      <div class="lockup-card">
+        <span class="pin">Monogram</span>
+        <div class="lk-v">
+          <svg style="width:96px;height:96px"><use href="#mark-glass"/></svg>
+          <div class="lk-label">Standalone mark</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ COLOR ============ -->
+<section id="color">
+  <div class="wrap">
+    <div class="sec-head">
+      <div>
+        <div class="sec-num">04 — Color</div>
+        <h2 class="sec-title">Palette</h2>
+      </div>
+      <p class="sec-desc">A glass-water family: trustworthy, global, calm. Deep teal anchors; cyan leads; aqua lifts. Warm sand is the single accent for highlights and data.</p>
+    </div>
+    <div class="pal-grid">
+      <div class="sw"><div class="sw-chip" style="background:#6FD9EC"></div><div class="sw-meta"><b>Aqua</b><div class="hex">#6FD9EC</div><div class="use">Lifts, highlights, the lighter voice</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:#17A6C8"></div><div class="sw-meta"><b>Brand Cyan</b><div class="hex">#17A6C8</div><div class="use">Primary — actions, links, the mark</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:#0E7C96"></div><div class="sw-meta"><b>Teal</b><div class="hex">#0E7C96</div><div class="use">Secondary, the ring, headings</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:#0A5466"></div><div class="sw-meta"><b>Deep Teal</b><div class="hex">#0A5466</div><div class="use">Grounds, dark surfaces</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:#082A33"></div><div class="sw-meta"><b>Ink</b><div class="hex">#082A33</div><div class="use">Text, maximum contrast</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:#CBB996"></div><div class="sw-meta"><b>Sand</b><div class="hex">#CBB996</div><div class="use">Accent — sparingly, for warmth</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:#EAF3F5;border-bottom:1px solid var(--line)"></div><div class="sw-meta"><b>Mist</b><div class="hex">#EAF3F5</div><div class="use">Tints, surfaces, fills</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:#F7FAFB;border-bottom:1px solid var(--line)"></div><div class="sw-meta"><b>Paper</b><div class="hex">#F7FAFB</div><div class="use">Page background</div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ APPLICATION ============ -->
+<section id="app">
+  <div class="wrap">
+    <div class="sec-head">
+      <div>
+        <div class="sec-num">05 — Application</div>
+        <h2 class="sec-title">App icon & favicon</h2>
+      </div>
+      <p class="sec-desc">The mark centers in a squircle with generous padding. Monochrome takes over below 24px so it stays crisp in a browser tab.</p>
+    </div>
+    <div class="icons-row">
+      <div class="appicon" style="width:140px;height:140px"><svg><use href="#mark-rev"/></svg></div>
+      <div class="appicon light" style="width:104px;height:104px"><svg><use href="#mark-flat"/></svg></div>
+      <div class="appicon" style="width:80px;height:80px"><svg><use href="#mark-rev"/></svg></div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="fav-row">
+          <div class="fav" style="width:48px;height:48px"><svg style="color:#fff"><use href="#mark-mono"/></svg></div>
+          <div class="fav" style="width:32px;height:32px"><svg style="color:#fff"><use href="#mark-mono"/></svg></div>
+          <div class="fav" style="width:16px;height:16px"><svg style="color:#fff"><use href="#mark-mono"/></svg></div>
+        </div>
+        <span class="mono" style="font-size:.72rem;color:var(--faint)">48 · 32 · 16 px</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ IN CONTEXT ============ -->
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <div>
+        <div class="sec-num">06 — In context</div>
+        <h2 class="sec-title">In the wild</h2>
+      </div>
+      <p class="sec-desc">On photography, lead with the reversed mark over a teal veil so the spheres keep their glow. In product, the flat mark pairs with cyan actions.</p>
+    </div>
+    <div class="ctx-grid">
+      <div class="ctx-photo">
+        <img src="https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?auto=format&fit=crop&w=1200&q=70" alt="" referrerpolicy="no-referrer" />
+        <div class="veil"></div>
+        <div class="badge">
+          <svg><use href="#mark-rev"/></svg>
+          <div class="t"><b>Uniting the People</b><span>Make your voice heard</span></div>
+        </div>
+      </div>
+      <div class="ctx-side">
+        <div class="ctx-btn-card">
+          <span class="ctx-chip">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Verified civic poll
+          </span>
+          <button class="ctx-btn">
+            <svg viewBox="0 0 24 24" fill="none"><use href="#mark-mono"/></svg>
+            Cast your voice
+          </button>
+          <button class="ctx-btn ghost">View the evidence</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CLEARSPACE + MISUSE ============ -->
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <div>
+        <div class="sec-num">07 — Guardrails</div>
+        <h2 class="sec-title">Clearspace, sizing & misuse</h2>
+      </div>
+      <p class="sec-desc">Keep clearspace equal to the radius of one sphere on every side. Never crowd, recolor, or flatten the dimension out of the mark.</p>
+    </div>
+    <div class="cs-grid">
+      <div class="cs-card">
+        <div class="cs-stage"><div class="cs-pad"></div><svg><use href="#mark-flat"/></svg></div>
+        <div style="margin-top:18px;font-size:.9rem;color:var(--muted)">Minimum clearspace = one sphere radius on all sides.</div>
+      </div>
+      <div class="cs-card">
+        <div style="font-size:.9rem;color:var(--muted);margin-bottom:18px">Minimum sizes — below 24px, switch to the monochrome mark.</div>
+        <div class="minsizes">
+          <div class="ms"><svg style="width:64px;height:64px"><use href="#mark-flat"/></svg><span>64px</span></div>
+          <div class="ms"><svg style="width:40px;height:40px"><use href="#mark-flat"/></svg><span>40px</span></div>
+          <div class="ms"><svg style="width:24px;height:24px;color:var(--teal)"><use href="#mark-mono"/></svg><span>24px min</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="dont-grid">
+      <div class="dont">
+        <div class="dont-stage"><svg style="transform:rotate(18deg)"><use href="#mark-flat"/></svg></div>
+        <div class="dont-label"><span class="x">✕</span> Don’t rotate</div>
+      </div>
+      <div class="dont">
+        <div class="dont-stage"><svg style="transform:scaleX(1.4)"><use href="#mark-flat"/></svg></div>
+        <div class="dont-label"><span class="x">✕</span> Don’t stretch</div>
+      </div>
+      <div class="dont">
+        <div class="dont-stage" style="background:#F1D9A8"><svg style="color:#B0822E"><use href="#mark-mono"/></svg></div>
+        <div class="dont-label"><span class="x">✕</span> Don’t recolor</div>
+      </div>
+      <div class="dont">
+        <div class="dont-stage"><svg style="filter:blur(1.4px);opacity:.6"><use href="#mark-flat"/></svg></div>
+        <div class="dont-label"><span class="x">✕</span> Don’t add effects</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot-in">
+    <svg><use href="#mark-flat"/></svg>
+    <span>Uniting the People — Brand Mark v1.0 · One world, every voice.</span>
+  </div>
+</footer>
+
+</body>
+</html>

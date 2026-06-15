@@ -6,6 +6,7 @@ module.exports = {
     solidity: {
         version: "0.8.24",
         settings: {
+            evmVersion: "cancun",
             viaIR: true,
             optimizer: {
                 enabled: true,
@@ -13,7 +14,6 @@ module.exports = {
             },
             remappings: [
                 "sstore2/=contracts/lib/",
-                "@openzeppelin/=node_modules/@openzeppelin/",
                 "forge-std/=node_modules/forge-std/src/",
                 "ds-test/=node_modules/ds-test/src/"
             ]

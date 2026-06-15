@@ -1,6 +1,8 @@
+import '@rainbow-me/rainbowkit/styles.css';
 import type { Metadata } from "next";
 import "./globals.css";
-import { ClientLayout } from "@/components/ClientLayout";
+import { Providers } from "@/components/Providers";
+import { Header } from "@/components/ui/header";
 
 export const metadata: Metadata = {
   title: "UTP — Universal Transaction Protocol",
@@ -15,7 +17,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <ClientLayout>{children}</ClientLayout>
+        <Providers>
+          {children}
+        </Providers>
       </body>
     </html>
   );
