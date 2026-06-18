@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next';
 import { ISSUES } from '@/lib/data';
 
-const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://utp.network';
+const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://unitingthepeople.org';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const routes = [
