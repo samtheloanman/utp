@@ -31,8 +31,9 @@ command -v jules >/dev/null || { echo "jules CLI not found on PATH"; exit 1; }
 run_one() {
   f="jules/tasks/$(task_file "$1")"
   [ -f "$f" ] || { echo "missing task file: $f"; exit 1; }
-  echo "→ dispatching '$1' to Jules ..."
-  cat "$f" | jules new
+  repo=$(git config --get remote.origin.url | sed -E 's#^git@[^:]+:##; s#^https?://[^/]+/##; s#\.git$##')
+  echo "→ dispatching '$1' to Jules (repo: $repo) ..."
+  cat "$f" | jules new --repo "$repo"
 }
 
 case "${1:-}" in
