@@ -1,59 +1,75 @@
-# UtP Product Requirements Document (PRD) v1.0
+# UtP Product Requirements Document v3.0
 
-## 1. Executive Vision
-UtP is an AI-first civic infrastructure that transforms how people interact with governance. V1 focuses on **Truth** (readable legislative digests) and **Polling** (shadow voting).
+Last reviewed: 2026-06-25 PT
 
-## 2. Hard Boundaries (Non-negotiables)
-- **V1 Crypto:** ZERO. No tokens, no stablecoins, no on-chain treasury.
-- **V1 Iran:** Information portal + non-binding voting. No finance flows.
-- **Privacy:** Email/OAuth required. IP stored for abuse prevention but never exposed.
-- **Accuracy:** AI summaries MUST contain citations or fail with `INSUFFICIENT_DATA`.
+## Product Direction
 
-## 3. Product Features (V1)
-### 3.1 Trust Portal
-- **Activity Stream:** Real-time feed of Congress.gov bills and actions.
-- **Citizen Digest:** AI summaries with TL;DR, impact, and direct citations.
-- **Source Registry:** Public log of all API sources, health, and licensing.
+UtP is a **DAO-first civic trust and financial coordination platform**. The DAO is the foundation for permissions, proposals, voting, treasury control, and future protocol modules. Civic trust is the evidence layer that gives those governance actions credible, source-backed context.
 
-### 3.2 Participation Layer
-- **Shadow Voting:** "For", "Against", "Unsure" options on every bill.
-- **Public Dashboard:** Aggregate sentiment vs. actual legislative outcome.
+The active product is a hybrid:
 
-### 3.3 Public Infrastructure
-- **Open API:** Read-only access to all legislative data and vote aggregates.
-- **Regional Portals:** Specialized views for USA and Iran.
+1. **Civic Trust**: Citation-grounded issue context, legislative records, news, and public evidence.
+2. **DAO Governance**: Wallet-linked proposals, voting, permissions, plugins, and treasury execution.
+3. **Financial Protocol**: Stablecoin, vault, token, and market modules governed by the DAO and released only through explicit safety and compliance gates.
 
-## 4. Technical Specifications
-- **Stack:** Next.js (Frontend), Supabase (Auth/DB/API), OpenAI/Claude (Summarization).
-- **Data Model:** Normalized SQL schema for high-performance civic queries.
-- **Ingestion:** Idempotent, rate-limit aware workers for Congress.gov.
+## Current Product Baseline
 
-## 5. Success Metric (North Star)
-**10,000 Shadow Votes in the first 30 days of launch.**
+The default GitHub branch currently includes:
 
-## 6. Future Vision: The Road to DAO on Bitcoin
+- A Next.js issue feed with local-to-global civic topics.
+- Privy authentication and Wagmi/Viem wallet integration.
+- On-chain polling integration.
+- Issue, legislature, news, governance, events, vault, launch, stablecoin, and token routes.
+- API routes for aggregation, debate, legislature, news, proposals, and votes.
+- DAO, permission, plugin, treasury, polling, governance, event market, token, and stablecoin contracts.
+- Supabase and off-chain data infrastructure.
 
-While V1 focuses on **information transparency** and **participation**, the ultimate vision is a **decentralized autonomous organization (DAO) on Bitcoin**.
+## Target Users
 
-### Why We're Delaying Crypto to V3
-1. **Regulatory Safety**: Non-profit + stablecoin + Iran = high legal risk
-2. **Product-Market Fit First**: Prove people want civic transparency before building complex infrastructure
-3. **Budget Reality**: $100/month can't support blockchain development
+- Civic participants who want source-backed context before voting.
+- DAO members and contributors managing proposals and treasury decisions.
+- Diaspora and regional communities coordinating around high-impact issues.
+- Trusted Alpha users validating wallet, governance, and protocol flows.
 
-### The Bridge: Off-chain to On-chain
-V1 builds the **foundation** for DAO governance:
-- **Shadow Voting** → Future on-chain governance votes
-- **User Accounts** → Future wallet-based identity
-- **Reputation System** (V2) → Future governance token weights
+## V1 Requirements
 
-### V3 DAO Architecture (12-18 months)
-Once V1 proves traction (10K+ users, $5K+ MRR), we'll implement:
-- **Rootstock/Stacks L2**: Bitcoin-adjacent EVM execution layer
-- **Governance Primitives**: Proposal submission, voting, execution
-- **BTCx Stablecoin**: Bitcoin-collateralized stable currency (pending legal clearance)
-- **Treasury Management**: Community-controlled funding allocation
+### Civic Trust Layer
 
-### Your Role
-By using UtP V1, you're helping build the **civic infrastructure** that will power the first **truly decentralized global democracy**. We start with transparency. We end with sovereignty.
+- Every trusted summary must link to primary or clearly attributed sources.
+- Uncited AI output must fail safely or be labeled unverified.
+- Issue pages must distinguish evidence, interpretation, and community sentiment.
+- Ingestion and aggregation jobs must be idempotent.
 
----
+### DAO Foundation
+
+- Contract permissions and treasury actions must fail closed.
+- Plugin installation and removal must preserve authorization boundaries.
+- Voting modes must be clearly labeled:
+  - off-chain sentiment,
+  - wallet-signed participation,
+  - binding on-chain governance.
+- Governance context must link back to civic evidence.
+
+### Financial Layer
+
+- Stablecoin, vault, token, staking, and market features are active protocol work.
+- Public launch requires contract tests, threat modeling, legal review, and clear user disclosures.
+- No interface may imply a financial feature is live when it is unconfigured, unaudited, or legally gated.
+- User keys must remain client-side.
+
+## Success Criteria
+
+- The production build completes and core pages render.
+- Civic issues expose source-backed context.
+- Wallet authentication and voting degrade safely when configuration is missing.
+- Contract compilation succeeds.
+- Permission, governance, treasury, plugin, and stablecoin tests pass before those modules are considered launch-ready.
+- Public copy distinguishes live functionality from roadmap or gated functionality.
+
+## Current Launch Blockers
+
+- Fourteen Hardhat tests currently fail across plugin uninstall permissions, hybrid vote authentication, and stablecoin test setup.
+- `npm test` is not yet a reliable all-project test command.
+- The dependency audit reports unresolved vulnerabilities.
+- Build completes with optional Privy and Viem dependency warnings.
+- Financial modules still require explicit compliance and safety review.

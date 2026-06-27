@@ -1,16 +1,34 @@
 # Project State
 
+Last updated: 2026-06-25 PT
+
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-04-13)
+See `.gsd/PROJECT.md`.
 
-**Core value:** To empower users with a fully transparent, BTC-backed stablecoin ecosystem merged with informed, AI-facilitated legislative voting and polling on consequential global topics.
-**Current focus:** Initialization of new MVP features.
+## Current Branch
+
+`sync/freedom-stack-master`, based on GitHub default branch `origin/master`.
 
 ## Current Phase
 
-- None active yet. Next step is to run `/gsd-plan-phase 1`
+Phase 0: Platform Stabilization.
 
-## Ongoing Topics/Context
+## Verified Baseline
 
-We just mapped the UTP codebase and updated our MVP directions to emphasize the AI debate engine, reliable RSK stablecoin foundation, and interactive polling for global causes.
+- `npm run lint`: Pass.
+- `npm run build`: Pass with optional dependency warnings.
+- `npm run compile`: Pass; 55 Solidity files compiled.
+- `npx hardhat test`: 128 passing, 14 failing.
+
+## Active Blockers
+
+1. PluginRegistry uninstall permission failures.
+2. Governance hybrid authentication/quorum failures.
+3. Missing `MockPriceOracle` setup for stablecoin tests.
+4. `npm test` does not represent the full automated suite.
+5. Dependency audit and optional build warnings need triage.
+
+## Next Action
+
+Plan and execute the smallest Phase 0 fix, starting with PluginRegistry uninstall permissions.

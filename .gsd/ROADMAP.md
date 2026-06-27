@@ -1,32 +1,43 @@
-# Project Roadmap
+# GSD Roadmap
 
-## Milestone 1: MVP - AI Debates & L2 Stablecoin Ecosystem
+Last reviewed: 2026-06-25 PT
 
-### Phase 1: Stablecoin Collateral & Tokenomics Foundation
+## Phase 0: Platform Stabilization
 
-**Goal:** Implement the `UBTC.sol` stablecoin, its collateral management contract, and a basic Next.js dashboard for users to mint tokens and view balances on the RSK Testnet.
+- Fix PluginRegistry uninstall permission failures.
+- Fix hybrid governance authentication failures.
+- Restore stablecoin oracle test setup.
+- Repair `npm test`.
+- Migrate away from deprecated `next lint`.
+- Triage dependency and build warnings.
 
-**Requirements:** `[P1-STBL-1, P1-STBL-2, P1-STBL-3]`
-**Plans:** 4 plans
+Verification:
 
-- [ ] `01-01-PLAN.md` — Core `UBTC.sol` ERC20 Token Contract
-- [ ] `01-02-PLAN.md` — Frontend Foundation (Next.js, Wagmi)
-- [ ] `01-03-PLAN.md` — Collateral Manager Contract & Deployment Scripts
-- [ ] `01-04-PLAN.md` — Frontend Integration for Minting and Balance Display
+- App lint/build pass.
+- Contracts compile.
+- The contract test suite is green, or documented exceptions are explicitly approved.
 
-### Phase 2: AI Debate Fact-Generation Engine
-- Build the off-chain AI debate generation engine (using LLM integration/Supabase functions).
-- Source facts, process news/legislative agendas, and output distinct "Pro" vs "Con" arguments.
-- Expose the debate arguments via API endpoints to the Next.js frontend.
+## Phase 1: Civic Trust Evidence
 
-### Phase 3: Interactive Polling & Legislature UI
-- Develop the "Legislature" UI in Next.js showcasing the AI-generated debates.
-- Create on-chain/off-chain polling logic allowing users to cast votes based on the debates.
-- Capture, aggregate, and visualize user sentiment metrics.
+- Source registry and ingestion hardening.
+- Citation-required summaries and debate output.
+- Clear separation of facts, analysis, and sentiment.
+- Civic records linked to governance context.
 
-### Phase 4: Mainnet/Public Testnet Integration & E2E Validation
-- Connect the frontend polling and token dashboards sequentially to the deployed RSK smart contracts.
-- E2E testing using Wagmi for transactions and AI outputs validation.
+## Phase 2: DAO Governance
 
----
-*Last updated: 2026-04-13*
+- Permission and plugin safety.
+- Proposal, voting, quorum, and execution reliability.
+- Clear shadow, signed, and on-chain vote semantics.
+- Testnet governance flow.
+
+## Phase 3: Financial Modules
+
+- Stablecoin, vault, token, and event-market validation.
+- Treasury and collateral threat models.
+- Compliance and legal launch gates.
+- Explicit gated UI states.
+
+## Phase 4: Launch Operations
+
+- CI, accessibility, performance, monitoring, rollback, and testnet Alpha.
