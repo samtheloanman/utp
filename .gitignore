@@ -11,3 +11,4 @@ __pycache__/
 *.db
 .vercel
 .claude/*.lock
+*.tsbuildinfo
