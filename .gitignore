@@ -18,3 +18,22 @@ deployments/localhost.json
 deployments/logs/hardhat-*
 deployments/logs/localhost-*
 src/lib/generated/
+
+# Repository-local generated agent runtime deployments
+/.agents/
+/.claude/
+/.codex/
+/.gemini/
+/.kilo/
+/.trae/
+/.windsurf/
+/.augment/
+/.cursor/
+/.github/get-shit-done/
+/.github/agents/
+/.agent/get-shit-done/
+/.opencode/get-shit-done/
+/.opencode/command/
+/.opencode/agents/
+/.opencode/hooks/
+/.ijfw/logs/
