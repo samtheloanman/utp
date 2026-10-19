@@ -34,6 +34,13 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  // Dark "uBTC" pages retired 2026-10-18 — see archive/design-dark-v1/README.md
+  async redirects() {
+    return [
+      { source: '/launch', destination: '/', permanent: false },
+      { source: '/vault', destination: '/', permanent: false },
+    ];
+  },
 };
 
 export default nextConfig;

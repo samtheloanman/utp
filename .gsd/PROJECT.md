@@ -1,6 +1,6 @@
 # UtP Project
 
-Last reviewed: 2026-06-25 PT
+Last reviewed: 2026-10-18 PT
 
 ## Core Value
 
@@ -16,12 +16,12 @@ Build a DAO-first civic trust and financial coordination platform where source-b
 
 ## Current Priority
 
-Stabilize the existing default-branch implementation before adding product scope:
+Deploy a binding, token-weighted voting DAO to RSK testnet. Order (see `.gsd/ROADMAP.md`):
 
-1. Fix 14 failing contract tests.
-2. Repair the project test command.
-3. Triage dependency and build warnings.
-4. Establish a green CI baseline.
+1. Phase 0 — green baseline (14 failing tests, CI).
+2. Phase 1 — governance correctness (voting window, for/against, timelock-only execution).
+3. Phase 2 — RSK testnet deploy + `/governance` UI.
+Civic evidence runs in parallel; financial modules stay gated.
 
 ## Non-Negotiables
 
