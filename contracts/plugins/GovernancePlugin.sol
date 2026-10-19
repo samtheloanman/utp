@@ -1,237 +1,172 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "../core/DAO.sol";
-import "../crypto/dilithium/ZKNOX_ethdilithium.sol";
-import "../crypto/IZKVerifier.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
+import {Governor} from "@openzeppelin/contracts/governance/Governor.sol";
+import {GovernorSettings} from "@openzeppelin/contracts/governance/extensions/GovernorSettings.sol";
+import {GovernorCountingSimple} from "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol";
+import {GovernorVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
+import {GovernorVotesQuorumFraction} from "@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol";
+import {GovernorTimelockControl} from "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
+import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
+import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
+
+/// @dev Post-quantum signature verifier (e.g. ZKNOX Dilithium). Same shape as ZKNOX_ethdilithium.verify.
+interface IPQVerifier {
+    function verify(bytes calldata pk, bytes calldata m, bytes calldata sig, string calldata aux) external view returns (bool);
+}
 
 /**
  * @title GovernancePlugin
- * @dev A plugin that manages proposals and voting for a DAO.
- * Implements:
- * - Token-weighted voting via UTP token (ERC20Votes)
- * - Hybrid (ECC + PQ) signature requirements
- * - ZK-gated anonymous voting with nullifier tracking
- * - Voting periods with start/end blocks
- * - Quorum-based execution threshold
- * - Replay protection via chainId
+ * @notice Binding, token-weighted governance for the UtP DAO.
+ * @dev Built on OpenZeppelin Governor (audited):
+ *      - For / Against / Abstain counting (GovernorCountingSimple)
+ *      - Voting delay, voting period, proposal threshold (GovernorSettings)
+ *      - Vote weight and quorum from UTP ERC20Votes snapshots (GovernorVotes, GovernorVotesQuorumFraction)
+ *      - Successful proposals are queued and executed ONLY through the timelock (GovernorTimelockControl)
+ *
+ *      Optional post-quantum hybrid mode (off by default, see roadmap decision D1):
+ *      when `requireHybridAuth` is true, every vote must carry a PQ signature in `params`
+ *      (abi.encode(bytes pqPublicKey, bytes pqSignature)) over `hybridVoteDigest(...)`.
+ *      Enforced in `_castVote`, so castVote / castVoteBySig cannot bypass it (no downgrade).
  */
-contract GovernancePlugin {
-    struct Proposal {
-        address[] targets;
-        uint256[] values;
-        bytes[] callDatas;
-        uint256 voteWeight;
-        bool executed;
-        uint256 startBlock;
-        uint256 endBlock;
-        uint256 snapshotBlock;
-        mapping(address => bool) hasVoted;
+contract GovernancePlugin is
+    Governor,
+    GovernorSettings,
+    GovernorCountingSimple,
+    GovernorVotes,
+    GovernorVotesQuorumFraction,
+    GovernorTimelockControl
+{
+    /// @notice PQ verifier used when hybrid auth is required. Zero when hybrid mode is off.
+    IPQVerifier public immutable pqVerifier;
+
+    /// @notice When true, every vote must include a valid PQ signature.
+    bool public immutable requireHybridAuth;
+
+    error HybridAuthRequired();
+    error InvalidHybridAuth();
+    error HybridVerifierMissing();
+
+    struct Config {
+        uint48 votingDelay; // blocks between proposal and vote start
+        uint32 votingPeriod; // blocks the vote stays open
+        uint256 proposalThreshold; // min UTP votes to propose
+        uint256 quorumPercent; // % of past total supply (0-100)
     }
 
-    /// @notice The DAO associated with this plugin.
-    DAO public immutable dao;
-
-    /// @notice The Post-Quantum verifier.
-    ZKNOX_ethdilithium public quantumVerifier;
-
-    /// @notice The Zero-Knowledge verifier.
-    IZKVerifier public zkVerifier;
-
-    /// @notice The governance token for vote weighting.
-    ERC20Votes public votingToken;
-
-    /// @notice Proposals list.
-    Proposal[] public proposals;
-
-    /// @notice Quorum: minimum total vote weight required for execution (in basis points of total supply).
-    uint256 public quorumBps;
-
-    /// @notice Default voting period in blocks.
-    uint256 public votingPeriod;
-
-    /// @notice Global nullifier tracking to prevent ZK double-voting.
-    mapping(bytes32 => bool) public usedNullifiers;
-
-    event ProposalCreated(uint256 indexed proposalId, address indexed creator, uint256 startBlock, uint256 endBlock);
-    event VoteCast(uint256 indexed proposalId, address indexed voter, uint256 weight);
-    event VoteCastAnonymous(uint256 indexed proposalId, uint256 weight);
-    event ProposalExecuted(uint256 indexed proposalId);
-    event QuorumUpdated(uint256 newQuorumBps);
-    event VotingPeriodUpdated(uint256 newPeriod);
-
-    error InvalidAuth();
-    error AlreadyVoted();
-    error NullifierAlreadyUsed();
-    error ProposalAlreadyExecuted();
-    error VotingNotActive();
-    error QuorumNotReached();
-    error Unauthorized();
-
-    /**
-     * @notice Initializes the plugin.
-     * @param _dao The DAO address.
-     * @param _quantumVerifier The PQ verifier address.
-     * @param _zkVerifier The ZK verifier address.
-     * @param _votingToken The UTP governance token address.
-     * @param _quorumBps Quorum in basis points (e.g., 400 = 4% of total supply).
-     * @param _votingPeriod Default voting period in blocks.
-     */
     constructor(
-        address _dao,
-        address _quantumVerifier,
-        address _zkVerifier,
-        address _votingToken,
-        uint256 _quorumBps,
-        uint256 _votingPeriod
-    ) {
-        dao = DAO(payable(_dao));
-        quantumVerifier = ZKNOX_ethdilithium(payable(_quantumVerifier));
-        zkVerifier = IZKVerifier(_zkVerifier);
-        votingToken = ERC20Votes(_votingToken);
-        quorumBps = _quorumBps;
-        votingPeriod = _votingPeriod;
+        IVotes token,
+        TimelockController timelock,
+        Config memory cfg,
+        address pqVerifier_,
+        bool requireHybridAuth_
+    )
+        Governor("UtP Governance")
+        GovernorSettings(cfg.votingDelay, cfg.votingPeriod, cfg.proposalThreshold)
+        GovernorVotes(token)
+        GovernorVotesQuorumFraction(cfg.quorumPercent)
+        GovernorTimelockControl(timelock)
+    {
+        if (requireHybridAuth_ && pqVerifier_ == address(0)) revert HybridVerifierMissing();
+        pqVerifier = IPQVerifier(pqVerifier_);
+        requireHybridAuth = requireHybridAuth_;
     }
 
-    /**
-     * @notice Creates a new proposal. Voting starts next block.
-     */
-    function createProposal(
-        address[] calldata targets,
-        uint256[] calldata values,
-        bytes[] calldata callDatas
-    ) external returns (uint256 proposalId) {
-        proposalId = proposals.length;
-        Proposal storage p = proposals.push();
-        p.targets = targets;
-        p.values = values;
-        p.callDatas = callDatas;
-        p.snapshotBlock = block.number;
-        p.startBlock = block.number + 1;
-        p.endBlock = block.number + 1 + votingPeriod;
+    // ------------------------------------------------------------------
+    // Hybrid (post-quantum) voting
+    // ------------------------------------------------------------------
 
-        emit ProposalCreated(proposalId, msg.sender, p.startBlock, p.endBlock);
+    /// @notice Message a voter signs with their PQ key. Binds proposal, voter, choice, contract and chain (replay protection).
+    function hybridVoteDigest(uint256 proposalId, address voter, uint8 support) public view returns (bytes32) {
+        return keccak256(abi.encodePacked(proposalId, voter, support, address(this), block.chainid));
     }
 
-    /**
-     * @notice Casts a token-weighted vote using Hybrid Authorization (ECC + PQ).
-     * @param proposalId The ID of the proposal.
-     * @param pqPublicKey The PQ public key of the voter.
-     * @param pqSignature The PQ signature over the vote message.
-     */
+    /// @notice Convenience wrapper: vote with a PQ signature.
     function castVoteHybrid(
         uint256 proposalId,
+        uint8 support,
         bytes calldata pqPublicKey,
         bytes calldata pqSignature
-    ) external {
-        Proposal storage p = proposals[proposalId];
-        if (p.executed) revert ProposalAlreadyExecuted();
-        if (p.hasVoted[msg.sender]) revert AlreadyVoted();
-
-        // Verify PQ Signature with replay protection (includes chainId)
-        bytes32 messageHash = keccak256(
-            abi.encodePacked(proposalId, msg.sender, address(this), block.chainid)
-        );
-        if (!quantumVerifier.verify(pqPublicKey, abi.encodePacked(messageHash), pqSignature, "")) {
-            revert InvalidAuth();
-        }
-
-        // Get vote weight from token balance at snapshot
-        uint256 weight = votingToken.getPastVotes(msg.sender, p.snapshotBlock);
-
-        p.voteWeight += weight;
-        p.hasVoted[msg.sender] = true;
-
-        emit VoteCast(proposalId, msg.sender, weight);
-
-        _tryExecute(proposalId);
+    ) external returns (uint256) {
+        return _castVote(proposalId, _msgSender(), support, "", abi.encode(pqPublicKey, pqSignature));
     }
 
-    /**
-     * @notice Casts an anonymous vote using ZK-gated participation.
-     * @param proposalId The ID of the proposal.
-     * @param zkProof The ZK proof of membership/eligibility.
-     * @param nullifier A nullifier to prevent double-voting.
-     */
-    function castVoteZK(
+    function _castVote(
         uint256 proposalId,
-        bytes calldata zkProof,
-        bytes32 nullifier
-    ) external {
-        Proposal storage p = proposals[proposalId];
-        if (p.executed) revert ProposalAlreadyExecuted();
-
-        // Check nullifier hasn't been used
-        if (usedNullifiers[nullifier]) revert NullifierAlreadyUsed();
-
-        bytes32[] memory publicInputs = new bytes32[](2);
-        publicInputs[0] = bytes32(proposalId);
-        publicInputs[1] = nullifier;
-
-        if (!zkVerifier.verify(zkProof, publicInputs)) {
-            revert InvalidAuth();
+        address account,
+        uint8 support,
+        string memory reason,
+        bytes memory params
+    ) internal override returns (uint256) {
+        if (requireHybridAuth) {
+            if (params.length == 0) revert HybridAuthRequired();
+            (bytes memory pk, bytes memory sig) = abi.decode(params, (bytes, bytes));
+            bytes32 digest = hybridVoteDigest(proposalId, account, support);
+            if (sig.length == 0 || !pqVerifier.verify(pk, abi.encodePacked(digest), sig, "")) {
+                revert InvalidHybridAuth();
+            }
         }
-
-        // Mark nullifier as used
-        usedNullifiers[nullifier] = true;
-
-        // Anonymous votes get weight of 1 (can't prove token balance without revealing identity)
-        p.voteWeight += 1;
-        emit VoteCastAnonymous(proposalId, 1);
-
-        _tryExecute(proposalId);
+        return super._castVote(proposalId, account, support, reason, params);
     }
 
-    function getProposalsCount() external view returns (uint256) {
-        return proposals.length;
+    // ------------------------------------------------------------------
+    // Required overrides
+    // ------------------------------------------------------------------
+
+    function votingDelay() public view override(Governor, GovernorSettings) returns (uint256) {
+        return super.votingDelay();
     }
 
-    /**
-     * @notice Manually executes a proposal that has reached quorum.
-     * @param proposalId The ID of the proposal.
-     */
-    function executeProposal(uint256 proposalId) external {
-        Proposal storage p = proposals[proposalId];
-        if (p.executed) revert ProposalAlreadyExecuted();
-        if (!_quorumReached(proposalId)) revert QuorumNotReached();
-        _executeProposal(proposalId);
+    function votingPeriod() public view override(Governor, GovernorSettings) returns (uint256) {
+        return super.votingPeriod();
     }
 
-    /**
-     * @notice Returns the quorum threshold for a proposal (in token weight).
-     */
-    function quorumThreshold() public view returns (uint256) {
-        return (votingToken.totalSupply() * quorumBps) / 10000;
+    function proposalThreshold() public view override(Governor, GovernorSettings) returns (uint256) {
+        return super.proposalThreshold();
     }
 
-    /**
-     * @dev Checks if quorum is reached for a proposal.
-     */
-    function _quorumReached(uint256 proposalId) internal view returns (bool) {
-        uint256 threshold = quorumThreshold();
-        if (threshold == 0) return proposals[proposalId].voteWeight > 0;
-        return proposals[proposalId].voteWeight >= threshold;
+    function quorum(uint256 blockNumber) public view override(Governor, GovernorVotesQuorumFraction) returns (uint256) {
+        return super.quorum(blockNumber);
     }
 
-    /**
-     * @dev Auto-executes if quorum is reached.
-     */
-    function _tryExecute(uint256 proposalId) internal {
-        if (_quorumReached(proposalId)) {
-            _executeProposal(proposalId);
-        }
+    function state(uint256 proposalId) public view override(Governor, GovernorTimelockControl) returns (ProposalState) {
+        return super.state(proposalId);
     }
 
-    /**
-     * @dev Triggers execution on the DAO kernel.
-     */
-    function _executeProposal(uint256 proposalId) internal {
-        Proposal storage p = proposals[proposalId];
-        if (p.executed) revert ProposalAlreadyExecuted();
-        p.executed = true;
+    function proposalNeedsQueuing(uint256 proposalId) public view override(Governor, GovernorTimelockControl) returns (bool) {
+        return super.proposalNeedsQueuing(proposalId);
+    }
 
-        dao.execute(p.targets, p.values, p.callDatas);
-        emit ProposalExecuted(proposalId);
+    function _queueOperations(
+        uint256 proposalId,
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    ) internal override(Governor, GovernorTimelockControl) returns (uint48) {
+        return super._queueOperations(proposalId, targets, values, calldatas, descriptionHash);
+    }
+
+    function _executeOperations(
+        uint256 proposalId,
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    ) internal override(Governor, GovernorTimelockControl) {
+        super._executeOperations(proposalId, targets, values, calldatas, descriptionHash);
+    }
+
+    function _cancel(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    ) internal override(Governor, GovernorTimelockControl) returns (uint256) {
+        return super._cancel(targets, values, calldatas, descriptionHash);
+    }
+
+    function _executor() internal view override(Governor, GovernorTimelockControl) returns (address) {
+        return super._executor();
     }
 }
