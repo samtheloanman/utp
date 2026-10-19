@@ -12,6 +12,10 @@ contract DAO is PermissionManager {
     /// @notice Permission ID required to execute actions through the DAO.
     bytes32 public constant EXECUTE_PERMISSION_ID = keccak256("EXECUTE_PERMISSION");
 
+    /// @notice Narrow permission that only allows revoking a plugin's EXECUTE permission.
+    /// @dev Granted to the PluginRegistry so it can uninstall plugins without holding ROOT.
+    bytes32 public constant UNINSTALL_PLUGIN_PERMISSION_ID = keccak256("UNINSTALL_PLUGIN_PERMISSION");
+
     bool private _locked;
 
     modifier nonReentrant() {
@@ -53,6 +57,18 @@ contract DAO is PermissionManager {
             require(success, "DAO execution failed");
             results[i] = result;
         }
+    }
+
+    /**
+     * @notice Revokes EXECUTE_PERMISSION from a plugin. Nothing else.
+     * @dev Requires UNINSTALL_PLUGIN_PERMISSION (or ROOT). Fails closed.
+     * @param plugin The plugin losing execute rights.
+     */
+    function revokePluginExecute(address plugin) external {
+        if (!hasPermission(address(this), msg.sender, UNINSTALL_PLUGIN_PERMISSION_ID)) {
+            revert AccessDenied(msg.sender, address(this), UNINSTALL_PLUGIN_PERMISSION_ID);
+        }
+        _setPermission(address(this), plugin, EXECUTE_PERMISSION_ID, false);
     }
 
     receive() external payable {}
