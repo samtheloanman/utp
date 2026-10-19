@@ -32,6 +32,27 @@ describe("StablecoinController + UBTC", function () {
 
     // Wire UBTC → Controller
     await ubtc.setController(await controller.getAddress());
+
+    // Minting is gated: the DAO whitelists minters via grantMinterRole
+    const grant = (who) => controller.interface.encodeFunctionData("grantMinterRole", [who]);
+    await dao.execute(
+      [await controller.getAddress(), await controller.getAddress()],
+      [0, 0],
+      [grant(depositor.address), grant(liquidator.address)]
+    );
+  });
+
+  describe("Minter gating", function () {
+    it("Should reject deposits from addresses the DAO has not whitelisted", async function () {
+      await expect(
+        controller.connect(unauthorized).deposit(ethers.parseEther("1000"), { value: ethers.parseEther("1") })
+      ).to.be.revertedWithCustomError(controller, "Unauthorized");
+    });
+
+    it("Should only let the DAO grant the minter role", async function () {
+      await expect(controller.connect(unauthorized).grantMinterRole(unauthorized.address))
+        .to.be.revertedWithCustomError(controller, "Unauthorized");
+    });
   });
 
   describe("Deployment", function () {

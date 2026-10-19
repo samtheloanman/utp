@@ -1,197 +1,96 @@
 /**
- * UTP Full Stack Deployment Script
- * Deploys all contracts in dependency order, wires permissions, logs addresses.
+ * Deploy the UtP governance core.
  *
- * Usage:
- *   npx hardhat run scripts/deploy.js --network rskTestnet
- *   npx hardhat run scripts/deploy.js --network hardhat  (local test)
+ *   npx hardhat run scripts/deploy.cjs --network hardhat      # in-process rehearsal
+ *   npx hardhat run scripts/deploy.cjs --network localhost    # against `npx hardhat node`
+ *   npx hardhat run scripts/deploy.cjs --network rskTestnet   # needs DEPLOYER_PRIVATE_KEY
+ *
+ * Outputs:
+ *   deployments/<network>.json            canonical addresses (read by the app)
+ *   deployments/logs/<network>-<ts>.log   full transcript of this run
+ *
+ * Financial modules (StablecoinController, UBTC, EventMarket) are NOT deployed here;
+ * they stay gated until Roadmap Phase 4.
  */
-
 const hre = require("hardhat");
 const fs = require("fs");
+const path = require("path");
+const { deployCore, verifyCore } = require("./lib/deploy-core.cjs");
+const config = require("./deploy.config.cjs");
+
+const LOCAL = new Set(["hardhat", "localhost"]);
 
 async function main() {
+  const network = hre.network.name;
+  const ts = new Date().toISOString().replace(/[:.]/g, "-");
+  const logDir = path.join(__dirname, "..", "deployments", "logs");
+  fs.mkdirSync(logDir, { recursive: true });
+  const logFile = path.join(logDir, `${network}-${ts}.log`);
+  const lines = [];
+  const log = (m) => { console.log(m); lines.push(m); };
+  const flush = () => fs.writeFileSync(logFile, lines.join("\n") + "\n");
+
+  try {
+    const params = config[network];
+    if (!params) {
+      throw new Error(`No deploy config for network "${network}". Mainnet is blocked until the Phase 3 audit gate.`);
+    }
+
     const [deployer] = await hre.ethers.getSigners();
-    const network = hre.network.name;
+    if (!deployer) throw new Error("No deployer account. Set DEPLOYER_PRIVATE_KEY for non-local networks.");
 
-    console.log("=".repeat(60));
-    console.log("UTP Deployment Script");
-    console.log("=".repeat(60));
-    console.log(`Network:  ${network}`);
-    console.log(`Deployer: ${deployer.address}`);
-    console.log(`Balance:  ${hre.ethers.formatEther(await hre.ethers.provider.getBalance(deployer.address))} RBTC`);
-    console.log("=".repeat(60));
+    // ---- Preflight ----
+    const net = await hre.ethers.provider.getNetwork();
+    const balance = await hre.ethers.provider.getBalance(deployer.address);
+    log("=== UtP governance core deployment ===");
+    log(`network   ${network} (chainId ${net.chainId})`);
+    log(`deployer  ${deployer.address}`);
+    log(`balance   ${hre.ethers.formatEther(balance)} native`);
+    log(`block     ${await hre.ethers.provider.getBlockNumber()}`);
+    log(`params    votingDelay=${params.votingDelay} votingPeriod=${params.votingPeriod} threshold=${hre.ethers.formatEther(params.proposalThreshold)} UTP quorum=${params.quorumPercent}% timelock=${params.timelockMinDelay}s guardian=${params.guardian}`);
 
-    const deployed = {};
+    if (BigInt(net.chainId) !== BigInt(params.chainId)) {
+      throw new Error(`chainId mismatch: RPC reports ${net.chainId}, config expects ${params.chainId}`);
+    }
+    if (balance < params.minDeployerBalance) {
+      throw new Error(`Deployer balance ${hre.ethers.formatEther(balance)} below minimum ${hre.ethers.formatEther(params.minDeployerBalance)}. Fund it from a testnet faucet.`);
+    }
+    if (!LOCAL.has(network) && (params.pqVerifier || params.requireHybridAuth)) {
+      throw new Error("Hybrid PQ voting has no production verifier yet (decision D1). Refusing to deploy with mocks.");
+    }
 
-    // ---- Step 1: DAO Kernel ----
-    console.log("\n[1/9] Deploying DAO...");
-    const DAO = await hre.ethers.getContractFactory("DAO");
-    const dao = await DAO.deploy();
-    await dao.waitForDeployment();
-    deployed.DAO = await dao.getAddress();
-    console.log(`  DAO: ${deployed.DAO}`);
+    // ---- Deploy + wire ----
+    const started = Date.now();
+    const core = await deployCore(hre.ethers, deployer, params, log);
 
-    // ---- Step 2: Treasury ----
-    console.log("\n[2/9] Deploying Treasury...");
-    const Treasury = await hre.ethers.getContractFactory("Treasury");
-    const treasury = await Treasury.deploy(deployed.DAO);
-    await treasury.waitForDeployment();
-    deployed.Treasury = await treasury.getAddress();
-    console.log(`  Treasury: ${deployed.Treasury}`);
+    // ---- Verify invariants ----
+    log("Verifying post-deploy invariants");
+    const n = await verifyCore(core, deployer.address, log);
+    log(`All ${n} invariants hold. Took ${((Date.now() - started) / 1000).toFixed(1)}s.`);
 
-    // ---- Step 3: UTP Token ----
-    console.log("\n[3/9] Deploying UTP Token...");
-    const INITIAL_SUPPLY = hre.ethers.parseEther("100000000"); // 100M initial
-    const UTPToken = await hre.ethers.getContractFactory("UTPToken");
-    const utpToken = await UTPToken.deploy(deployed.DAO, deployer.address, INITIAL_SUPPLY);
-    await utpToken.waitForDeployment();
-    deployed.UTPToken = await utpToken.getAddress();
-    console.log(`  UTPToken: ${deployed.UTPToken}`);
-
-    // ---- Step 4: Verifiers ----
-    console.log("\n[4/9] Deploying Verifiers...");
-    const ZKNOX_ethdilithium = await hre.ethers.getContractFactory("ZKNOX_ethdilithium");
-    const quantumVerifier = await ZKNOX_ethdilithium.deploy();
-    await quantumVerifier.waitForDeployment();
-    deployed.QuantumVerifier = await quantumVerifier.getAddress();
-
-    const MockZKVerifier = await hre.ethers.getContractFactory("MockZKVerifier");
-    const zkVerifier = await MockZKVerifier.deploy();
-    await zkVerifier.waitForDeployment();
-    deployed.ZKVerifier = await zkVerifier.getAddress();
-    console.log(`  QuantumVerifier: ${deployed.QuantumVerifier}`);
-    console.log(`  ZKVerifier: ${deployed.ZKVerifier}`);
-
-    // ---- Step 5: GovernancePlugin ----
-    console.log("\n[5/9] Deploying GovernancePlugin...");
-    const QUORUM_BPS = 400;    // 4%
-    const VOTING_PERIOD = 100; // ~100 blocks (~8 minutes on RSK)
-    const GovernancePlugin = await hre.ethers.getContractFactory("GovernancePlugin");
-    const governance = await GovernancePlugin.deploy(
-        deployed.DAO,
-        deployed.QuantumVerifier,
-        deployed.ZKVerifier,
-        deployed.UTPToken,
-        QUORUM_BPS,
-        VOTING_PERIOD
-    );
-    await governance.waitForDeployment();
-    deployed.GovernancePlugin = await governance.getAddress();
-    console.log(`  GovernancePlugin: ${deployed.GovernancePlugin}`);
-
-    // ---- Step 6: EventMarket ----
-    console.log("\n[6/9] Deploying EventMarket...");
-    const EventMarket = await hre.ethers.getContractFactory("EventMarket");
-    const eventMarket = await EventMarket.deploy(deployed.DAO, deployed.UTPToken);
-    await eventMarket.waitForDeployment();
-    deployed.EventMarket = await eventMarket.getAddress();
-    console.log(`  EventMarket: ${deployed.EventMarket}`);
-
-    // ---- Step 7: UBTC Stablecoin ----
-    console.log("\n[7/9] Deploying UBTC...");
-    const UBTC = await hre.ethers.getContractFactory("UBTC");
-    const ubtc = await UBTC.deploy();
-    await ubtc.waitForDeployment();
-    deployed.UBTC = await ubtc.getAddress();
-    console.log(`  UBTC: ${deployed.UBTC}`);
-
-    // ---- Step 8: StablecoinController ----
-    console.log("\n[8/9] Deploying StablecoinController...");
-    const MockPriceOracle = await hre.ethers.getContractFactory("MockPriceOracle");
-    const oracle = await MockPriceOracle.deploy();
-    await oracle.waitForDeployment();
-    deployed.PriceOracle = await oracle.getAddress();
-
-    const StablecoinController = await hre.ethers.getContractFactory("StablecoinController");
-    const stablecoinController = await StablecoinController.deploy(
-        deployed.DAO,
-        deployed.UBTC,
-        deployed.PriceOracle
-    );
-    await stablecoinController.waitForDeployment();
-    deployed.StablecoinController = await stablecoinController.getAddress();
-    console.log(`  PriceOracle: ${deployed.PriceOracle}`);
-    console.log(`  StablecoinController: ${deployed.StablecoinController}`);
-
-    // Wire UBTC → StablecoinController
-    await ubtc.setController(deployed.StablecoinController);
-    console.log("  ✔ UBTC controller set");
-
-    // ---- Step 9: Wire Permissions ----
-    console.log("\n[9/9] Wiring permissions...");
-
-    // GovernancePlugin gets EXECUTE_PERMISSION
-    const EXECUTE_PERMISSION_ID = await dao.EXECUTE_PERMISSION_ID();
-    await dao.grant(deployed.DAO, deployed.GovernancePlugin, EXECUTE_PERMISSION_ID);
-    console.log("  ✔ GovernancePlugin → EXECUTE_PERMISSION");
-
-    // PluginRegistry
-    console.log("  Deploying PluginRegistry...");
-    const PluginRegistry = await hre.ethers.getContractFactory("PluginRegistry");
-    const pluginRegistry = await PluginRegistry.deploy(deployed.DAO);
-    await pluginRegistry.waitForDeployment();
-    deployed.PluginRegistry = await pluginRegistry.getAddress();
-    console.log(`  PluginRegistry: ${deployed.PluginRegistry}`);
-
-    // EventMarket permissions (deployer gets CREATE + RESOLVE)
-    const CREATE_EVENT_PERM = await eventMarket.CREATE_EVENT_PERMISSION_ID();
-    const RESOLVE_EVENT_PERM = await eventMarket.RESOLVE_EVENT_PERMISSION_ID();
-    await dao.grant(deployed.EventMarket, deployer.address, CREATE_EVENT_PERM);
-    await dao.grant(deployed.EventMarket, deployer.address, RESOLVE_EVENT_PERM);
-    console.log("  ✔ Deployer → CREATE_EVENT + RESOLVE_EVENT");
-
-    // UTPToken MINTER_PERMISSION to deployer (for initial distribution)
-    const MINTER_PERMISSION_ID = await utpToken.MINTER_PERMISSION_ID();
-    await dao.grant(deployed.UTPToken, deployer.address, MINTER_PERMISSION_ID);
-    console.log("  ✔ Deployer → MINTER_PERMISSION");
-
-    // ---- Step 10: Timelock ----
-    console.log("\n[10/10] Deploying Timelock and transferring ownership...");
-    const TimelockController = await hre.ethers.getContractFactory("TimelockController");
-    const timelock = await TimelockController.deploy(deployer.address, deployer.address, deployer.address);
-    await timelock.waitForDeployment();
-    const timelockAddr = await timelock.getAddress();
-    deployed.TimelockController = timelockAddr;
-    console.log(`  TimelockController: ${timelockAddr}`);
-
-    const PROPOSER_ROLE = await timelock.PROPOSER_ROLE();
-    await timelock.grantRole(PROPOSER_ROLE, deployed.GovernancePlugin);
-    console.log(`  ✔ Granted PROPOSER_ROLE to GovernancePlugin`);
-
-    const TIMELOCK_ADMIN_ROLE = await timelock.TIMELOCK_ADMIN_ROLE();
-    await timelock.renounceRole(TIMELOCK_ADMIN_ROLE, deployer.address);
-    console.log("  ✔ Renounced TIMELOCK_ADMIN_ROLE from deployer");
-
-    const ROOT_PERMISSION_ID = await dao.ROOT_PERMISSION_ID();
-    await dao.grant(deployed.DAO, timelockAddr, ROOT_PERMISSION_ID);
-    await dao.revoke(deployed.DAO, deployer.address, ROOT_PERMISSION_ID);
-    console.log(`  ✔ Transferred DAO ROOT ownership to TimelockController`);
-
-    // ---- Save Deployment Record ----
-    console.log("\n" + "=".repeat(60));
-    console.log("DEPLOYMENT COMPLETE");
-    console.log("=".repeat(60));
-
-    const record = {
-        network,
-        deployer: deployer.address,
-        timestamp: new Date().toISOString(),
-        contracts: deployed,
+    // ---- Persist ----
+    const out = {
+      network,
+      chainId: Number(net.chainId),
+      deployer: deployer.address,
+      deployedAt: new Date().toISOString(),
+      blockNumber: await hre.ethers.provider.getBlockNumber(),
+      params: Object.fromEntries(Object.entries(params).map(([k, v]) => [k, typeof v === "bigint" ? v.toString() : v])),
+      contracts: core.addresses,
     };
-
-    console.log(JSON.stringify(record, null, 2));
-
-    // Save to file
-    const filename = `deployments/${network}-${Date.now()}.json`;
-    fs.mkdirSync("deployments", { recursive: true });
-    fs.writeFileSync(filename, JSON.stringify(record, null, 2));
-    console.log(`\nSaved to ${filename}`);
+    if (network !== "hardhat") {
+      const file = path.join(__dirname, "..", "deployments", `${network}.json`);
+      fs.writeFileSync(file, JSON.stringify(out, null, 2) + "\n");
+      log(`Wrote ${path.relative(process.cwd(), file)}`);
+    }
+    log(`Log: ${path.relative(process.cwd(), logFile)}`);
+    log("=== DEPLOYMENT OK ===");
+  } catch (err) {
+    log(`=== DEPLOYMENT FAILED === ${err.message}`);
+    flush();
+    throw err;
+  }
+  flush();
 }
 
-main()
-    .then(() => process.exit(0))
-    .catch((error) => {
-        console.error(error);
-        process.exit(1);
-    });
+main().catch(() => { process.exitCode = 1; });

@@ -1,6 +1,17 @@
 require("@nomicfoundation/hardhat-toolbox");
 require("dotenv").config();
 
+// Offline/sandboxed compile: set SOLC_JS_PATH to a solc 0.8.24 soljson.js
+// (e.g. from `npm i solc@0.8.24` in a scratch dir) to skip downloading the compiler.
+if (process.env.SOLC_JS_PATH) {
+    const { subtask } = require("hardhat/config");
+    const { TASK_COMPILE_SOLIDITY_GET_SOLC_BUILD } = require("hardhat/builtin-tasks/task-names");
+    subtask(TASK_COMPILE_SOLIDITY_GET_SOLC_BUILD, async (args, hre, runSuper) => {
+        if (args.solcVersion !== "0.8.24") return runSuper();
+        return { compilerPath: process.env.SOLC_JS_PATH, isSolcJs: true, version: "0.8.24", longVersion: "0.8.24" };
+    });
+}
+
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
     solidity: {

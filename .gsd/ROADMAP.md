@@ -16,52 +16,49 @@ Ship a **binding, token-weighted voting DAO on Rootstock (RSK) testnet**, with c
 7. **Stale/false planning artifacts archived**, including a validation doc that marked the failing stablecoin suite "COMPLIANT."
 
 ## Open decisions
-- **D1 — Quantum/ZK scope for v1.** Recommended: v1 binding votes = wallet signature + ERC20Votes; ship Dilithium hybrid and ZK anonymous voting later as optional plugins once a client signer exists and RSK gas is measured. Alternative: keep hybrid PQ mandatory for v1 (adds client-side Dilithium signing + a gas-budget spike to Phase 1).
-- **D2 — Initial governance parameters:** voting period, quorum %, proposal threshold, timelock delay, initial UTP distribution. Needed before Phase 2.
+- **D1 — Quantum/ZK scope for v1.** ✅ Decided 2026-10-18: standard wallet voting for v1; PQ hybrid optional/off; ZK deferred. Recommended: v1 binding votes = wallet signature + ERC20Votes; ship Dilithium hybrid and ZK anonymous voting later as optional plugins once a client signer exists and RSK gas is measured. Alternative: keep hybrid PQ mandatory for v1 (adds client-side Dilithium signing + a gas-budget spike to Phase 1).
+- **D2 — Initial governance parameters:** ✅ Testnet defaults set in `scripts/deploy.config.cjs` (revisit before mainnet). voting period, quorum %, proposal threshold, timelock delay, initial UTP distribution. Needed before Phase 2.
 
 ---
 
-## Phase 0 — Green baseline  ·  size: S
-Goal: every existing test passes and one command proves it.
+## Phase 0 — Green baseline  ·  ✅ DONE 2026-10-18
+- [x] Hybrid-vote tests: mock verifier aligned with the plugin's message format.
+- [x] PluginRegistry uninstall: new narrow `UNINSTALL_PLUGIN_PERMISSION` + `DAO.revokePluginExecute`; registry never holds ROOT; fail-closed tests.
+- [x] `MockPriceOracle` added. Unmasked 9 more stablecoin tests: setup never whitelisted minters (`grantMinterRole`); fixed + minter-gating tests.
+- [x] `npm test` = contracts + web; obsolete `scripts/verify.js` removed.
+- [x] Offline compile opt-in: `SOLC_JS_PATH`.
+- [x] CI: `.github/workflows/ci.yml` (lint, typecheck, build, compile, tests).
+- [x] `npm run compile` no longer clobbers `src/lib/contracts.ts` (ABIs → `src/lib/generated/abis.ts`).
+- [ ] Hygiene: ~~untrack `tsconfig.tsbuildinfo`~~ (done); move `UTP.zip`, `design.tar.gz`, LMArena PDF out of git; remove `temp_*` dirs; delete branch `sync/freedom-stack-master`.
 
-- [ ] **Hybrid-vote tests (8):** `MockQuantumVerifier.verify` compares `keccak256(m)` to the signature, but the plugin already passes a hash and the test helper signs that hash → double-hash mismatch. Align the mock with the plugin's message format.
-- [ ] **PluginRegistry uninstall (5):** `uninstallPlugin` calls `dao.revoke`, but the registry holds no permission on the DAO → `AccessDenied`. Fix the permission model (grant the registry a scoped revoke right, or route uninstall through DAO execution); keep it fail-closed.
-- [ ] **Stablecoin suite (1):** add `contracts/test/MockPriceOracle.sol` implementing `IPriceOracle` (also unblocks `scripts/deploy.cjs`, which references it).
-- [ ] `npm test` → runs `hardhat test` + `vitest run` (move `scripts/verify.js` to `npm run verify:local`).
-- [ ] Commit the local-solc workaround as an opt-in (`HARDHAT_SOLC_LOCAL=1`) for offline/sandboxed CI.
-- [ ] Add CI (GitHub Actions): lint, build, compile, test on every PR. (No workflows exist today.)
-- [ ] Hygiene: untrack `tsconfig.tsbuildinfo`; move `UTP.zip`, `design.tar.gz`, the LMArena PDF out of git; delete empty `temp_ethdilithium/`, `temp_groth16/` if unused; delete merged branch `sync/freedom-stack-master`.
+## Phase 1 — Governance correctness  ·  ✅ DONE 2026-10-18
+Rebuilt `GovernancePlugin` on OpenZeppelin Governor; replaced the custom timelock (its `CANCELLER_ROLE` could never be granted) with `UtPTimelock` over OZ `TimelockController`.
+- [x] Voting window enforced (`votingDelay`, `votingPeriod`).
+- [x] For / Against / Abstain; defeated proposals can never be queued.
+- [x] Outcome decided at end of vote; no mid-vote execution.
+- [x] Execution only through the timelock; governance holds no DAO permissions; timelock self-administered.
+- [x] Proposal threshold; quorum from snapshot supply.
+- [x] ZK voting removed for v1; PQ hybrid kept as an optional mode (default off), enforced in `_castVote` (no downgrade via `castVote`/`castVoteBySig`); digest binds proposal, voter, support, contract, chainId.
+- [x] Deployer privileges removed at end of deploy; 11 invariants asserted by `verifyCore`.
+- [x] Optional guardian = timelock canceller only (emergency veto).
+- [x] Tests: 175 passing (lifecycle, defeat, quorum, abstain, snapshot, double vote, window, threshold, timelock, guardian, lockdown, hybrid mode, end-to-end treasury/mint/pause/plugin flows).
+- [x] `THREAT_MODEL.md`: governance core section with threat → mitigation → test map.
+- Finding: `ZKNOX_ethdilithium.sol` is an interface only (0 bytes) and upstream is marked "not audited, do not use in production". There is no real on-chain PQ verifier.
 
-Exit: CI green on `master`; all contract tests pass (128 pass / 14 fail today; the stablecoin failure is a `beforeEach` hook, so more tests will run once fixed).
-
-## Phase 1 — Governance correctness (the DAO voting layer)  ·  size: M
-Goal: votes that are binding, contestable, time-boxed, and delayed before execution.
-
-GovernancePlugin gaps found in review:
-- [ ] **Enforce the voting window.** `startBlock`/`endBlock` are stored but never checked; votes are accepted at any time.
-- [ ] **For / Against / Abstain.** Only "yes" weight is tracked today, so a proposal can't be voted down.
-- [ ] **No execution on first quorum crossing.** Today `_tryExecute` runs mid-vote. Change to: voting ends → succeeded if quorum met and for > against → queued.
-- [ ] **Route execution through the timelock.** `deploy.cjs` grants GovernancePlugin direct `EXECUTE` on the DAO, which bypasses the timelock. Make the timelock the only executor.
-- [ ] **Proposal threshold** (min UTP to propose) and proposal descriptions/IDs (hash-based, not array index).
-- [ ] **Quorum from snapshot supply** (`getPastTotalSupply`), not live `totalSupply`.
-- [ ] **Don't mix units:** ZK votes add weight 1 into token-weighted totals. Separate the tally or disable ZK voting for v1 (per D1).
-- [ ] Per D1: add `castVote(proposalId, support)` (wallet + ERC20Votes) as the v1 path; keep hybrid/ZK behind plugin flags.
-- [ ] Remove deployer super-roles after setup: timelock admin, UTP minter, event create/resolve → DAO/timelock only.
-- [ ] Carry forward red-team items: PQ downgrade with empty sig, plugin privilege escalation, replay (nonce + chainId).
-- [ ] Tests: lifecycle (propose → vote → defeat/succeed → queue → execute), double-vote, late vote, threshold, timelock delay, role lockdown.
-- [ ] Update `THREAT_MODEL.md` for governance + permissions.
-
-Exit: governance + permission + plugin suites pass; no address other than the timelock can execute on the DAO.
-
-## Phase 2 — RSK testnet deployment  ·  size: S–M
+## Phase 2 — RSK testnet deployment  ·  🟡 IN PROGRESS
 Goal: the DAO runs end to end on RSK testnet (chainId 31).
 
-- [ ] Split `scripts/deploy.cjs` into a **governance core** deploy (DAO, PermissionManager, PluginRegistry, Treasury, UTPToken, GovernancePlugin, Timelock) and a separate **financial** deploy. No mocks on non-local networks; the script fails if any are requested.
-- [ ] Set parameters from D2; distribute initial UTP to testers; delegate votes.
-- [ ] Deploy, verify source on the RSK explorer, commit addresses to `deployments/rskTestnet.json`, and expose them to the app via `src/lib/contracts.ts`.
-- [ ] **Build** `/governance` in the teal system (it is placeholder text today): proposal list, create proposal, vote, status, queue/execute. Every vote surface is labeled **sentiment / wallet-signed / binding**. Build `/token` (balance + delegate) alongside, since votes need delegation.
-- [ ] Rehearse: failed proposal, successful proposal through timelock, emergency pause path, redeploy/rollback runbook.
-- [ ] Closed testnet Alpha with a handful of wallets.
+- [x] `scripts/deploy.cjs` deploys the governance core only (DAO, UTPToken, UtPTimelock, GovernancePlugin, Treasury, PluginRegistry) via shared `scripts/lib/deploy-core.cjs`; preflight (chainId, balance), refuses mocks off-local, refuses mainnet; full transcript to `deployments/logs/`.
+- [x] D2 testnet parameters in `scripts/deploy.config.cjs`: delay 1 block, period 2880 blocks (~1 day), threshold 10,000 UTP, quorum 4%, timelock 1h.
+- [x] Rehearsed: in-process deploy + live-RPC deploy on a local node + `scripts/smoke-governance.cjs` full lifecycle (propose → vote → queue → timelock → execute) — all green, 0 reverts in node log.
+- [x] `.github/workflows/deploy-rsk-testnet.yml`: manual, gated on tests + rehearsal, deploys, runs read-only smoke, uploads record + logs.
+- [ ] **Run the deploy** (needs `rsk-testnet` environment secret `DEPLOYER_PRIVATE_KEY`, funded with tRBTC). Commit `deployments/rskTestnet.json`.
+- [ ] Verify source on the RSK explorer.
+- [ ] Distribute UTP to testers and have them delegate (deployer holds 100% at deploy — it alone exceeds quorum until distributed).
+- [ ] Separate financial deploy script (Phase 4 modules).
+- [ ] **Build** `/governance` and `/token` in the teal system (placeholders today); label every vote surface sentiment / wallet-signed / binding.
+- [ ] Runbook: deploy, verify, guardian veto, redeploy.
+- [ ] Closed testnet Alpha.
 
 Exit: one real proposal executed through the timelock on testnet; runbook written.
 
