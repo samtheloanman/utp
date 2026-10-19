@@ -29,7 +29,7 @@ Ship a **binding, token-weighted voting DAO on Rootstock (RSK) testnet**, with c
 - [x] Offline compile opt-in: `SOLC_JS_PATH`.
 - [x] CI: `.github/workflows/ci.yml` (lint, typecheck, build, compile, tests).
 - [x] `npm run compile` no longer clobbers `src/lib/contracts.ts` (ABIs → `src/lib/generated/abis.ts`).
-- [ ] Hygiene: untrack `tsconfig.tsbuildinfo`; move `UTP.zip`, `design.tar.gz`, LMArena PDF out of git; remove `temp_*` dirs; delete branch `sync/freedom-stack-master`.
+- [ ] Hygiene: ~~untrack `tsconfig.tsbuildinfo`~~ (done); move `UTP.zip`, `design.tar.gz`, LMArena PDF out of git; remove `temp_*` dirs; delete branch `sync/freedom-stack-master`.
 
 ## Phase 1 — Governance correctness  ·  ✅ DONE 2026-10-18
 Rebuilt `GovernancePlugin` on OpenZeppelin Governor; replaced the custom timelock (its `CANCELLER_ROLE` could never be granted) with `UtPTimelock` over OZ `TimelockController`.
