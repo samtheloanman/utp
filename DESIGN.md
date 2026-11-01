@@ -1,35 +1,64 @@
-# Design System: uBTC / UTP Token Launch
+# Design System — Uniting the People (UtP)
 
-## 1. Visual Identity & Theme
-* **Vibe:** Premium, Dark Mode, Futuristic, High-End FinTech, Cyberpunk elements.
-* **Core Motif:** 3D elements, glassmorphism, glowing neon accents against deep dark backgrounds. High contrast is required to make the components look cinematic and expensive.
+**Canonical. Civic glass-teal, light-first.** Adopted 2026-10-18.
+The old dark "uBTC" system is retired and lives in `archive/design-dark-v1/` for reference only; don't use it for new work.
 
-## 2. Color Palette
-* **Backgrounds:** Deep Space Black (`#06080B`), Dark Charcoal (`#12161A`).
-* **Primary Accent (Bitcoin):** Bitcoin Gold (`#F7931A`) - Used for wealth, vaults, and uBTC references.
-* **Secondary Accent (Quantum):** Quantum Neon Cyan (`#00E5FF`) - Used for technology, quantum resistance, and tech-driven UI borders.
-* **Tertiary Accent (Utopia/UTP):** Utopian Emerald (`#00FF66`) - Used for voting, earnings, and the self-sustaining city vision.
-* **Text:** Bright White (`#FFFFFF`) for primary headings, Slate Gray (`#8A96A8`) for body text.
+- **Source of truth in code:** `src/app/globals.css` (CSS custom properties on `:root`)
+- **Logo & brand spec:** `design_tmp/utp/project/uniting-the-people/Logo & Brand.html` (Claude Design handoff)
+- **Not this:** the Anthropic `brand-guidelines` skill (Poppins/Lora/coral) does not apply to UtP.
+
+## 1. Character
+Trustworthy civic infrastructure, not crypto hype. Calm, clear, evidence-first. Light backgrounds, deep teal ink, one bright teal for action, a warm gold used sparingly. Depth comes from soft ink-tinted shadows, not glows.
+
+## 2. Color tokens (`:root`)
+| Token | Hex | Use |
+|---|---|---|
+| `--ink` | `#082A33` | Body text, max contrast |
+| `--ink-soft` | `#2A4750` | Secondary text |
+| `--muted` | `#5E7A82` | Supporting copy, labels |
+| `--faint` | `#93A8AE` | Meta, placeholders |
+| `--primary` | `#17A6C8` | Actions, links, the mark |
+| `--primary-deep` | `#0E7C96` | Headings accents, hover, focus ring |
+| `--primary-soft` | `#E2F3F7` | Tints, selected states |
+| `--accent` | `#C9952F` | Warmth — sparingly |
+| `--accent-soft` | `#F7EDD6` | Accent tints |
+| `--bg` / `--bg-deep` | `#F4F8F9` / `#E8F1F3` | Page backgrounds |
+| `--surface` / `--surface-2` | `#FFFFFF` / `#F6FAFB` | Cards, inputs |
+| `--border` / `--border-2` / `--hairline` | `#E1EAEC` / `#CCDADD` / `#EEF4F5` | Dividers |
+| `--ring` | `#0E7C96` | Focus outline |
+
+**Vote semantics** (always pair color with a label or icon, never color alone):
+| Token | Hex | Meaning |
+|---|---|---|
+| `--for` / `--for-soft` | `#1F9D6B` / `#E2F4EC` | For / yes |
+| `--against` / `--against-soft` | `#E0524D` / `#FBE9E8` | Against / no, live indicator |
+| `--unsure` / `--unsure-soft` | `#8A99A0` / `#EDF1F2` | Undecided |
+
+**Brand ramp** (logo, illustration, app icon): aqua `#6FD9EC` → cyan `#17A6C8` → teal `#0E7C96` → deep `#0A5466` → ink `#082A33`; sand `#CBB996` accent; mist `#EAF3F5`, paper `#F7FAFB`. Dark grounds (app icon, photo badges) use the gradient `#0C617A → #06323E`; that is the only place dark surfaces appear.
+
+Never hardcode hex in components — use the tokens.
 
 ## 3. Typography
-* **Headings:** Bold, expanded Sans-Serif (e.g., Space Grotesk, Inter, or Syncopate). Should look monumental.
-* **Body:** Clean Sans-Serif (e.g., Inter, Roboto).
-* **Hierarchy:** Massive, oversized hero headlines. Distinct font weights to separate labels from data.
+- **Display / headings:** Schibsted Grotesk, weight 800, tracking `-0.025em` (`--display`)
+- **Body / UI:** Inter 400–700
+- **Data & numbers:** JetBrains Mono with tabular figures (`.mono`)
+- Loaded via Google Fonts in `globals.css`. Bebas Neue is loaded as an optional display variant (`data-display="bebas"`) — not the default.
 
-## 4. UI Elements & Effects
-* **Cards (Bento Grid):** Use Glassmorphism (dark semi-transparent backgrounds with backdrop-blur, subtle 1px glowing borders in Cyan or Gold).
-* **Buttons:** 
-  * Primary: Solid neon glowing gradients or stark white with black text.
-  * Secondary: Outlined with glowing hover states.
-* **Shadows:** Avoid flat shadows. Use deep, colored glows under important elements to simulate light emission.
+## 4. Shape, depth, density
+- Radii: `--r-sm 9px`, `--r-md 13px`, `--r-lg 18px`, `--r-pill 999px`
+- Shadows (ink-tinted): `--shadow-sm`, `--shadow-md`, `--shadow-lg`
+- Density: `data-density="compact" | "comfortable"` drives `--card-pad`, `--feed-gap`, `--grid-min`
+- Sticky top bar: white at 85% opacity + 16px backdrop blur
 
-## 5. Imagery & Assets
-* **Hero Visuals:** High fidelity 3D renders. Concepts: A glowing quantum vault, a floating Bitcoin dissolving into data nodes, or a dark futuristic city skyline.
-* **Icons:** Sleek, minimalist stroke icons, optionally glowing.
+## 5. Components (classes in `globals.css`)
+- Buttons: `.btn` + `.btn-primary` (teal fill, soft teal shadow), `.btn-ghost` (surface + border), `.btn-quiet` (text only); sizes `.btn-sm`, `.btn-lg`, `.btn-block`
+- Live indicator: `.live-dot` (pulsing `--against`)
+- Icons: `lucide-react`, line style, inherit `currentColor`
 
-## 6. Design System Notes for Stitch Generation
-* Apply a strict dark mode theme with #06080B as the main background.
-* Use glassmorphic panels for all feature cards (backdrop blur + 1px rgba(255,255,255,0.1) borders).
-* Incorporate neon accents (#F7931A for BTC, #00E5FF for Tech, #00FF66 for Voting/Nature) sparingly as glows, text gradients, or button backgrounds.
-* Ensure typography is massive and high-contrast for section headers.
-* Use bento-box style grids for the feature section to keep the layout modern and structured.
+## 6. Logo rules
+From the brand spec: keep clearspace, respect minimum sizes, and don't rotate, stretch, recolor, or add effects to the mark.
+
+## 7. Content rules (from the PRD)
+- Label every vote surface as one of: off-chain sentiment, wallet-signed, or binding on-chain.
+- Financial features (vault, stablecoin, token, markets) must show an explicit **gated / not live** state until configured, tested, and approved. No placeholder addresses, no "verified" badges without a real verifier.
+- Separate evidence, interpretation, and community sentiment visually.

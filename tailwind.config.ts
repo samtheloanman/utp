@@ -6,13 +6,6 @@ const config: Config = {
     ],
     theme: {
         extend: {
-            colors: {
-                btc: {
-                    DEFAULT: '#F7931A',
-                    light: '#FDB44B',
-                    dim: 'rgba(247, 147, 26, 0.15)',
-                },
-            },
             fontFamily: {
                 sans: ['Inter', 'system-ui', 'sans-serif'],
                 mono: ['JetBrains Mono', 'monospace'],

@@ -1,6 +1,6 @@
 # UtP Technical Specification v3.0
 
-Last reviewed: 2026-06-25 PT
+Last reviewed: 2026-10-18 PT (routes updated; baseline re-verified 2026-10-18: compile OK, 128 pass / 14 fail)
 
 ## Architecture
 
@@ -26,8 +26,6 @@ Current routes include:
 - `/news`
 - `/governance`
 - `/events`
-- `/vault`
-- `/launch`
 - `/stablecoin`
 - `/token`
 - `/us/california/[bill]`

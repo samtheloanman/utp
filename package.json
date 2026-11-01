@@ -10,8 +10,13 @@
     "lint": "next lint",
     "compile": "npx hardhat compile",
     "postcompile": "node scripts/generate-abis.js",
-    "verify": "node scripts/verify.js",
-    "test": "node scripts/verify.js"
+    "test": "npm run test:contracts && npm run test:web",
+    "typecheck": "tsc --noEmit",
+    "test:contracts": "hardhat test",
+    "test:web": "vitest run",
+    "ci:fast": "npm run lint && npm run typecheck && npm run test:web && npm run test:contracts",
+    "deploy:local": "hardhat run scripts/deploy.cjs --network localhost",
+    "deploy:rskTestnet": "hardhat run scripts/deploy.cjs --network rskTestnet"
   },
   "dependencies": {
     "@base-org/account": "^2.5.3",

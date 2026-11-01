@@ -63,6 +63,7 @@ contract PluginRegistry {
     /**
      * @notice Uninstalls a plugin.
      * @dev Only users with ROOT_PERMISSION on the DAO can uninstall plugins.
+     *      The registry itself needs UNINSTALL_PLUGIN_PERMISSION on the DAO (not ROOT).
      * @param plugin The address of the plugin.
      */
     function uninstallPlugin(address plugin) external {
@@ -82,7 +83,7 @@ contract PluginRegistry {
         pluginList.pop();
         delete plugins[plugin];
 
-        dao.revoke(address(dao), plugin, dao.EXECUTE_PERMISSION_ID());
+        dao.revokePluginExecute(plugin);
 
         emit PluginUninstalled(plugin);
     }

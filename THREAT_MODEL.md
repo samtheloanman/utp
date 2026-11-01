@@ -179,3 +179,27 @@ This document identifies threats, attack vectors, and mitigations for the Bitcoi
 | StablecoinController | 12 tests ✅ | Parameters, pause, mint limits, governance |
 | Integration | 3 tests ✅ | Full governance flow E2E |
 | **Total** | **89 tests ✅** | **All passing** |
+
+## Governance core (updated 2026-10-18)
+
+Scope: DAO, UTPToken, UtPTimelock (OZ TimelockController), GovernancePlugin (OZ Governor), Treasury, PluginRegistry.
+
+| Threat | Mitigation | Test |
+|---|---|---|
+| Deployer keeps control after launch | `deployCore` revokes deployer ROOT and renounces timelock admin; `verifyCore` asserts 11 invariants on every deploy | `GovernancePlugin.test.js` "Deployment invariants"; deploy log |
+| Governance bypasses the delay | GovernancePlugin holds no DAO permission; only the timelock (ROOT) executes | "routes execution through the timelock" |
+| Anyone schedules timelock operations | Governance is the only PROPOSER | "rejects direct scheduling on the timelock" |
+| Malicious proposal passes | Timelock delay gives a window; optional guardian (multisig) holds CANCELLER only | "lets the guardian cancel"; "does not let the guardian do anything else" |
+| Flash-loan / late-acquired votes | Weight and quorum read from ERC20Votes snapshot at proposal start | "weights votes by delegated UTP at the snapshot" |
+| Proposal spam | Proposal threshold (10,000 UTP on testnet) | "blocks proposers below the threshold" |
+| Vote after close / before open | OZ Governor state checks | "Voting window" tests |
+| Double vote | OZ `GovernorAlreadyCastVote` | "rejects a second vote" |
+| Plugin privilege escalation | PluginRegistry holds only `UNINSTALL_PLUGIN_PERMISSION`; `revokePluginExecute` can only remove EXECUTE | `PluginRegistry.test.js` "Least privilege" |
+| PQ downgrade (hybrid mode) | Enforced in `_castVote`, so `castVote`/`castVoteBySig` cannot skip it; empty sig rejected | "Hybrid post-quantum mode" tests |
+| PQ signature replay | Digest binds proposalId, voter, support, contract, chainId | "rejects a signature replayed by a different voter" / "different choice" |
+
+Known risks / accepted for testnet:
+- **Initial concentration:** the deployer receives 100% of the initial UTP supply and alone exceeds quorum until tokens are distributed and delegated. Distribute before treating any vote as meaningful.
+- **No real PQ verifier:** `ZKNOX_ethdilithium.sol` is an interface; upstream marks it unaudited. Hybrid mode stays off (decision D1).
+- **Not audited:** the governance core composes audited OpenZeppelin modules, but the DAO/PermissionManager/Treasury/PluginRegistry code is custom and unaudited. External audit is a Phase 3 gate before mainnet.
+- **Guardian trust:** if set, the guardian can veto (cancel) any queued operation. Use a multisig.

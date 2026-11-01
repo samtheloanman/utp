@@ -1,6 +1,6 @@
 # UtP Product Requirements Document v3.0
 
-Last reviewed: 2026-06-25 PT
+Last reviewed: 2026-10-18 PT · Roadmap: `.gsd/ROADMAP.md` · Brand: `DESIGN.md` (civic glass-teal)
 
 ## Product Direction
 
@@ -19,7 +19,9 @@ The default GitHub branch currently includes:
 - A Next.js issue feed with local-to-global civic topics.
 - Privy authentication and Wagmi/Viem wallet integration.
 - On-chain polling integration.
-- Issue, legislature, news, governance, events, vault, launch, stablecoin, and token routes.
+- Built routes: issue feed (`/`), `/issue/[id]`, `/how-it-works`, `/us/california/[bill]`.
+- Placeholder routes (text only, verified 2026-10-18): legislature, news, governance, events, stablecoin, token.
+- `/launch` and `/vault` retired 2026-10-18; they redirect to `/`.
 - API routes for aggregation, debate, legislature, news, proposals, and votes.
 - DAO, permission, plugin, treasury, polling, governance, event market, token, and stablecoin contracts.
 - Supabase and off-chain data infrastructure.
