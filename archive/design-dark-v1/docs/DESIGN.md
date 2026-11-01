@@ -18,7 +18,7 @@
 
 ## 4. UI Elements & Effects
 * **Cards (Bento Grid):** Use Glassmorphism (dark semi-transparent backgrounds with backdrop-blur, subtle 1px glowing borders in Cyan or Gold).
-* **Buttons:** 
+* **Buttons:**
   * Primary: Solid neon glowing gradients or stark white with black text.
   * Secondary: Outlined with glowing hover states.
 * **Shadows:** Avoid flat shadows. Use deep, colored glows under important elements to simulate light emission.
