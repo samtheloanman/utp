@@ -67,8 +67,17 @@ contract PermissionManager {
         if (!hasPermission(address(this), msg.sender, ROOT_PERMISSION_ID)) {
             revert AccessDenied(msg.sender, address(this), ROOT_PERMISSION_ID);
         }
-        _permissions[where][who][permissionId] = false;
-        emit PermissionRevoked(permissionId, who, where);
+        _setPermission(where, who, permissionId, false);
+    }
+
+    /// @dev Single write path for permission changes; emits the matching event.
+    function _setPermission(address where, address who, bytes32 permissionId, bool granted) internal {
+        _permissions[where][who][permissionId] = granted;
+        if (granted) {
+            emit PermissionGranted(permissionId, who, where);
+        } else {
+            emit PermissionRevoked(permissionId, who, where);
+        }
     }
 
     /**

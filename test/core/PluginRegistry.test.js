@@ -16,6 +16,36 @@ describe("PluginRegistry", function () {
     // Deploy PluginRegistry
     const PluginRegistry = await ethers.getContractFactory("PluginRegistry");
     pluginRegistry = await PluginRegistry.deploy(await dao.getAddress());
+
+    // Registry needs the narrow uninstall permission (not ROOT) to revoke plugin execute rights
+    await dao.grant(await dao.getAddress(), await pluginRegistry.getAddress(), await dao.UNINSTALL_PLUGIN_PERMISSION_ID());
+  });
+
+  describe("Least privilege", function () {
+    it("Should fail closed when the registry lacks UNINSTALL_PLUGIN_PERMISSION", async function () {
+      const PluginRegistry = await ethers.getContractFactory("PluginRegistry");
+      const bare = await PluginRegistry.deploy(await dao.getAddress());
+      await bare.installPlugin(plugin1.address);
+      await expect(bare.uninstallPlugin(plugin1.address))
+        .to.be.revertedWithCustomError(dao, "AccessDenied");
+    });
+
+    it("Should not give the registry ROOT", async function () {
+      expect(await dao.hasPermission(await dao.getAddress(), await pluginRegistry.getAddress(), await dao.ROOT_PERMISSION_ID())).to.be.false;
+    });
+
+    it("Should revoke the uninstalled plugin's EXECUTE permission", async function () {
+      const EXEC = await dao.EXECUTE_PERMISSION_ID();
+      await dao.grant(await dao.getAddress(), plugin1.address, EXEC);
+      await pluginRegistry.installPlugin(plugin1.address);
+      await pluginRegistry.uninstallPlugin(plugin1.address);
+      expect(await dao.hasPermission(await dao.getAddress(), plugin1.address, EXEC)).to.be.false;
+    });
+
+    it("Should reject revokePluginExecute from an unauthorized caller", async function () {
+      await expect(dao.connect(unauthorized).revokePluginExecute(plugin1.address))
+        .to.be.revertedWithCustomError(dao, "AccessDenied");
+    });
   });
 
   describe("Deployment", function () {

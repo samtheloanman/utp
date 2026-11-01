@@ -7,8 +7,9 @@ const __dirname = path.dirname(__filename);
 
 const rootDir = path.resolve(__dirname, '..');
 const artifactsDir = path.join(rootDir, 'artifacts', 'contracts');
-const outputDir = path.join(rootDir, 'src', 'lib');
-const outputFile = path.join(outputDir, 'contracts.ts');
+// Writes to its own file so it never clobbers the hand-maintained src/lib/contracts.ts
+const outputDir = path.join(rootDir, 'src', 'lib', 'generated');
+const outputFile = path.join(outputDir, 'abis.ts');
 
 const contractNames = [
     'DAO',
@@ -16,13 +17,16 @@ const contractNames = [
     'UTPToken',
     'UBTC',
     'GovernancePlugin',
+    'UtPTimelock',
+    'PluginRegistry',
+    'UTPPolling',
     'EventMarket',
     'StablecoinController'
 ];
 
 function findArtifact(contractName) {
     const files = fs.readdirSync(artifactsDir, { recursive: true });
-    const artifactFile = files.find(file => file.endsWith(`${contractName}.json`));
+    const artifactFile = files.find(file => path.basename(file) === `${contractName}.json`);
     if (!artifactFile) {
         throw new Error(`Artifact not found for ${contractName}`);
     }
@@ -39,7 +43,8 @@ for (const name of contractNames) {
 
 // Add addresses
 const deploymentsDir = path.join(rootDir, 'deployments');
-const addressFiles = fs.readdirSync(deploymentsDir).filter(f => f.endsWith('.json'));
+// Only canonical per-network files (e.g. rskTestnet.json), not timestamped run logs
+const addressFiles = fs.readdirSync(deploymentsDir).filter(f => /^[A-Za-z]+\.json$/.test(f));
 
 const addresses = {};
 for (const file of addressFiles) {
@@ -49,6 +54,7 @@ for (const file of addressFiles) {
 
 outputContent += `export const ADDRESSES = ${JSON.stringify(addresses, null, 2)} as const;\n`;
 
+fs.mkdirSync(outputDir, { recursive: true });
 fs.writeFileSync(outputFile, outputContent);
 
 console.log(`✅ ABIs and addresses written to ${outputFile}`);

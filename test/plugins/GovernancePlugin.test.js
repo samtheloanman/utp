@@ -1,340 +1,343 @@
 import { expect } from "chai";
 import hre from "hardhat";
+import { mine, time } from "@nomicfoundation/hardhat-network-helpers";
+import core from "../../scripts/lib/deploy-core.cjs";
 const { ethers } = hre;
+const { deployCore, verifyCore } = core;
 
-describe("GovernancePlugin", function () {
-  let dao, governancePlugin, utpToken, quantumVerifier, zkVerifier;
-  let owner, voter1, voter2, voter3, recipient;
-  const INITIAL_SUPPLY = ethers.parseEther("100000000"); // 100M tokens
-  const QUORUM_BPS = 100; // 1% quorum for tests
-  const VOTING_PERIOD = 10; // 10 blocks
+// ProposalState enum (OpenZeppelin Governor)
+const S = { Pending: 0n, Active: 1n, Canceled: 2n, Defeated: 3n, Succeeded: 4n, Queued: 5n, Expired: 6n, Executed: 7n };
+const AGAINST = 0, FOR = 1, ABSTAIN = 2;
+const DELAY = 3600;
+const VOTING_DELAY = 1;
+const VOTING_PERIOD = 20;
 
-  // Helper: build a PQ signature that passes MockQuantumVerifier
-  // The mock checks: first 32 bytes of signature == messageHash
-  async function buildPQSignature(proposalId, voter, pluginAddress) {
-    const chainId = (await ethers.provider.getNetwork()).chainId;
-    const messageHash = ethers.solidityPackedKeccak256(
-      ["uint256", "address", "address", "uint256"],
-      [proposalId, voter, pluginAddress, chainId]
-    );
-    // Return the hash itself as a 32-byte signature (satisfies the mock)
-    return messageHash;
+describe("GovernancePlugin (OZ Governor + Timelock)", function () {
+  let deployer, alice, bob, carol, guardian, recipient, outsider;
+  let c; // contracts
+  let addrs;
+
+  async function setup(overrides = {}) {
+    [deployer, alice, bob, carol, guardian, recipient, outsider] = await ethers.getSigners();
+    const deployed = await deployCore(ethers, deployer, {
+      initialSupply: ethers.parseEther("1000000"),
+      votingDelay: VOTING_DELAY,
+      votingPeriod: VOTING_PERIOD,
+      proposalThreshold: ethers.parseEther("1000"),
+      quorumPercent: 4, // 40,000 UTP
+      timelockMinDelay: DELAY,
+      guardian: guardian.address,
+      ...overrides,
+    });
+    c = deployed.contracts;
+    addrs = deployed.addresses;
+
+    // alice 300k, bob 100k, carol 30k, outsider 500 (below threshold)
+    await c.token.transfer(alice.address, ethers.parseEther("300000"));
+    await c.token.transfer(bob.address, ethers.parseEther("100000"));
+    await c.token.transfer(carol.address, ethers.parseEther("30000"));
+    await c.token.transfer(outsider.address, ethers.parseEther("500"));
+    for (const s of [alice, bob, carol, outsider]) await c.token.connect(s).delegate(s.address);
+    await mine(1);
+
+    // Fund the treasury so proposals have something to move
+    await deployer.sendTransaction({ to: addrs.Treasury, value: ethers.parseEther("5") });
+    return deployed;
   }
 
-  beforeEach(async function () {
-    [owner, voter1, voter2, voter3, recipient] = await ethers.getSigners();
+  // Proposal: DAO.execute -> Treasury.withdraw(recipient, 1 RBTC)
+  function treasuryProposal(amount = ethers.parseEther("1"), description = "Grant #1: send 1 RBTC to recipient") {
+    const withdraw = c.treasury.interface.encodeFunctionData("withdraw", [recipient.address, amount]);
+    const daoCall = c.dao.interface.encodeFunctionData("execute", [[addrs.Treasury], [0], [withdraw]]);
+    const targets = [addrs.DAO], values = [0], calldatas = [daoCall];
+    return { targets, values, calldatas, description, descHash: ethers.id(description) };
+  }
 
-    const DAO = await ethers.getContractFactory("DAO");
-    dao = await DAO.deploy();
+  async function propose(signer, prop) {
+    await c.governance.connect(signer).propose(prop.targets, prop.values, prop.calldatas, prop.description);
+    return c.governance.hashProposal(prop.targets, prop.values, prop.calldatas, prop.descHash);
+  }
 
-    const UTPToken = await ethers.getContractFactory("UTPToken");
-    utpToken = await UTPToken.deploy(await dao.getAddress(), owner.address, INITIAL_SUPPLY);
+  describe("Deployment invariants", function () {
+    beforeEach(async () => { await setup(); });
 
-    const MockQuantumVerifier = await ethers.getContractFactory("MockQuantumVerifier");
-    quantumVerifier = await MockQuantumVerifier.deploy();
-
-    const MockZKVerifier = await ethers.getContractFactory("MockZKVerifier");
-    zkVerifier = await MockZKVerifier.deploy();
-
-    const GovernancePlugin = await ethers.getContractFactory("GovernancePlugin");
-    governancePlugin = await GovernancePlugin.deploy(
-      await dao.getAddress(),
-      await quantumVerifier.getAddress(),
-      await zkVerifier.getAddress(),
-      await utpToken.getAddress(),
-      QUORUM_BPS,
-      VOTING_PERIOD
-    );
-
-    const EXECUTE_PERMISSION_ID = await dao.EXECUTE_PERMISSION_ID();
-    await dao.grant(await dao.getAddress(), await governancePlugin.getAddress(), EXECUTE_PERMISSION_ID);
-
-    // Distribute tokens and delegate
-    const voteAmount = ethers.parseEther("10000000");
-    await utpToken.transfer(voter1.address, voteAmount);
-    await utpToken.transfer(voter2.address, voteAmount);
-    await utpToken.transfer(voter3.address, voteAmount);
-
-    await utpToken.connect(owner).delegate(owner.address);
-    await utpToken.connect(voter1).delegate(voter1.address);
-    await utpToken.connect(voter2).delegate(voter2.address);
-    await utpToken.connect(voter3).delegate(voter3.address);
-  });
-
-  describe("Deployment", function () {
-    it("Should set the correct DAO address", async function () {
-      expect(await governancePlugin.dao()).to.equal(await dao.getAddress());
+    it("passes every post-deploy permission check", async function () {
+      const n = await verifyCore({ contracts: c }, deployer.address);
+      expect(n).to.be.greaterThan(5);
     });
 
-    it("Should set the correct quantum verifier", async function () {
-      expect(await governancePlugin.quantumVerifier()).to.equal(await quantumVerifier.getAddress());
+    it("leaves the deployer unable to execute anything on the DAO", async function () {
+      await expect(c.dao.connect(deployer).execute([recipient.address], [0], ["0x"]))
+        .to.be.revertedWithCustomError(c.dao, "AccessDenied");
     });
 
-    it("Should set the correct ZK verifier", async function () {
-      expect(await governancePlugin.zkVerifier()).to.equal(await zkVerifier.getAddress());
+    it("leaves the deployer unable to grant permissions", async function () {
+      await expect(c.dao.connect(deployer).grant(addrs.DAO, deployer.address, await c.dao.ROOT_PERMISSION_ID()))
+        .to.be.revertedWithCustomError(c.dao, "AccessDenied");
     });
 
-    it("Should set the correct voting token", async function () {
-      expect(await governancePlugin.votingToken()).to.equal(await utpToken.getAddress());
-    });
-
-    it("Should have correct quorum setting", async function () {
-      expect(await governancePlugin.quorumBps()).to.equal(QUORUM_BPS);
-    });
-
-    it("Should have correct voting period", async function () {
-      expect(await governancePlugin.votingPeriod()).to.equal(VOTING_PERIOD);
+    it("exposes the configured settings", async function () {
+      expect(await c.governance.votingDelay()).to.equal(VOTING_DELAY);
+      expect(await c.governance.votingPeriod()).to.equal(VOTING_PERIOD);
+      expect(await c.governance.proposalThreshold()).to.equal(ethers.parseEther("1000"));
+      expect(await c.governance["quorumNumerator()"]()).to.equal(4);
+      expect(await c.governance.requireHybridAuth()).to.equal(false);
+      expect(await c.timelock.getMinDelay()).to.equal(DELAY);
     });
   });
 
-  describe("Proposal Creation", function () {
-    it("Should allow anyone to create a proposal", async function () {
-      const targets = [recipient.address];
-      const values = [ethers.parseEther("1")];
-      const callDatas = ["0x"];
+  describe("Proposal lifecycle", function () {
+    beforeEach(async () => { await setup(); });
 
-      await expect(governancePlugin.createProposal(targets, values, callDatas))
-        .to.emit(governancePlugin, "ProposalCreated");
+    it("propose -> vote -> succeed -> queue -> wait -> execute moves treasury funds", async function () {
+      const prop = treasuryProposal();
+      const id = await propose(alice, prop);
+      expect(await c.governance.state(id)).to.equal(S.Pending);
+
+      await mine(VOTING_DELAY + 1);
+      expect(await c.governance.state(id)).to.equal(S.Active);
+      await c.governance.connect(alice).castVote(id, FOR);
+      await c.governance.connect(bob).castVote(id, AGAINST);
+
+      await mine(VOTING_PERIOD);
+      expect(await c.governance.state(id)).to.equal(S.Succeeded);
+
+      await c.governance.queue(prop.targets, prop.values, prop.calldatas, prop.descHash);
+      expect(await c.governance.state(id)).to.equal(S.Queued);
+
+      // Not executable before the timelock delay
+      await expect(c.governance.execute(prop.targets, prop.values, prop.calldatas, prop.descHash)).to.be.reverted;
+
+      await time.increase(DELAY);
+      const before = await ethers.provider.getBalance(recipient.address);
+      await expect(c.governance.connect(outsider).execute(prop.targets, prop.values, prop.calldatas, prop.descHash))
+        .to.emit(c.governance, "ProposalExecuted").withArgs(id);
+      expect(await ethers.provider.getBalance(recipient.address)).to.equal(before + ethers.parseEther("1"));
+      expect(await c.governance.state(id)).to.equal(S.Executed);
     });
 
-    it("Should return the correct proposal ID", async function () {
-      const targets = [recipient.address];
-      const values = [0];
-      const callDatas = ["0x"];
-
-      await governancePlugin.createProposal(targets, values, callDatas);
-      await governancePlugin.createProposal(targets, values, callDatas);
-
-      const proposal0 = await governancePlugin.proposals(0);
-      const proposal1 = await governancePlugin.proposals(1);
-      expect(proposal0.voteWeight).to.equal(0);
-      expect(proposal1.voteWeight).to.equal(0);
+    it("cannot execute twice", async function () {
+      const prop = treasuryProposal();
+      const id = await propose(alice, prop);
+      await mine(VOTING_DELAY + 1);
+      await c.governance.connect(alice).castVote(id, FOR);
+      await mine(VOTING_PERIOD);
+      await c.governance.queue(prop.targets, prop.values, prop.calldatas, prop.descHash);
+      await time.increase(DELAY);
+      await c.governance.execute(prop.targets, prop.values, prop.calldatas, prop.descHash);
+      await expect(c.governance.execute(prop.targets, prop.values, prop.calldatas, prop.descHash))
+        .to.be.revertedWithCustomError(c.governance, "GovernorUnexpectedProposalState");
     });
 
-    it("Should store proposal data correctly", async function () {
-      const targets = [voter1.address, voter2.address];
-      const values = [0, 0];
-      const callDatas = ["0x", "0x"];
-
-      await governancePlugin.createProposal(targets, values, callDatas);
-
-      const proposal = await governancePlugin.proposals(0);
-      expect(proposal.voteWeight).to.equal(0);
-      expect(proposal.executed).to.be.false;
-      expect(proposal.startBlock).to.be.gt(0);
-      expect(proposal.endBlock).to.be.gt(proposal.startBlock);
-    });
-  });
-
-  describe("Hybrid Voting (ECC + PQ)", function () {
-    let proposalId;
-
-    beforeEach(async function () {
-      const targets = [recipient.address];
-      const values = [0];
-      const callDatas = ["0x"];
-      await governancePlugin.createProposal(targets, values, callDatas);
-      proposalId = 0;
-    });
-
-    it("Should allow voting with valid hybrid authentication", async function () {
-      const pqPublicKey = ethers.hexlify(ethers.toUtf8Bytes("valid_pq_key"));
-      const pluginAddress = await governancePlugin.getAddress();
-      const pqSignature = await buildPQSignature(proposalId, voter1.address, pluginAddress);
-
-      await expect(governancePlugin.connect(voter1).castVoteHybrid(proposalId, pqPublicKey, pqSignature))
-        .to.emit(governancePlugin, "VoteCast");
-    });
-
-    it("Should use token-weighted vote power", async function () {
-      const pqPublicKey = ethers.hexlify(ethers.toUtf8Bytes("valid_pq_key"));
-      const pluginAddress = await governancePlugin.getAddress();
-      const pqSignature = await buildPQSignature(proposalId, voter1.address, pluginAddress);
-
-      await governancePlugin.connect(voter1).castVoteHybrid(proposalId, pqPublicKey, pqSignature);
-
-      const proposal = await governancePlugin.proposals(proposalId);
-      expect(proposal.voteWeight).to.equal(ethers.parseEther("10000000"));
-    });
-
-    it("Should reject voting with invalid PQ signature", async function () {
-      const pqPublicKey = ethers.hexlify(ethers.toUtf8Bytes("valid_pq_key"));
-      const shortSig = ethers.hexlify(ethers.toUtf8Bytes("ab"));
-
-      await expect(
-        governancePlugin.connect(voter1).castVoteHybrid(proposalId, pqPublicKey, shortSig)
-      ).to.be.revertedWithCustomError(governancePlugin, "InvalidAuth");
-    });
-
-    it("Should reject voting with empty PQ signature (downgrade attack)", async function () {
-      const pqPublicKey = ethers.hexlify(ethers.toUtf8Bytes("valid_pq_key"));
-      const emptySignature = "0x";
-
-      await expect(
-        governancePlugin.connect(voter1).castVoteHybrid(proposalId, pqPublicKey, emptySignature)
-      ).to.be.revertedWithCustomError(governancePlugin, "InvalidAuth");
-    });
-
-    it("Should prevent double voting", async function () {
-      const pqPublicKey = ethers.hexlify(ethers.toUtf8Bytes("valid_pq_key"));
-      const pluginAddress = await governancePlugin.getAddress();
-      const pqSignature = await buildPQSignature(proposalId, voter1.address, pluginAddress);
-
-      await governancePlugin.connect(voter1).castVoteHybrid(proposalId, pqPublicKey, pqSignature);
-
-      // Second vote is rejected — either AlreadyVoted (if not yet executed)
-      // or ProposalAlreadyExecuted (if auto-executed due to quorum).
-      // With 10M tokens and 1M quorum, proposal auto-executes on first vote.
-      await expect(
-        governancePlugin.connect(voter1).castVoteHybrid(proposalId, pqPublicKey, pqSignature)
-      ).to.be.revertedWithCustomError(governancePlugin, "ProposalAlreadyExecuted");
-    });
-
-    it("Should auto-execute when quorum is reached", async function () {
-      await owner.sendTransaction({ to: await dao.getAddress(), value: ethers.parseEther("10") });
-
-      const value = ethers.parseEther("1");
-      const targets = [recipient.address];
-      const values = [value];
-      const callDatas = ["0x"];
-      await governancePlugin.createProposal(targets, values, callDatas);
-      const pid = 1;
-
-      const balanceBefore = await ethers.provider.getBalance(recipient.address);
-
-      const pqPublicKey = ethers.hexlify(ethers.toUtf8Bytes("valid_pq_key"));
-      const pluginAddress = await governancePlugin.getAddress();
-      const pqSignature = await buildPQSignature(pid, voter1.address, pluginAddress);
-
-      await expect(governancePlugin.connect(voter1).castVoteHybrid(pid, pqPublicKey, pqSignature))
-        .to.emit(governancePlugin, "ProposalExecuted")
-        .withArgs(pid);
-
-      const balanceAfter = await ethers.provider.getBalance(recipient.address);
-      expect(balanceAfter - balanceBefore).to.equal(value);
+    it("does not execute mid-vote even when quorum is already reached", async function () {
+      const prop = treasuryProposal();
+      const id = await propose(alice, prop);
+      await mine(VOTING_DELAY + 1);
+      await c.governance.connect(alice).castVote(id, FOR); // 300k >> 40k quorum
+      expect(await c.governance.state(id)).to.equal(S.Active);
+      await expect(c.governance.queue(prop.targets, prop.values, prop.calldatas, prop.descHash))
+        .to.be.revertedWithCustomError(c.governance, "GovernorUnexpectedProposalState");
     });
   });
 
-  describe("ZK-Gated Anonymous Voting", function () {
-    let proposalId;
+  describe("Vote counting", function () {
+    beforeEach(async () => { await setup(); });
 
-    beforeEach(async function () {
-      const targets = [recipient.address];
-      const values = [0];
-      const callDatas = ["0x"];
-      await governancePlugin.createProposal(targets, values, callDatas);
-      proposalId = 0;
+    it("defeats a proposal when against outweighs for", async function () {
+      const id = await propose(alice, treasuryProposal());
+      await mine(VOTING_DELAY + 1);
+      await c.governance.connect(bob).castVote(id, FOR);      // 100k
+      await c.governance.connect(alice).castVote(id, AGAINST); // 300k
+      await mine(VOTING_PERIOD);
+      expect(await c.governance.state(id)).to.equal(S.Defeated);
     });
 
-    it("Should allow anonymous voting with valid ZK proof", async function () {
-      const zkProof = ethers.hexlify(ethers.toUtf8Bytes("valid_proof"));
-      const nullifier = ethers.encodeBytes32String("nullifier_1");
-
-      await expect(governancePlugin.castVoteZK(proposalId, zkProof, nullifier))
-        .to.emit(governancePlugin, "VoteCastAnonymous");
+    it("defeats a proposal that misses quorum", async function () {
+      const id = await propose(alice, treasuryProposal());
+      await mine(VOTING_DELAY + 1);
+      await c.governance.connect(carol).castVote(id, FOR); // 30k < 40k quorum
+      await mine(VOTING_PERIOD);
+      expect(await c.governance.state(id)).to.equal(S.Defeated);
     });
 
-    it("Should reject invalid ZK proof", async function () {
-      const invalidProof = ethers.hexlify(ethers.toUtf8Bytes("invalid_proof"));
-      const nullifier = ethers.encodeBytes32String("nullifier_1");
-
-      await expect(
-        governancePlugin.castVoteZK(proposalId, invalidProof, nullifier)
-      ).to.be.revertedWithCustomError(governancePlugin, "InvalidAuth");
+    it("counts abstain toward quorum but not toward the outcome", async function () {
+      const id = await propose(alice, treasuryProposal());
+      await mine(VOTING_DELAY + 1);
+      await c.governance.connect(carol).castVote(id, FOR);      // 30k
+      await c.governance.connect(bob).castVote(id, ABSTAIN);    // 100k -> quorum met
+      await mine(VOTING_PERIOD);
+      const [against, forVotes, abstain] = await c.governance.proposalVotes(id);
+      expect(forVotes).to.equal(ethers.parseEther("30000"));
+      expect(against).to.equal(0n);
+      expect(abstain).to.equal(ethers.parseEther("100000"));
+      expect(await c.governance.state(id)).to.equal(S.Succeeded);
     });
 
-    it("Should prevent double-voting with same nullifier", async function () {
-      const zkProof = ethers.hexlify(ethers.toUtf8Bytes("valid_proof"));
-      const nullifier = ethers.encodeBytes32String("nullifier_1");
-
-      await governancePlugin.castVoteZK(proposalId, zkProof, nullifier);
-
-      await expect(
-        governancePlugin.castVoteZK(proposalId, zkProof, nullifier)
-      ).to.be.revertedWithCustomError(governancePlugin, "NullifierAlreadyUsed");
+    it("weights votes by delegated UTP at the snapshot, not current balance", async function () {
+      const id = await propose(alice, treasuryProposal());
+      const snapshot = await c.governance.proposalSnapshot(id);
+      await mine(VOTING_DELAY + 1);
+      expect(BigInt(await ethers.provider.getBlockNumber())).to.be.greaterThan(snapshot);
+      // bob receives tokens AFTER the snapshot; they must not count
+      await c.token.connect(alice).transfer(bob.address, ethers.parseEther("200000"));
+      await c.governance.connect(bob).castVote(id, FOR);
+      const [, forVotes] = await c.governance.proposalVotes(id);
+      expect(forVotes).to.equal(ethers.parseEther("100000"));
     });
 
-    it("Should allow different nullifiers", async function () {
-      const zkProof = ethers.hexlify(ethers.toUtf8Bytes("valid_proof"));
-      const nullifier1 = ethers.encodeBytes32String("nullifier_1");
-      const nullifier2 = ethers.encodeBytes32String("nullifier_2");
-
-      await governancePlugin.castVoteZK(proposalId, zkProof, nullifier1);
-      await governancePlugin.castVoteZK(proposalId, zkProof, nullifier2);
-
-      const proposal = await governancePlugin.proposals(proposalId);
-      expect(proposal.voteWeight).to.equal(2);
-    });
-  });
-
-  describe("Quorum", function () {
-    it("Should calculate correct quorum threshold", async function () {
-      const expected = ethers.parseEther("1000000");
-      expect(await governancePlugin.quorumThreshold()).to.equal(expected);
-    });
-
-    it("Should not execute below quorum", async function () {
-      const targets = [recipient.address];
-      const values = [0];
-      const callDatas = ["0x"];
-      await governancePlugin.createProposal(targets, values, callDatas);
-
-      const zkProof = ethers.hexlify(ethers.toUtf8Bytes("valid_proof"));
-      const nullifier = ethers.encodeBytes32String("nullifier_1");
-      await governancePlugin.castVoteZK(0, zkProof, nullifier);
-
-      const proposal = await governancePlugin.proposals(0);
-      expect(proposal.executed).to.be.false;
-    });
-
-    it("Should allow manual execution when quorum is reached", async function () {
-      await owner.sendTransaction({ to: await dao.getAddress(), value: ethers.parseEther("5") });
-
-      const targets = [recipient.address];
-      const values = [ethers.parseEther("1")];
-      const callDatas = ["0x"];
-      await governancePlugin.createProposal(targets, values, callDatas);
-
-      const pqPublicKey = ethers.hexlify(ethers.toUtf8Bytes("valid_pq_key"));
-      const pluginAddress = await governancePlugin.getAddress();
-      const pqSignature = await buildPQSignature(0, owner.address, pluginAddress);
-
-      await governancePlugin.connect(owner).castVoteHybrid(0, pqPublicKey, pqSignature);
-
-      const proposal = await governancePlugin.proposals(0);
-      expect(proposal.executed).to.be.true;
-    });
-
-    it("Should revert executeProposal if quorum not reached", async function () {
-      const targets = [recipient.address];
-      const values = [0];
-      const callDatas = ["0x"];
-      await governancePlugin.createProposal(targets, values, callDatas);
-
-      await expect(
-        governancePlugin.executeProposal(0)
-      ).to.be.revertedWithCustomError(governancePlugin, "QuorumNotReached");
+    it("rejects a second vote from the same account", async function () {
+      const id = await propose(alice, treasuryProposal());
+      await mine(VOTING_DELAY + 1);
+      await c.governance.connect(bob).castVote(id, FOR);
+      await expect(c.governance.connect(bob).castVote(id, AGAINST))
+        .to.be.revertedWithCustomError(c.governance, "GovernorAlreadyCastVote");
     });
   });
 
-  describe("Proposal Execution", function () {
-    it("Should prevent double execution", async function () {
-      await owner.sendTransaction({ to: await dao.getAddress(), value: ethers.parseEther("5") });
+  describe("Voting window", function () {
+    beforeEach(async () => { await setup(); });
 
-      const targets = [recipient.address];
-      const values = [ethers.parseEther("1")];
-      const callDatas = ["0x"];
-      await governancePlugin.createProposal(targets, values, callDatas);
+    it("rejects votes before the voting delay has passed", async function () {
+      const id = await propose(alice, treasuryProposal());
+      await expect(c.governance.connect(bob).castVote(id, FOR))
+        .to.be.revertedWithCustomError(c.governance, "GovernorUnexpectedProposalState");
+    });
 
-      const pqPublicKey = ethers.hexlify(ethers.toUtf8Bytes("valid_pq_key"));
-      const pluginAddress = await governancePlugin.getAddress();
-      const pqSignature = await buildPQSignature(0, voter1.address, pluginAddress);
+    it("rejects votes after the voting period ends", async function () {
+      const id = await propose(alice, treasuryProposal());
+      await mine(VOTING_DELAY + VOTING_PERIOD + 2);
+      await expect(c.governance.connect(bob).castVote(id, FOR))
+        .to.be.revertedWithCustomError(c.governance, "GovernorUnexpectedProposalState");
+    });
+  });
 
-      await governancePlugin.connect(voter1).castVoteHybrid(0, pqPublicKey, pqSignature);
+  describe("Proposal threshold", function () {
+    beforeEach(async () => { await setup(); });
 
+    it("blocks proposers below the threshold", async function () {
+      await expect(propose(outsider, treasuryProposal()))
+        .to.be.revertedWithCustomError(c.governance, "GovernorInsufficientProposerVotes");
+    });
+  });
+
+  describe("Execution path", function () {
+    beforeEach(async () => { await setup(); });
+
+    it("routes execution through the timelock (governance itself has no DAO rights)", async function () {
+      const EXEC = await c.dao.EXECUTE_PERMISSION_ID();
+      expect(await c.dao.hasPermission(addrs.DAO, addrs.GovernancePlugin, EXEC)).to.equal(false);
+      expect(await c.governance.timelock()).to.equal(addrs.UtPTimelock);
+    });
+
+    it("rejects direct scheduling on the timelock by anyone but governance", async function () {
+      const prop = treasuryProposal();
       await expect(
-        governancePlugin.executeProposal(0)
-      ).to.be.revertedWithCustomError(governancePlugin, "ProposalAlreadyExecuted");
+        c.timelock.connect(deployer).scheduleBatch(prop.targets, prop.values, prop.calldatas, ethers.ZeroHash, ethers.ZeroHash, DELAY)
+      ).to.be.revertedWithCustomError(c.timelock, "AccessControlUnauthorizedAccount");
+    });
+
+    it("lets the guardian cancel a queued operation (emergency veto)", async function () {
+      const prop = treasuryProposal();
+      const id = await propose(alice, prop);
+      await mine(VOTING_DELAY + 1);
+      await c.governance.connect(alice).castVote(id, FOR);
+      await mine(VOTING_PERIOD);
+      const tx = await c.governance.queue(prop.targets, prop.values, prop.calldatas, prop.descHash);
+      const rcpt = await tx.wait();
+      const scheduled = rcpt.logs
+        .map((l) => { try { return c.timelock.interface.parseLog(l); } catch { return null; } })
+        .find((e) => e && e.name === "CallScheduled");
+      const opId = scheduled.args.id;
+      expect(await c.timelock.isOperationPending(opId)).to.equal(true);
+      await c.timelock.connect(guardian).cancel(opId);
+
+      await time.increase(DELAY);
+      expect(await c.governance.state(id)).to.equal(S.Canceled);
+      await expect(c.governance.execute(prop.targets, prop.values, prop.calldatas, prop.descHash)).to.be.reverted;
+    });
+
+    it("does not let the guardian do anything else", async function () {
+      await expect(c.timelock.connect(guardian).scheduleBatch([addrs.DAO], [0], ["0x"], ethers.ZeroHash, ethers.ZeroHash, DELAY))
+        .to.be.revertedWithCustomError(c.timelock, "AccessControlUnauthorizedAccount");
+      await expect(c.dao.connect(guardian).execute([recipient.address], [0], ["0x"]))
+        .to.be.revertedWithCustomError(c.dao, "AccessDenied");
+    });
+
+    it("can change its own settings only through a passed proposal", async function () {
+      await expect(c.governance.connect(deployer).setVotingPeriod(5))
+        .to.be.revertedWithCustomError(c.governance, "GovernorOnlyExecutor");
+
+      const desc = "Shorten voting period";
+      const data = c.governance.interface.encodeFunctionData("setVotingPeriod", [30]);
+      const prop = { targets: [addrs.GovernancePlugin], values: [0], calldatas: [data], description: desc, descHash: ethers.id(desc) };
+      const id = await propose(alice, prop);
+      await mine(VOTING_DELAY + 1);
+      await c.governance.connect(alice).castVote(id, FOR);
+      await mine(VOTING_PERIOD);
+      await c.governance.queue(prop.targets, prop.values, prop.calldatas, prop.descHash);
+      await time.increase(DELAY);
+      await c.governance.execute(prop.targets, prop.values, prop.calldatas, prop.descHash);
+      expect(await c.governance.votingPeriod()).to.equal(30);
+    });
+  });
+
+  describe("Hybrid post-quantum mode (optional, off by default)", function () {
+    let pq;
+
+    // MockQuantumVerifier accepts a signature equal to the 32-byte digest
+    async function hybridSig(id, voter, support) {
+      return c.governance.hybridVoteDigest(id, voter, support);
+    }
+
+    beforeEach(async () => {
+      const Mock = await ethers.getContractFactory("MockQuantumVerifier");
+      pq = await Mock.deploy();
+      await setup({ pqVerifier: await pq.getAddress(), requireHybridAuth: true });
+    });
+
+    it("refuses to deploy with hybrid required but no verifier", async function () {
+      const G = await ethers.getContractFactory("GovernancePlugin");
+      await expect(
+        G.deploy(addrs.UTPToken, addrs.UtPTimelock, { votingDelay: 1, votingPeriod: 5, proposalThreshold: 0, quorumPercent: 4 }, ethers.ZeroAddress, true)
+      ).to.be.revertedWithCustomError(G, "HybridVerifierMissing");
+    });
+
+    it("accepts a vote with a valid PQ signature", async function () {
+      const id = await propose(alice, treasuryProposal());
+      await mine(VOTING_DELAY + 1);
+      const sig = await hybridSig(id, bob.address, FOR);
+      await expect(c.governance.connect(bob).castVoteHybrid(id, FOR, "0x1234", sig))
+        .to.emit(c.governance, "VoteCastWithParams");
+    });
+
+    it("rejects plain castVote (no downgrade to ECDSA-only)", async function () {
+      const id = await propose(alice, treasuryProposal());
+      await mine(VOTING_DELAY + 1);
+      await expect(c.governance.connect(bob).castVote(id, FOR))
+        .to.be.revertedWithCustomError(c.governance, "HybridAuthRequired");
+    });
+
+    it("rejects an empty PQ signature", async function () {
+      const id = await propose(alice, treasuryProposal());
+      await mine(VOTING_DELAY + 1);
+      await expect(c.governance.connect(bob).castVoteHybrid(id, FOR, "0x1234", "0x"))
+        .to.be.revertedWithCustomError(c.governance, "InvalidHybridAuth");
+    });
+
+    it("rejects a signature made for a different choice (support is bound)", async function () {
+      const id = await propose(alice, treasuryProposal());
+      await mine(VOTING_DELAY + 1);
+      const sigForAgainst = await hybridSig(id, bob.address, AGAINST);
+      await expect(c.governance.connect(bob).castVoteHybrid(id, FOR, "0x1234", sigForAgainst))
+        .to.be.revertedWithCustomError(c.governance, "InvalidHybridAuth");
+    });
+
+    it("rejects a signature replayed by a different voter", async function () {
+      const id = await propose(alice, treasuryProposal());
+      await mine(VOTING_DELAY + 1);
+      const bobSig = await hybridSig(id, bob.address, FOR);
+      await expect(c.governance.connect(carol).castVoteHybrid(id, FOR, "0x1234", bobSig))
+        .to.be.revertedWithCustomError(c.governance, "InvalidHybridAuth");
     });
   });
 });

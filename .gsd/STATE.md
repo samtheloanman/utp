@@ -11,22 +11,21 @@ Last updated: 2026-10-18 PT
 Work branches off `master` (default). `sync/freedom-stack-master` is fully merged and can be deleted.
 
 ## Current phase
-Phase 0: Green baseline.
+Phase 2: RSK testnet deployment (Phases 0 and 1 done 2026-10-18).
 
-## Verified baseline (2026-10-18, fresh clone)
-- `npm ci`: OK
-- `npx hardhat compile`: OK, 55 files (sandboxed environments need a local solc 0.8.24; see Phase 0)
-- `npx hardhat test`: 128 passing, 14 failing; root causes identified:
-  1. PluginRegistry uninstall (5): registry has no permission on the DAO to `revoke`
-  2. Hybrid voting (8): MockQuantumVerifier double-hashes the message
-  3. Stablecoin (1, `beforeEach`): `MockPriceOracle` contract missing
+## Verified (2026-10-18, branch feat/phase0-1-governance)
+- lint, typecheck, next build, hardhat compile: PASS
+- `npm test`: 175 contract tests passing, 0 failing (was 128/14); no frontend unit tests yet
+- Deploy rehearsal: in-process + local node over RPC, 11/11 invariants, ~8.9M gas total
+- Smoke lifecycle on local node: propose → vote → queue → timelock → execute OK; 0 reverts
+- Failure paths: mainnet refused; smoke refuses without a deployment record
+- RSK testnet: NOT deployed. The sandbox cannot reach RSK RPC; deploy runs from the GitHub Actions workflow with the owner's secret.
 - Frontend: real UI on `/`, `/issue/[id]`, `/how-it-works`, `/us/california/[bill]`; `/governance`, `/token`, `/stablecoin`, `/events`, `/news`, `/legislature` are placeholders
-- CI: none
-- RSK testnet deployments: none (local Hardhat only)
 
-## Open decisions
-- D1: Quantum/ZK scope for v1 (recommended: defer to plugins)
-- D2: Governance parameters for testnet
+## Decisions
+- D1: v1 = standard wallet voting; PQ hybrid optional/off; ZK deferred.
+- D2: testnet params in `scripts/deploy.config.cjs`.
 
 ## Next action
-Phase 0, task 1: fix the MockQuantumVerifier hashing mismatch (unblocks 8 tests).
+1. Owner: create the `rsk-testnet` GitHub environment with `DEPLOYER_PRIVATE_KEY` (testnet-only key, funded from the RSK faucet), then run "Deploy governance to RSK testnet".
+2. Build `/governance` + `/token` UI against `deployments/rskTestnet.json`.
