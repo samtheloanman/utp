@@ -15,7 +15,7 @@ concurrency:
 jobs:
   web:
     name: Lint, typecheck, build
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, utp]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -32,7 +32,7 @@ jobs:
 
   contracts:
     name: Compile and test contracts
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, utp]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

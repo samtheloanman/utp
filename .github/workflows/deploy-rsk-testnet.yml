@@ -4,6 +4,8 @@ name: Deploy governance to RSK testnet
 #   secret   DEPLOYER_PRIVATE_KEY  (a dedicated testnet-only key funded with tRBTC)
 #   variable GUARDIAN_ADDRESS      (optional emergency canceller, e.g. a multisig)
 #   variable RSK_TESTNET_RPC_URL   (optional; defaults to the public RSK node)
+# Repository variable UTP_TESTNET_DEPLOY_ENABLED must be explicitly set to true.
+# The utp runner and protected environment must be configured before enabling it.
 on:
   workflow_dispatch:
     inputs:
@@ -20,11 +22,10 @@ concurrency:
 
 jobs:
   deploy:
-    if: ${{ github.event.inputs.confirm == 'deploy-testnet' }}
-    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.confirm == 'deploy-testnet' && vars.UTP_TESTNET_DEPLOY_ENABLED == 'true' }}
+    runs-on: [self-hosted, linux, utp]
     environment: rsk-testnet
     env:
-      DEPLOYER_PRIVATE_KEY: ${{ secrets.DEPLOYER_PRIVATE_KEY }}
       GUARDIAN_ADDRESS: ${{ vars.GUARDIAN_ADDRESS }}
       RSK_TESTNET_RPC_URL: ${{ vars.RSK_TESTNET_RPC_URL || 'https://public-node.testnet.rsk.co' }}
     steps:
@@ -41,14 +42,10 @@ jobs:
       - name: Gate — rehearse the exact deploy in-process
         run: npx hardhat run scripts/deploy.cjs --network hardhat
 
-      - name: Check secrets are present
-        run: |
-          if [ -z "$DEPLOYER_PRIVATE_KEY" ]; then
-            echo "::error::DEPLOYER_PRIVATE_KEY secret is not set on the rsk-testnet environment"; exit 1
-          fi
-
       - name: Deploy to RSK testnet
         run: npx hardhat run scripts/deploy.cjs --network rskTestnet
+        env:
+          DEPLOYER_PRIVATE_KEY: ${{ secrets.DEPLOYER_PRIVATE_KEY }}
 
       - name: Smoke test (read-only) against RSK testnet
         run: npx hardhat run scripts/smoke-governance.cjs --network rskTestnet
