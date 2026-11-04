@@ -1,3 +1,4 @@
+-- LEGACY: superseded by supabase/migrations/*. Kept for reference only; do not apply.
 -- UTP Platform Supabase Schema
 -- Apply via Supabase SQL Editor or migration tool
 
