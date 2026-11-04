@@ -6,6 +6,7 @@ import {
   verifyWalletLink,
   normalizeAddress,
   createMemoryWalletLinkStore,
+  verifyWalletUnlink,
 } from './walletLink';
 
 const ORIGIN = 'https://utp.test';
@@ -114,5 +115,20 @@ describe('wallet link challenge/verify', () => {
     expect(await verifyWalletLink({ userId: A, message: first.c.message, signature: first.signature, origin: ORIGIN, now: T0 }, store)).toEqual({ ok: true });
     const second = await challengeAndSign(store, B, acct, acct.address.toLowerCase());
     expect(await verifyWalletLink({ userId: B, message: second.c.message, signature: second.signature, origin: ORIGIN, now: T0 }, store)).toEqual({ ok: false, reason: 'address_taken' });
+  });
+
+  it('unlink needs a fresh proof by the owner; address can then be relinked', async () => {
+    const store = createMemoryWalletLinkStore();
+    const acct = wallet();
+    const l = await challengeAndSign(store, A, acct);
+    expect(await verifyWalletLink({ userId: A, message: l.c.message, signature: l.signature, origin: ORIGIN, now: T0 }, store)).toEqual({ ok: true });
+    // reusing the link proof fails
+    expect(await verifyWalletUnlink({ userId: A, message: l.c.message, signature: l.signature, origin: ORIGIN, now: T0 }, store)).toEqual({ ok: false, reason: 'replayed' });
+    const bProof = await challengeAndSign(store, B, acct);
+    expect(await verifyWalletUnlink({ userId: B, message: bProof.c.message, signature: bProof.signature, origin: ORIGIN, now: T0 }, store)).toEqual({ ok: false, reason: 'not_linked' });
+    const u = await challengeAndSign(store, A, acct);
+    expect(await verifyWalletUnlink({ userId: A, message: u.c.message, signature: u.signature, origin: ORIGIN, now: T0 }, store)).toEqual({ ok: true });
+    const b2 = await challengeAndSign(store, B, acct);
+    expect(await verifyWalletLink({ userId: B, message: b2.c.message, signature: b2.signature, origin: ORIGIN, now: T0 }, store)).toEqual({ ok: true });
   });
 });

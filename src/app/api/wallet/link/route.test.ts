@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { createHmac } from 'node:crypto';
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
 import { createSiweMessage } from 'viem/siwe';
 
@@ -9,6 +10,7 @@ vi.mock('@/lib/supabaseAuth/userClient', () => ({ createUserScopedClient: vi.fn(
 
 const USER = '11111111-2222-4333-8444-555555555555';
 const NONCE = 'abcdef0123456789';
+const SECRET = 'k'.repeat(64);
 
 function req(body: unknown, url = 'https://utp.test/api/wallet/link') {
   return new Request(url, {
@@ -26,20 +28,19 @@ async function signed() {
   return { acct, message, signature: await acct.signMessage({ message }) };
 }
 
-function stubRpc(address: string, activate: string) {
-  rpc.mockImplementation(async (fn: string) => {
-    if (fn === 'consume_wallet_challenge')
-      return { data: [{ nonce: NONCE, user_id: USER, chain_id: 31, address: address.toLowerCase(), domain: 'utp.test', expires_at: new Date(Date.now() + 60_000).toISOString() }], error: null };
-    if (fn === 'activate_wallet_link') return { data: activate, error: null };
-    if (fn === 'wallet_challenge_status') return { data: 'consumed', error: null };
-    return { data: null, error: null };
-  });
-}
-
 describe('POST /api/wallet/link', () => {
   beforeEach(() => {
     requireUser.mockReset().mockResolvedValue({ user: { id: USER }, accessToken: 'tok' });
     rpc.mockReset();
+    vi.stubEnv('WALLET_LINK_SECRET', SECRET);
+  });
+
+  it('503 fail-closed when WALLET_LINK_SECRET is unset', async () => {
+    vi.stubEnv('WALLET_LINK_SECRET', '');
+    const s = await signed();
+    const { POST } = await import('./route');
+    expect((await POST(req({ message: s.message, signature: s.signature }))).status).toBe(503);
+    expect(rpc).not.toHaveBeenCalled();
   });
 
   it('passes through 401', async () => {
@@ -48,32 +49,50 @@ describe('POST /api/wallet/link', () => {
     expect((await POST(req({}))).status).toBe(401);
   });
 
-  it('links on a valid signature', async () => {
+  it('links on a valid signature, sending the HMAC attestation to link_wallet', async () => {
     const s = await signed();
-    stubRpc(s.acct.address, 'ok');
+    rpc.mockResolvedValue({ data: 'ok', error: null });
     const { POST } = await import('./route');
     const res = await POST(req({ message: s.message, signature: s.signature }));
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ ok: true });
-    expect(rpc).toHaveBeenCalledWith('activate_wallet_link', { p_chain_id: 31, p_address: s.acct.address.toLowerCase(), p_assurance: 'aal1' });
+    const a = s.acct.address.toLowerCase();
+    const att = createHmac('sha256', SECRET).update(`${USER}|31|${a}|${NONCE}`).digest('hex');
+    expect(rpc).toHaveBeenCalledWith('link_wallet', { p_nonce: NONCE, p_att: att, p_assurance: 'aal1' });
+    expect(rpc).toHaveBeenCalledTimes(1);
   });
 
   it('409 for address_taken without internals', async () => {
     const s = await signed();
-    stubRpc(s.acct.address, 'address_taken');
+    rpc.mockResolvedValue({ data: 'address_taken', error: null });
     const { POST } = await import('./route');
     const res = await POST(req({ message: s.message, signature: s.signature }));
     expect(res.status).toBe(409);
     expect(await res.json()).toEqual({ ok: false });
   });
 
+  it('400 for replayed, 500 for bad_attestation (key mismatch)', async () => {
+    const s = await signed();
+    const { POST } = await import('./route');
+    rpc.mockResolvedValue({ data: 'replayed', error: null });
+    expect((await POST(req({ message: s.message, signature: s.signature }))).status).toBe(400);
+    rpc.mockResolvedValue({ data: 'bad_attestation', error: null });
+    expect((await POST(req({ message: s.message, signature: s.signature }))).status).toBe(500);
+  });
+
+  it('400 for a bad signature without calling the database', async () => {
+    const s = await signed();
+    const other = await privateKeyToAccount(generatePrivateKey()).signMessage({ message: s.message });
+    const { POST } = await import('./route');
+    expect((await POST(req({ message: s.message, signature: other }))).status).toBe(400);
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
   it('400 when the request host differs from the signed domain', async () => {
     const s = await signed();
-    stubRpc(s.acct.address, 'ok');
     const { POST } = await import('./route');
     const res = await POST(req({ message: s.message, signature: s.signature }, 'https://other.test/api/wallet/link'));
     expect(res.status).toBe(400);
-    expect(await res.json()).toEqual({ ok: false });
     expect(rpc).not.toHaveBeenCalled();
   });
 

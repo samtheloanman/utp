@@ -4,6 +4,8 @@ import { createSupabaseWalletLinkStore } from '@/lib/wallet/store';
 import { createWalletChallenge, normalizeAddress, ALLOWED_LINK_CHAINS } from '@/lib/wallet/walletLink';
 
 export async function POST(req: Request) {
+  const secret = process.env.WALLET_LINK_SECRET;
+  if (!secret) return NextResponse.json({ message: 'Wallet linking is not configured' }, { status: 503 });
   const auth = await requireUser(req);
   if ('error' in auth) return auth.error;
 
@@ -27,7 +29,7 @@ export async function POST(req: Request) {
   // Domain and URI come from the request URL, never from the client body.
   const origin = new URL(req.url).origin;
   try {
-    const store = createSupabaseWalletLinkStore(auth.accessToken, auth.user.id);
+    const store = createSupabaseWalletLinkStore(auth.accessToken, auth.user.id, secret);
     const c = await createWalletChallenge({ userId: auth.user.id, address, chainId, origin }, store);
     return NextResponse.json(c);
   } catch {

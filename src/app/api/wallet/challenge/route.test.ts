@@ -20,6 +20,14 @@ describe('POST /api/wallet/challenge', () => {
   beforeEach(() => {
     requireUser.mockReset().mockResolvedValue({ user: { id: USER }, accessToken: 'tok' });
     rpc.mockReset().mockResolvedValue({ data: null, error: null });
+    vi.stubEnv('WALLET_LINK_SECRET', 'k'.repeat(64));
+  });
+
+  it('503 when WALLET_LINK_SECRET is unset', async () => {
+    vi.stubEnv('WALLET_LINK_SECRET', '');
+    const { POST } = await import('./route');
+    expect((await POST(req({ address: ADDR, chainId: 31 }))).status).toBe(503);
+    expect(rpc).not.toHaveBeenCalled();
   });
 
   it('passes through 401', async () => {

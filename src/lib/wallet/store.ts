@@ -1,16 +1,29 @@
+import { createHmac } from 'node:crypto';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createUserScopedClient } from '@/lib/supabaseAuth/userClient';
-import type { Challenge, ChallengeStatus, WalletLinkStore } from './walletLink';
+import type { Challenge, LinkStatus, RevokeStatus, WalletLinkStore } from './walletLink';
+
+/**
+ * Server attestation that this server verified the wallet signature for
+ * (user, chain, address, nonce). The database recomputes it with the same
+ * key (private.wallet_link_settings) before changing link state.
+ */
+export function walletAttestation(secret: string, userId: string, chainId: number, address: string, nonce: string): string {
+  return createHmac('sha256', secret).update(`${userId}|${chainId}|${address}|${nonce}`).digest('hex');
+}
+
+const LINK: readonly string[] = ['ok', 'address_taken', 'bad_attestation', 'unknown_nonce', 'expired', 'replayed', 'wrong_user'];
+const REVOKE: readonly string[] = ['ok', 'not_linked', 'bad_attestation', 'unknown_nonce', 'expired', 'replayed', 'wrong_user'];
 
 /**
  * Supabase-backed WalletLinkStore acting as the calling user (anon key +
- * access token; never the service-role key). Every write goes through a
- * SECURITY DEFINER function that derives the user from auth.uid(); the
- * userId arguments of the interface are cross-checked here and otherwise
- * ignored, so a caller cannot act for someone else. `now` is ignored too:
- * expiry is judged by the database clock.
+ * access token; never the service-role key). SQL derives the user from
+ * auth.uid(); the interface's userId arguments are cross-checked against
+ * the session user and otherwise ignored. `now` is ignored: the database
+ * clock decides expiry.
  */
-export function createSupabaseWalletLinkStore(accessToken: string, expectedUserId: string): WalletLinkStore {
+export function createSupabaseWalletLinkStore(accessToken: string, expectedUserId: string, secret: string): WalletLinkStore {
+  if (!secret) throw new Error('WALLET_LINK_SECRET is not configured');
   const db: SupabaseClient = createUserScopedClient(accessToken);
   const check = (userId: string) => {
     if (userId !== expectedUserId) throw new Error('wallet store user mismatch');
@@ -26,36 +39,26 @@ export function createSupabaseWalletLinkStore(accessToken: string, expectedUserI
       });
       if (error) throw new Error('could not store challenge');
     },
-    async consumeChallenge(nonce, userId) {
-      check(userId);
-      const { data, error } = await db.rpc('consume_wallet_challenge', { p_nonce: nonce });
-      if (error) throw new Error('could not consume challenge');
-      const row = Array.isArray(data) ? data[0] : null;
-      if (!row || row.user_id !== expectedUserId) return null;
-      return {
-        nonce: row.nonce,
-        userId: row.user_id,
-        chainId: row.chain_id,
-        address: row.address,
-        domain: row.domain,
-        expiresAt: new Date(row.expires_at),
-      };
-    },
-    async challengeStatus(nonce, userId) {
-      check(userId);
-      const { data, error } = await db.rpc('wallet_challenge_status', { p_nonce: nonce });
-      if (error) throw new Error('could not read challenge status');
-      return data as ChallengeStatus;
-    },
-    async activateLink(l) {
+    async linkWallet(l) {
       check(l.userId);
-      const { data, error } = await db.rpc('activate_wallet_link', {
-        p_chain_id: l.chainId,
-        p_address: l.address,
+      const { data, error } = await db.rpc('link_wallet', {
+        p_nonce: l.nonce,
+        p_att: walletAttestation(secret, expectedUserId, l.chainId, l.address, l.nonce),
         p_assurance: l.assurance,
       });
-      if (error) throw new Error('could not activate link');
-      return data === 'ok' ? 'ok' : 'address_taken';
+      if (error || typeof data !== 'string' || !LINK.includes(data)) throw new Error('could not link wallet');
+      return data as LinkStatus;
+    },
+    async revokeLink(l) {
+      check(l.userId);
+      const { data, error } = await db.rpc('revoke_wallet_link', {
+        p_chain_id: l.chainId,
+        p_address: l.address,
+        p_nonce: l.nonce,
+        p_att: walletAttestation(secret, expectedUserId, l.chainId, l.address, l.nonce),
+      });
+      if (error || typeof data !== 'string' || !REVOKE.includes(data)) throw new Error('could not revoke wallet link');
+      return data as RevokeStatus;
     },
   };
 }
