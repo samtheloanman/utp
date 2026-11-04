@@ -52,6 +52,35 @@ describe('congressAdapter', () => {
   });
 });
 
+describe('congressAdapter hardening', () => {
+  it('builds the public congress.gov URL and never leaks api_key', async () => {
+    const r = await mk(ok([bill('123'), { ...bill('9'), type: 'SJRES' }]) as unknown as typeof fetch).fetchBills({ limit: 5 });
+    expect(r.items[0].sourceUrl).toBe('https://www.congress.gov/bill/119th-congress/house-bill/123');
+    expect(r.items[1].sourceUrl).toBe('https://www.congress.gov/bill/119th-congress/senate-joint-resolution/9');
+    expect(JSON.stringify(r)).not.toContain('api_key');
+  });
+  it('skips rows with missing fields or unknown type and counts them', async () => {
+    const rows = [bill('1'), { ...bill('2'), type: 'XYZ' }, { ...bill('3'), number: undefined }, { ...bill('4'), congress: undefined }];
+    const r = await mk(ok(rows) as unknown as typeof fetch).fetchBills({ limit: 5 });
+    expect(r.items).toHaveLength(1);
+    expect(r.error).toContain('3');
+  });
+  it('sends key by header and passes a signal', async () => {
+    const f = ok([bill('1')]);
+    await mk(f as unknown as typeof fetch).fetchBills({ limit: 5 });
+    const [url, init] = (f.mock.calls[0] as unknown as [string, RequestInit]);
+    expect(url).not.toContain('api_key');
+    expect((init.headers as Record<string, string>)['X-Api-Key']).toBe('k');
+    expect(init.signal).toBeDefined();
+  });
+  it('times out a never-resolving fetch as unavailable', async () => {
+    const f = ((_u: string, init: RequestInit) =>
+      new Promise((_res, rej) => init.signal?.addEventListener('abort', () => rej(new Error('aborted'))))) as unknown as typeof fetch;
+    const r = await congressAdapter({ apiKey: 'k', fetch: f, now: () => NOW, timeoutMs: 20 }).fetchBills({ limit: 5 });
+    expect(r.status).toBe('unavailable');
+  });
+});
+
 describe('classifyFreshness', () => {
   it('null is unavailable', () => expect(classifyFreshness(null, NOW, 1000)).toBe('unavailable'));
   it('old is stale', () => expect(classifyFreshness('2026-11-03T11:00:00.000Z', NOW, 1000)).toBe('stale'));

@@ -1,4 +1,5 @@
 import { recordHash } from './hash';
+import { withTimeout } from './http';
 import type { CivicBill, SourceAdapter, SourceResult } from './types';
 
 const SOURCE = { name: 'Open States (California)', url: 'https://openstates.org/ca/bills/' };
@@ -7,6 +8,7 @@ interface Deps {
   apiKey?: string;
   fetch?: typeof fetch;
   now?: () => Date;
+  timeoutMs?: number;
 }
 
 const str = (v: unknown): string => (typeof v === 'string' ? v : '');
@@ -27,7 +29,7 @@ export function openStatesAdapter(d: Deps): SourceAdapter {
       try {
         const res = await doFetch(
           `https://v3.openstates.org/bills?jurisdiction=California&sort=updated_desc&per_page=${Math.min(limit, 20)}`,
-          { signal, headers: { 'X-API-KEY': d.apiKey } },
+          { signal: withTimeout(signal, d.timeoutMs), headers: { 'X-API-KEY': d.apiKey } },
         );
         if (!res.ok) return fail(`Open States HTTP ${res.status}`);
         const data = (await res.json()) as { results?: unknown };

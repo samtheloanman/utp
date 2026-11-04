@@ -36,3 +36,17 @@ describe('openStatesAdapter (mocked)', () => {
     expect(await h()).not.toBe(await h('Passed'));
   });
 });
+
+describe('openStatesAdapter hardening', () => {
+  it('sends header key, no key in URL, and times out', async () => {
+    const f = ok([row('1')]);
+    await mk(f).fetchBills({ limit: 5 });
+    const [url, init] = (f as unknown as { mock: { calls: [string, RequestInit][] } }).mock.calls[0];
+    expect(url).not.toContain('apikey');
+    expect((init.headers as Record<string, string>)['X-API-KEY']).toBe('k');
+    const hang = ((_u: string, i: RequestInit) =>
+      new Promise((_r, rej) => i.signal?.addEventListener('abort', () => rej(new Error('aborted'))))) as unknown as typeof fetch;
+    const r = await openStatesAdapter({ apiKey: 'k', fetch: hang, now: () => NOW, timeoutMs: 20 }).fetchBills({ limit: 5 });
+    expect(r.status).toBe('unavailable');
+  });
+});
