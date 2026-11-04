@@ -1,4 +1,5 @@
 import { getLegislature } from '@/lib/civic/legislature';
+import { DataStatusBadge } from '@/components/ui/DataStatusBadge';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,17 +10,13 @@ interface LegislatureResponse {
   items: Array<{ externalId: string; number: string; title: string; status: string; sourceUrl: string }>;
 }
 
-const LABEL: Record<LegislatureResponse['status'], string> = {
-  live: 'Live', stale: 'Stale', unavailable: 'Unavailable', not_integrated: 'Not integrated',
-};
-
 export default async function LegislaturePage() {
   const data: LegislatureResponse = await getLegislature('US');
   const status = data.status;
   return (
     <div style={{ padding: '2rem' }}>
       <h1 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '1rem' }}>Legislature</h1>
-      <p>Status: {LABEL[status]}</p>
+      <p><DataStatusBadge status={status} fetchedAt={data.fetchedAt} /></p>
       {data.fetchedAt && <p>Fetched: {data.fetchedAt} from {data.source.name}</p>}
       {data.items.length > 0 ? (
         <ul>

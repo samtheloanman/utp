@@ -5,9 +5,6 @@ import { useRouter } from 'next/navigation';
 import { SCALES, CATEGORIES, ISSUES } from '@/lib/data';
 import { TopBar, IssueCard, fmt } from '@/components/ui/Shared';
 import { Icon } from '@/components/ui/icons';
-import { useWriteContract } from 'wagmi';
-import { usePrivy } from '@privy-io/react-auth';
-import { UTP_POLLING_ADDRESS, UTP_POLLING_ABI } from '@/lib/contracts';
 import { HeroCanvas } from '@/components/ui/HeroCanvas';
 import gsap from 'gsap';
 
@@ -19,9 +16,6 @@ export default function FeedView() {
   const [cat, setCat] = useState('All');
   const [query, setQuery] = useState('');
   
-  const [votes, setVotes] = useState<Record<string, string>>({});
-  const { writeContract } = useWriteContract();
-  const { authenticated, login } = usePrivy();
 
   // Intro Animation
   useEffect(() => {
@@ -35,11 +29,6 @@ export default function FeedView() {
   }, []);
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem('utp_votes');
-      if (saved) setVotes(JSON.parse(saved));
-    } catch {}
-    
     // Set theme variables on mount
     const r = document.documentElement;
     r.setAttribute('data-palette', 'civic');
@@ -48,36 +37,8 @@ export default function FeedView() {
     r.setAttribute('data-photos', 'on');
   }, []);
 
-  const onVote = (id: string, v: string) => {
-    if (!authenticated) {
-      login();
-      return;
-    }
-
-    // 1=for, 2=against, 3=unsure
-    const voteMap: Record<string, number> = { 'for': 1, 'against': 2, 'unsure': 3 };
-    const voteType = voteMap[v];
-
-    writeContract({
-      address: UTP_POLLING_ADDRESS,
-      abi: UTP_POLLING_ABI,
-      functionName: 'castVote',
-      args: [id, voteType],
-    }, {
-      onSuccess: () => {
-        setVotes(prev => {
-          const next = { ...prev, [id]: prev[id] === v ? undefined : v };
-          if (next[id] === undefined) delete next[id];
-          try { localStorage.setItem('utp_votes', JSON.stringify(next)); } catch {}
-          return next as Record<string, string>;
-        });
-      },
-      onError: (err) => {
-        console.error('Failed to vote:', err);
-        alert('Failed to vote on-chain. Make sure you are connected to the right network.');
-      }
-    });
-  };
+  // Votes are cast on the issue page (Supabase-gated); the feed only links there.
+  const onVote = (id: string) => { router.push('/issue/' + id); };
 
   const counts = useMemo(() => {
     const byScale: Record<string, number> = { all: ISSUES.length };
@@ -164,7 +125,7 @@ export default function FeedView() {
           : <div className="feed-grid">
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {counts._filtered.map((issue: any) => (
-                <IssueCard key={issue.id} issue={issue} vote={votes[issue.id]} onVote={onVote} onOpen={goOpen} />
+                <IssueCard key={issue.id} issue={issue} vote={null} onVote={onVote} onOpen={goOpen} />
               ))}
             </div>}
       </div>

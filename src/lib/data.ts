@@ -61,11 +61,14 @@ export interface Issue {
   argsAgainst: IssueArg[];
   confidence: number;
   sources: IssueSource[];
+  /** True for synthetic demo issues that are not backed by a sourced bill. */
+  isSample?: boolean;
 }
 
 export const ISSUES: Issue[] = [
   {
     id: 'global-plastics',
+    isSample: true,
     scale: 'global', category: 'Climate',
     region: 'United Nations', cc: null, scope: 'UN Treaty',
     img: 'photo-1621451537084-482c73073a0f',
@@ -91,6 +94,7 @@ export const ISSUES: Issue[] = [
   },
   {
     id: 'global-ai-body',
+    isSample: true,
     scale: 'global', category: 'Technology',
     region: 'Global', cc: null, scope: 'Multilateral',
     img: 'photo-1518770660439-4636190af475',
@@ -115,6 +119,7 @@ export const ISSUES: Issue[] = [
   },
   {
     id: 'global-water',
+    isSample: true,
     scale: 'global', category: 'Rights',
     region: 'Global', cc: null, scope: 'UN Resolution',
     img: 'photo-1538300342682-cf57afb97285',
@@ -138,6 +143,7 @@ export const ISSUES: Issue[] = [
   },
   {
     id: 'natl-insulin',
+    isSample: true,
     scale: 'national', category: 'Health',
     region: 'United States', cc: 'us', scope: 'Federal Bill',
     img: 'photo-1576602976047-174e57a47881',
@@ -163,6 +169,7 @@ export const ISSUES: Issue[] = [
   },
   {
     id: 'natl-fourday',
+    isSample: true,
     scale: 'national', category: 'Economy',
     region: 'United Kingdom', cc: 'gb', scope: 'National Policy',
     img: 'photo-1497366216548-37526070297c',
@@ -187,6 +194,7 @@ export const ISSUES: Issue[] = [
   },
   {
     id: 'natl-eafc',
+    isSample: true,
     scale: 'national', category: 'Economy',
     region: 'Kenya', cc: 'ke', scope: 'Treaty Ratification',
     img: 'photo-1611974789855-9c2a0a7236a3',
@@ -211,6 +219,7 @@ export const ISSUES: Issue[] = [
   },
   {
     id: 'reg-plastics-eu',
+    isSample: true,
     scale: 'regional', category: 'Climate',
     region: 'European Union', cc: 'eu', scope: 'EU Regulation',
     img: 'photo-1542838132-92c53300491e',
@@ -234,6 +243,7 @@ export const ISSUES: Issue[] = [
   },
   {
     id: 'reg-transit',
+    isSample: true,
     scale: 'regional', category: 'Governance',
     region: 'Greater São Paulo', cc: 'br', scope: 'Metro Region',
     img: 'photo-1556122071-e404eaedb77f',
@@ -257,6 +267,7 @@ export const ISSUES: Issue[] = [
   },
   {
     id: 'local-mainst',
+    isSample: true,
     scale: 'local', category: 'Governance',
     region: 'Austin, TX', cc: 'us', scope: 'City Council',
     img: 'photo-1519677100203-a0e668c92439',
@@ -280,6 +291,7 @@ export const ISSUES: Issue[] = [
   },
   {
     id: 'local-budget',
+    isSample: true,
     scale: 'local', category: 'Governance',
     region: 'Lisbon', cc: 'pt', scope: 'City Council',
     img: 'photo-1585208798174-6cedd86e019a',
@@ -303,6 +315,7 @@ export const ISSUES: Issue[] = [
   },
   {
     id: 'local-transit-free',
+    isSample: true,
     scale: 'local', category: 'Economy',
     region: 'Tallinn', cc: 'ee', scope: 'City Referendum',
     img: 'photo-1570125909232-eb263c188f7e',
@@ -326,6 +339,7 @@ export const ISSUES: Issue[] = [
   },
   {
     id: 'natl-vote16',
+    isSample: true,
     scale: 'national', category: 'Rights',
     region: 'Germany', cc: 'de', scope: 'Electoral Reform',
     img: 'photo-1540910419892-4a36d2c3266c',
