@@ -8,7 +8,7 @@ const limit = vi.fn();
 const insert = vi.fn();
 const chain: Record<string, unknown> = {};
 chain.insert = insert.mockReturnValue(chain);
-const select = vi.fn((_cols?: string) => chain);
+const select = vi.fn<(cols?: string) => unknown>(() => chain);
 chain.select = select;
 chain.eq = vi.fn(() => chain);
 chain.order = vi.fn(() => chain);
