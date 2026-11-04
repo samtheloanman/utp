@@ -7,6 +7,8 @@ const MAX_TITLE = 200;
 const MAX_DESCRIPTION = 2000;
 const MAX_URL = 2048;
 const MAX_SHORT = 50;
+// Explicit list: proposer_id (an auth user UUID) is never exposed to anonymous callers.
+const PUBLIC_COLUMNS = 'id,title,description,source_url,bias_score,category,status,created_at';
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
 
@@ -100,7 +102,7 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await supabase
     .from('voting_proposals')
-    .select('*')
+    .select(PUBLIC_COLUMNS)
     .eq('status', status)
     .order('created_at', { ascending: false })
     .limit(limit);

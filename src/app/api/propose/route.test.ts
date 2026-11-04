@@ -8,7 +8,8 @@ const limit = vi.fn();
 const insert = vi.fn();
 const chain: Record<string, unknown> = {};
 chain.insert = insert.mockReturnValue(chain);
-chain.select = vi.fn(() => chain);
+const select = vi.fn((_cols?: string) => chain);
+chain.select = select;
 chain.eq = vi.fn(() => chain);
 chain.order = vi.fn(() => chain);
 chain.single = single;
@@ -37,6 +38,7 @@ describe('/api/propose', () => {
     vi.unstubAllEnvs();
     requireUser.mockReset().mockResolvedValue({ user: { id: USER }, accessToken: 'tok' });
     insert.mockClear();
+    select.mockClear();
     single.mockReset().mockResolvedValue({ data: { id: 'p1' }, error: null });
     limit.mockReset().mockResolvedValue({ data: [], error: null });
     from.mockClear();
@@ -122,5 +124,15 @@ describe('/api/propose', () => {
     expect(limit).toHaveBeenLastCalledWith(20);
     await GET(new Request('http://localhost/api/propose?limit=7') as never);
     expect(limit).toHaveBeenLastCalledWith(7);
+  });
+
+  it('GET selects an explicit column list that excludes proposer_id', async () => {
+    const { GET } = await load();
+    await GET(new Request('http://localhost/api/propose') as never);
+    const cols = select.mock.calls.at(-1)?.[0] as string;
+    expect(cols).not.toBe('*');
+    expect(cols).not.toContain('proposer_id');
+    expect(cols).toContain('title');
+    expect(cols).toContain('source_url');
   });
 });
