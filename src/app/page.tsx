@@ -102,14 +102,14 @@ export default function FeedView() {
             <div className="absolute inset-0 bg-gradient-to-br from-[#082A33] via-[#0A5466] to-[#0E7C96] z-0" />
             <HeroCanvas />
             <div className="hero-content relative z-10 intro-elem">
-              <span className="hero-eyebrow"><span className="live-dot" /> {fmt(totalVoices)} voices · {ISSUES.length} live issues</span>
+              <span className="hero-eyebrow">{ISSUES.length} sample issues · illustrative figures</span>
               <h1 className="intro-title">Vote on what shapes your world</h1>
               <p className="intro-desc">From your city council to the United Nations, weigh in on the decisions that matter — every claim backed by neutral, citation-grounded evidence.</p>
               <div className="hstats intro-stats">
-                <span className="hstat"><b>{fmt(totalVoices)}</b><span><Icon name="users" size={13} stroke={1.9} /> Voices cast</span></span>
-                <span className="hstat"><b>{ISSUES.length}</b><span><Icon name="layers" size={13} stroke={1.9} /> Open issues</span></span>
+                <span className="hstat"><b>{fmt(totalVoices)}</b><span><Icon name="users" size={13} stroke={1.9} /> Sample voices</span></span>
+                <span className="hstat"><b>{ISSUES.length}</b><span><Icon name="layers" size={13} stroke={1.9} /> Sample issues</span></span>
                 <span className="hstat"><b>4</b><span><Icon name="global" size={13} stroke={1.9} /> Local → global</span></span>
-                <span className="hstat"><b className="accent-num">100%</b><span><Icon name="shield" size={13} stroke={1.9} /> Sources cited</span></span>
+                <span className="hstat"><b className="accent-num">Sample</b><span><Icon name="shield" size={13} stroke={1.9} /> Illustrative data</span></span>
               </div>
             </div>
           </div>

@@ -16,5 +16,8 @@ describe('issue page', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }));
     render(<DetailView />);
     expect(screen.getAllByText('Sample data').length).toBeGreaterThan(0);
+    const t = document.body.textContent || '';
+    expect(t).not.toMatch(/verified|Live|live issues|Updated continuously/);
+    expect(t).toContain('Sample figures — illustrative only');
   });
 });

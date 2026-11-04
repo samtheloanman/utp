@@ -5,6 +5,7 @@ import { SCALES, Issue, photoUrl } from '@/lib/data';
 import { Icon, BrandMark, Flag, CAT_COLOR } from './icons';
 import { usePrivy } from '@privy-io/react-auth';
 import Link from 'next/link';
+import { DataStatusBadge } from './DataStatusBadge';
 
 export function fmt(n: number) {
   if (n >= 1000000) return (n / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
@@ -137,6 +138,7 @@ export function IssueCard({ issue, vote, onVote, onOpen }: { issue: Issue, vote:
         <div className="media-chips">
           <span className="mchip"><Icon name={sm.ico} size={13} stroke={2} />{sm.label}</span>
           <span className="mchip"><Icon name={issue.category} size={13} stroke={2} />{issue.category}</span>
+          {issue.isSample && <span className="mchip"><DataStatusBadge status="sample" /></span>}
         </div>
         <div className="media-region">
           <Flag cc={issue.cc || undefined} size={18} />{issue.region}
@@ -156,8 +158,8 @@ export function IssueCard({ issue, vote, onVote, onOpen }: { issue: Issue, vote:
         <QuickVote issue={issue} vote={vote} onVote={onVote} />
 
         <div className="icard-foot">
-          <span className="icard-voices"><Icon name="users" size={14} stroke={1.9} /><b>{fmt(issue.voices)}</b> voices</span>
-          <span className="deadline"><Icon name="clock" size={13} stroke={1.9} />{issue.deadline}</span>
+          <span className="icard-voices"><Icon name="users" size={14} stroke={1.9} /><b>{fmt(issue.voices)}</b> {issue.isSample ? 'sample voices' : 'voices'}</span>
+          {!issue.isSample && <span className="deadline"><Icon name="clock" size={13} stroke={1.9} />{issue.deadline}</span>}
         </div>
       </div>
     </article>

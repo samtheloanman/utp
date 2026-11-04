@@ -210,10 +210,10 @@ export default function DetailView() {
         </div>
 
         <div className="dmeta">
-          <div className="m"><span className="k">Voices</span><span className="v">{fmt(issue.voices)}</span></div>
+          <div className="m"><span className="k">{issue.isSample ? 'Sample voices' : 'Voices'}</span><span className="v">{fmt(issue.voices)}</span></div>
           <div className="m"><span className="k">Lean For</span><span className="v" style={{ color: 'var(--for)' }}>{issue.for}%</span></div>
           <div className="m"><span className="k">7-day shift</span><span className={'v ' + (delta >= 0 ? 'trend-up' : 'trend-down')}><Icon name={delta >= 0 ? 'up' : 'down'} size={14} stroke={2.4} />{Math.abs(delta)} pts</span></div>
-          <div className="m"><span className="k">Status</span><span className="v vstatus">{issue.deadline}</span></div>
+          <div className="m"><span className="k">Status</span><span className="v vstatus">{issue.isSample ? 'Sample' : issue.deadline}</span></div>
         </div>
 
         <div className="detail-grid">
@@ -229,13 +229,13 @@ export default function DetailView() {
               <TrendChart data={issue.history} />
               <div className="chart-legend">
                 <span className="lg"><span className="sw" style={{ background: 'var(--for)' }} /> Share voting For over time</span>
-                <span className="lg" style={{ marginLeft: 'auto' }}><Icon name="clock" size={13} stroke={1.9} /> Updated continuously</span>
+                <span className="lg" style={{ marginLeft: 'auto' }}><Icon name="clock" size={13} stroke={1.9} /> {issue.isSample ? 'Sample figures — illustrative only' : 'Updated continuously'}</span>
               </div>
             </div>
 
             <div className="panel panel-pad" style={{ marginTop: 20 }}>
               <h3 className="panel-title">Where people stand</h3>
-              <p className="panel-sub">{fmt(issue.voices)} verified voices so far</p>
+              <p className="panel-sub">{issue.isSample ? 'Sample figures — illustrative only' : `${fmt(issue.voices)} verified voices so far`}</p>
               <SentimentBar issue={issue} />
             </div>
 
