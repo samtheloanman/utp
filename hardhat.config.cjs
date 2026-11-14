@@ -50,6 +50,13 @@ module.exports = {
                 ? [process.env.DEPLOYER_PRIVATE_KEY]
                 : [],
         },
+        utpAlpha: {
+            url: process.env.UTP_ALPHA_RPC_URL || "http://127.0.0.1:8545",
+            chainId: Number(process.env.UTP_ALPHA_CHAIN_ID || 99931),
+            accounts: process.env.DEPLOYER_PRIVATE_KEY
+                ? [process.env.DEPLOYER_PRIVATE_KEY]
+                : [],
+        },
     },
     paths: {
         sources: "./contracts",

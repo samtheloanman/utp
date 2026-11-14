@@ -73,6 +73,10 @@ async function deployCore(ethers, deployer, params, logger) {
   const registry = await deploy("PluginRegistry", [daoAddr]);
 
   const tlAddr = await timelock.getAddress();
+  const appConfig = await deploy("AppConfig", [tlAddr]);
+  if ((await appConfig.owner()).toLowerCase() !== tlAddr.toLowerCase()) {
+    throw new Error(`AppConfig owner mismatch: got ${await appConfig.owner()}, expected timelock ${tlAddr}`);
+  }
   const govAddr = await governance.getAddress();
   const PROPOSER = await timelock.PROPOSER_ROLE();
   const CANCELLER = await timelock.CANCELLER_ROLE();
@@ -97,13 +101,13 @@ async function deployCore(ethers, deployer, params, logger) {
   return {
     addresses: deployed,
     params: p,
-    contracts: { dao, token, timelock, governance, treasury, registry },
+    contracts: { dao, token, timelock, governance, treasury, registry, appConfig },
   };
 }
 
 /** Asserts the post-deploy permission invariants. Throws on any violation. */
 async function verifyCore(core, deployerAddress, logger) {
-  const { dao, timelock, governance, registry } = core.contracts;
+  const { dao, timelock, governance, registry, appConfig } = core.contracts;
   const daoAddr = await dao.getAddress();
   const tlAddr = await timelock.getAddress();
   const govAddr = await governance.getAddress();
@@ -125,6 +129,9 @@ async function verifyCore(core, deployerAddress, logger) {
     ["governance points at timelock", (await governance.timelock()).toLowerCase(), tlAddr.toLowerCase()],
     ["governance plugin installed", (await registry.plugins(govAddr)).active, true],
   ];
+  if (appConfig) {
+    checks.push(["appConfig owned by timelock", (await appConfig.owner()).toLowerCase(), tlAddr.toLowerCase()]);
+  }
 
   let failed = 0;
   for (const [label, actual, expected] of checks) {
