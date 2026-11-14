@@ -12,3 +12,26 @@ Rules:
 - Roadmap: `.gsd/ROADMAP.md` (only live roadmap) · Status: `.gsd/STATE.md` · Product: `brain/prd.md`
 - Brand: `DESIGN.md` — civic glass-teal, tokens in `src/app/globals.css`. The dark "uBTC" system and `/launch`, `/vault` pages are archived in `archive/design-dark-v1/`; never use them for new work.
 - `archive/` is reference only; it is excluded from TypeScript, ESLint and the build.
+
+<!-- IJFW-MEMORY-START (managed -- do not edit manually) -->
+<ijfw-memory>
+Project memory at .ijfw/memory/. Call `ijfw_memory_prelude` for full context.
+</ijfw-memory>
+
+<ijfw-profile>
+Your portable working profile (derived from what you've said/edited; style + expertise only):
+style.formality: casual
+style.energy: steady
+style.terseness: moderate
+style.emoji_use: rare
+expertise.markdown: novice
+expertise.python: novice
+expertise.json: novice
+expertise.html: novice
+expertise.typescript: novice
+expertise.sql: novice
+expertise.javascript: novice
+expertise.yaml: novice
+expertise.shell: novice
+</ijfw-profile>
+<!-- IJFW-MEMORY-END -->

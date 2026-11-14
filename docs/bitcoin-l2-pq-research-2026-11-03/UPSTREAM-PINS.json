@@ -1,0 +1,129 @@
+{
+  "as_of": "2026-11-03",
+  "scope": "Research snapshots only; not dependency adoption or release recommendations",
+  "repositories": [
+    {
+      "repo": "BitVM/BitVM",
+      "sha": "c620dbfaacebdf778e765a6681985350389973b1",
+      "commit_date": "2026-10-22T03:23:53Z",
+      "default_branch": "main",
+      "archived": false,
+      "readme_url": "https://raw.githubusercontent.com/BitVM/BitVM/c620dbfaacebdf778e765a6681985350389973b1/README.md",
+      "readme_sha256": "05587087bbdbc78691425b4f514b68973f0add5a451f55dfb3057111a55bd1bd",
+      "license": "MIT",
+      "evidence": "upstream metadata, not UTP runtime verification"
+    },
+    {
+      "repo": "FairgateLabs/BitVMX-CPU",
+      "sha": "93b0468da1d8c00e559924552cf8c178ba4fdd92",
+      "commit_date": "2026-10-14T19:36:22Z",
+      "default_branch": "dev",
+      "archived": false,
+      "readme_url": "https://raw.githubusercontent.com/FairgateLabs/BitVMX-CPU/93b0468da1d8c00e559924552cf8c178ba4fdd92/README.md",
+      "readme_sha256": "5a3a66beb3c20b3bb41729bff1716bd35e1df9bf35b9bad9b0682d608fba2054",
+      "license": "Apache-2.0",
+      "evidence": "upstream metadata, not UTP runtime verification"
+    },
+    {
+      "repo": "chainwayxyz/clementine",
+      "sha": "b61efacf56b4196cda0023419e01d4b0d6f2bc5d",
+      "commit_date": "2026-06-22T16:11:31Z",
+      "default_branch": "main",
+      "archived": false,
+      "readme_url": "https://raw.githubusercontent.com/chainwayxyz/clementine/b61efacf56b4196cda0023419e01d4b0d6f2bc5d/README.md",
+      "readme_sha256": "d1553b2a5afbc60ff344e73b7888de3500e3da0c2362e166da1b593e5ec93ed9",
+      "license": "GPL-3.0",
+      "evidence": "upstream metadata, not UTP runtime verification"
+    },
+    {
+      "repo": "starkware-libs/stwo",
+      "sha": "826591c6c371376810ca8213b5812d5daf6d5092",
+      "commit_date": "2026-08-13T06:44:43Z",
+      "default_branch": "dev",
+      "archived": false,
+      "readme_url": "https://raw.githubusercontent.com/starkware-libs/stwo/826591c6c371376810ca8213b5812d5daf6d5092/README.md",
+      "readme_sha256": "ead830c163bb3501db254da1ad94b11130f044b070b36887a9e23b4b6d6e0607",
+      "license": "Apache-2.0",
+      "evidence": "upstream metadata, not UTP runtime verification"
+    },
+    {
+      "repo": "Plonky3/Plonky3",
+      "sha": "0d803737b681774186cd283b1fd2d8e493655c82",
+      "commit_date": "2026-10-26T21:18:29Z",
+      "default_branch": "main",
+      "archived": false,
+      "readme_url": "https://raw.githubusercontent.com/Plonky3/Plonky3/0d803737b681774186cd283b1fd2d8e493655c82/README.md",
+      "readme_sha256": "07c3e8bb6f0918a0f0ecafc1a38ae090e3f67f768e9294a08051eb61dffdd605",
+      "license": "Apache-2.0",
+      "evidence": "upstream metadata, not UTP runtime verification"
+    },
+    {
+      "repo": "risc0/risc0",
+      "sha": "164c64bb3a844d393bb7addc5781c705c647f2d5",
+      "commit_date": "2026-10-26T21:12:03Z",
+      "default_branch": "main",
+      "archived": false,
+      "readme_url": "https://raw.githubusercontent.com/risc0/risc0/164c64bb3a844d393bb7addc5781c705c647f2d5/README.md",
+      "readme_sha256": "824f80ed20f09ebea8ac44bb30a050cbfd46ab6dfa4b0ea317a7fe0f4141cf77",
+      "license": "Apache-2.0",
+      "evidence": "upstream metadata, not UTP runtime verification"
+    },
+    {
+      "repo": "pq-code-package/mldsa-native",
+      "sha": "335703f2f11d5dcb417413c3a573a5fbeb3fbfdc",
+      "commit_date": "2026-11-04T00:53:11Z",
+      "default_branch": "main",
+      "archived": false,
+      "readme_url": "https://raw.githubusercontent.com/pq-code-package/mldsa-native/335703f2f11d5dcb417413c3a573a5fbeb3fbfdc/README.md",
+      "readme_sha256": "ffd981543c78572209da7a25e75866f48d6d219abfb4d8de9288e83e6bd5e8c5",
+      "license": "NOASSERTION",
+      "evidence": "upstream metadata, not UTP runtime verification"
+    },
+    {
+      "repo": "cryspen/libcrux",
+      "sha": "1f9c89853b4217deb41c85fea973e74b652e2186",
+      "commit_date": "2026-11-03T09:20:09Z",
+      "default_branch": "main",
+      "archived": false,
+      "readme_url": "https://raw.githubusercontent.com/cryspen/libcrux/1f9c89853b4217deb41c85fea973e74b652e2186/README.md",
+      "readme_sha256": null,
+      "license": "Apache-2.0",
+      "evidence": "upstream metadata, not UTP runtime verification",
+      "canonical_repo": "celabshq/libcrux",
+      "readme_evidence": "Pinned README fetch failed; not selected as a verified implementation recommendation."
+    },
+    {
+      "repo": "paulmillr/noble-post-quantum",
+      "sha": "48e493397e69fa3e377bd454ff5261b1a7e22651",
+      "commit_date": "2026-08-30T16:48:30Z",
+      "default_branch": "main",
+      "archived": false,
+      "readme_url": "https://raw.githubusercontent.com/paulmillr/noble-post-quantum/48e493397e69fa3e377bd454ff5261b1a7e22651/README.md",
+      "readme_sha256": "1d58d9a7c7a7e99d2a8f5a415d2cb0fdaf545f0bcb1521f5525a2651f9f8580b",
+      "license": "MIT",
+      "evidence": "upstream metadata, not UTP runtime verification"
+    },
+    {
+      "repo": "avihu28/Quantum-Safe-Bitcoin-Transactions",
+      "sha": "b22f81c093488d09b9cd59c171c79b6c40812cf1",
+      "commit_date": "2026-10-07T08:21:09Z",
+      "default_branch": "main",
+      "archived": false,
+      "readme_url": "https://raw.githubusercontent.com/avihu28/Quantum-Safe-Bitcoin-Transactions/b22f81c093488d09b9cd59c171c79b6c40812cf1/README.md",
+      "readme_sha256": "77c12d82ce2a280c723387f29938172b76b8ea579b1915a54feca34aeabebc7f",
+      "license": "MIT",
+      "evidence": "upstream metadata, not UTP runtime verification"
+    },
+    {
+      "repo": "bitcoin/bips",
+      "sha": "61ff3f1361838fa7eb671e650b4e614207ca9df7",
+      "commit_date": "2026-11-04T03:42:17Z",
+      "default_branch": "master",
+      "archived": false,
+      "readme_url": "https://raw.githubusercontent.com/bitcoin/bips/61ff3f1361838fa7eb671e650b4e614207ca9df7/README.md",
+      "readme_sha256": null,
+      "license": null,
+      "evidence": "upstream metadata, not UTP runtime verification"
+    }
+  ]
+}

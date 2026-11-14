@@ -1,3 +1,111 @@
+---
+ijfw_version: 1.3.2
+ijfw_schema: 1
+type: software
+primary_type: software
+secondary_types:
+  - content
+confidence: 0.898
+detected_at: 2026-08-10T07:48:43.176Z
+signals:
+  - kind: manifest
+    weight: 0.9
+    manifests: [package.json, package.json, package.json, package.json, package.json, package.json]
+  - kind: file_extension_ratio
+    weight: 0.7
+    domain: software
+    ratio: 0.858
+    count: 760
+  - kind: file_extension_ratio
+    weight: 0.7
+    domain: business
+    ratio: 0.132
+    count: 117
+  - kind: filename_pattern
+    weight: 0.2
+    domain: content
+    name: post-templates.md
+  - kind: filename_pattern
+    weight: 0.2
+    domain: content
+    name: post-templates.md
+  - kind: filename_pattern
+    weight: 0.2
+    domain: content
+    name: seo_checker.py
+  - kind: filename_pattern
+    weight: 0.2
+    domain: content
+    name: seo_checker.py
+  - kind: filename_pattern
+    weight: 0.2
+    domain: content
+    name: seo-audit-reference.md
+  - kind: filename_pattern
+    weight: 0.4
+    domain: content
+    name: brand_voice_analyzer.py
+  - kind: filename_pattern
+    weight: 0.2
+    domain: content
+    name: seo_optimizer.py
+  - kind: filename_pattern
+    weight: 0.4
+    domain: content
+    name: brand_voice_analysis_example.md
+  - kind: filename_pattern
+    weight: 0.2
+    domain: content
+    name: seo_optimization_example.md
+  - kind: filename_pattern
+    weight: 0.4
+    domain: content
+    name: brand-voice.local.md.example
+  - kind: filename_pattern
+    weight: 0.2
+    domain: content
+    name: seo-audit.md
+  - kind: filename_pattern
+    weight: 0.2
+    domain: content
+    name: seo-specialist.md
+  - kind: filename_pattern
+    weight: 0.2
+    domain: content
+    name: seo-optimizer-agent.ts
+  - kind: filename_pattern
+    weight: 0.2
+    domain: content
+    name: seo_checker.py
+  - kind: filename_pattern
+    weight: 0.4
+    domain: content
+    name: brand-voice.local.md.example
+  - kind: filename_pattern
+    weight: 0.2
+    domain: content
+    name: seo-audit.md
+  - kind: filename_pattern
+    weight: 0.2
+    domain: content
+    name: seo-vs-aeo-skills.html
+  - kind: filename_pattern
+    weight: 0.2
+    domain: content
+    name: seo-specialist.md
+  - kind: filename_pattern
+    weight: 0.2
+    domain: content
+    name: seo-optimizer-agent.ts
+  - kind: filename_pattern
+    weight: 0.2
+    domain: content
+    name: seo_checker.py
+  - kind: filename_pattern
+    weight: 0.2
+    domain: content
+    name: seo-specialist.md
+---
 ## graphify
 
 This project has a graphify knowledge graph at graphify-out/.
@@ -12,3 +120,11 @@ Rules:
 - Roadmap: `.gsd/ROADMAP.md` (only live roadmap) · Status: `.gsd/STATE.md` · Product: `brain/prd.md`
 - Brand: `DESIGN.md` — civic glass-teal, tokens in `src/app/globals.css`. The dark "uBTC" system and `/launch`, `/vault` pages are archived in `archive/design-dark-v1/`; never use them for new work.
 - `archive/` is reference only; it is excluded from TypeScript, ESLint and the build.
+
+<!-- IJFW-MEMORY-START -->
+Project memory at .ijfw/memory/. Call `ijfw_memory_prelude` for full context.
+<!-- IJFW-MEMORY-END -->
+
+<!-- IJFW-AGENTS-START -->
+No project agents yet. Run `ijfw team` to set them up.
+<!-- IJFW-AGENTS-END -->
