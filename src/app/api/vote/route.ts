@@ -1,61 +1,55 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { createClient } from '@supabase/supabase-js';
+import { requireUser } from '@/lib/supabaseAuth/requireUser';
+import { createUserScopedClient } from '@/lib/supabaseAuth/userClient';
+import { parseVoteInput } from '@/lib/votes/parseVoteInput';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder';
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-function hashIP(ip: string): string {
-  const salt = process.env.IP_SALT || 'default_salt';
-  return crypto.createHash('sha256')
-    .update(ip + salt)
-    .digest('hex')
-    .substring(0, 16);
+function hashIP(ip: string, salt: string): string {
+  return crypto.createHash('sha256').update(ip + salt).digest('hex').substring(0, 16);
 }
 
 export async function POST(req: NextRequest) {
+  const salt = process.env.IP_SALT;
+  if (!salt && process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ message: 'Voting is not configured' }, { status: 503 });
+  }
+
+  const auth = await requireUser(req);
+  if ('error' in auth) return auth.error;
+
+  let body: unknown;
   try {
-    const { billId, vote } = await req.json();
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ message: 'Invalid JSON' }, { status: 400 });
+  }
+  const input = parseVoteInput(body);
+  if (!input.ok) return NextResponse.json({ message: input.message }, { status: 400 });
+
+  try {
     const forwarded = req.headers.get('x-forwarded-for');
-    const ip = forwarded ? forwarded.split(',')[0] : '127.0.0.1';
-    const ipHash = hashIP(ip);
+    const ip = forwarded ? forwarded.split(',')[0].trim() : '127.0.0.1';
+    // Outside production an unset salt stores no IP hash rather than a guessable one.
+    const ipHash = salt ? hashIP(ip, salt) : null;
 
-    // Get user from auth header
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
-
-    if (authError || !user) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Upsert vote
-    const { error: voteError } = await supabase
-      .from('shadow_votes')
-      .upsert({
-        bill_id: billId,
-        user_id: user.id,
-        vote,
+    const supabase = createUserScopedClient(auth.accessToken);
+    const { error } = await supabase.from('shadow_votes').upsert(
+      {
+        bill_id: input.billId,
+        user_id: auth.user.id,
+        vote: input.vote,
         ip_hash: ipHash,
         created_at: new Date().toISOString(),
-      }, { onConflict: 'bill_id,user_id' });
-
-    if (voteError) {
-      throw voteError;
+      },
+      { onConflict: 'bill_id,user_id' },
+    );
+    if (error) {
+      console.error('vote upsert failed', { code: (error as { code?: string }).code });
+      return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
     }
-
-    // Update aggregates (In a real app, this might be a database trigger)
-    // For this prototype, we can do it manually or assume a trigger exists.
-    // Let's assume a RPC or trigger handles it for better consistency.
-
     return NextResponse.json({ message: 'Vote recorded' });
-  } catch (err: unknown) {
-    console.error('Error in vote API:', err);
-    return NextResponse.json({ message: err instanceof Error ? err.message : 'Internal Server Error' }, { status: 500 });
+  } catch {
+    console.error('vote handler failed');
+    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
   }
 }

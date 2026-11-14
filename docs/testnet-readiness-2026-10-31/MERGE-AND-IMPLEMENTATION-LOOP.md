@@ -63,11 +63,11 @@ Record base/head SHAs, dirty state, changed paths, relevant threat findings, tes
 | ID | Dependency | Deliverable | Falsifiable exit test |
 |---|---|---|---|
 | R1 | None | Consolidate #21 into #20 and fix release checks | Combined head passes nonempty web tests, 175+ contracts, build and exact-head Dell CI; preview matches head. |
-| R2 | R1 | Protect `master`, verify Vercel production target and rollback | Required checks reject an untested head; deploy the exact clean master SHA with production environment after post-merge CI, verify public alias and route smoke, and retain prior deployment for rollback. Reconcile why Git integration built `master` as Preview. |
-| I1 | R1 | Canonical Supabase civic account and linked wallet | Wrong account, replayed challenge and mismatched signature cannot link a wallet; session refresh persists. |
+| R2 | R1 | Protect `master`, verify Vercel production target and rollback | Required checks reject an untested head; deploy the exact clean master SHA with production environment after post-merge CI, verify public alias and route smoke, and retain prior deployment for rollback. Reconcile why Git integration built `master` as Preview. **Status (2026-11-03): BLOCKED_ON_AUTH** (cause `NOT_DETERMINED`; see R2 finding below). |
+| I1 | R1 | Canonical Supabase civic account and linked wallet | Wrong account, replayed challenge and mismatched signature cannot link a wallet; session refresh persists. **Status 2026-11-03:** implemented on `feat/first-cycle-auth-civic` (head `03cee70`), not merged, awaiting authorization; wallet-link tests pass on a shim DB only, real Supabase NOT_RUN. See EVIDENCE-LEDGER. |
 | I2 | I1 | Tiered credential proofing and local encrypted wallet | Phone/TOTP/camera signals remain separate; lost-device and recovery tests do not silently lower assurance. Synthetic credentials only. |
-| C1 | R1 | Source registry and one federal/state/local ingestion slice | Each record has source URL, jurisdiction, version and fetch time; bad key/provider failure never yields a fixture marked live. |
-| C2 | I1,C1 | Proposal/request draft and civic vote | Unauthorized write fails; duplicate/concurrent votes have one authoritative tally; no message to officials occurs in tests. |
+| C1 | R1 | Source registry and one federal/state/local ingestion slice | Each record has source URL, jurisdiction, version and fetch time; bad key/provider failure never yields a fixture marked live. **Status 2026-11-03:** federal slice and state adapter implemented on `feat/first-cycle-auth-civic`, mock-tested only, not merged, awaiting authorization; live fetch BLOCKED (no keys); local slice BLOCKED (decision U2). |
+| C2 | I1,C1 | Proposal/request draft and civic vote | Unauthorized write fails; duplicate/concurrent votes have one authoritative tally; no message to officials occurs in tests. **Status 2026-11-03:** authenticated vote and propose implemented on `feat/first-cycle-auth-civic`, tested on a shim DB only, not merged, awaiting authorization; migrations not applied remotely. |
 | C3 | C1,C2 | Nationwide coverage expansion | Per-jurisdiction ledger identifies provider, recency, gaps and correction path; no unverified locale is marked covered. |
 | G1 | R1 | Governance manifest, roles and app UI | Contract bytecode/chain mismatch blocks actions; token allocation and all role holders are disclosed. |
 | G2 | G1 | Rootstock testnet lifecycle | Independently controlled actors complete proposal, vote, queue, wait and execute; failed/cancelled cases and second-RPC read-back pass. |
@@ -76,3 +76,16 @@ Record base/head SHAs, dirty state, changed paths, relevant threat findings, tes
 | L3 | L1,L2 | Full custom L2 testnet | Independent review and testnet receipts pass all full-scope [SPEC.md](SPEC.md) gates, including Bitcoin anchoring and reorg handling. |
 
 Parallelism: I1 and C1 may proceed after R1; C3 and G1 may proceed after their own prerequisites. One integration owner maintains the acceptance ledger and refuses cross-workstream claims of completion until a vertical user path is tested. Every external mutation remains separately gated by the current fleet rules.
+
+### R2 finding (2026-11-03)
+
+Status: `BLOCKED_ON_AUTH`. Cause of the Preview build of `master` 777658f: `NOT_DETERMINED`.
+
+Checked (read-only, Vercel MCP):
+- `list_teams` and `get_git_deployment_context` returned no teams for the connected identity.
+- `list_projects` (search `utp`) found project `utp` = `prj_PT3ORkBHyeUhSBU3z5s3qILiRCik`, account `team_D2rNpq3e1jGfA7HanfuwMX3O` (scope `samtheloanmans-projects`).
+- `get_project`, `list_deployments`, `list_project_domains` and `get_deployment` (`dpl_b2mSdYBpPc48gJGtTzxPjgeMryS9`, `withGitRepoInfo`) all failed `403 forbidden`: the connection is not authorized for scope `samtheloanmans-projects`.
+
+Not read, so not known: `link.productionBranch`, the Git-connected repo, `target` for the 777658f deployment and for `dpl_b2mSdYBpPc48gJGtTzxPjgeMryS9` / `dpl_FMah8a3BGAkqLz4nKPLvDzqbRpQu`, and `meta.githubCommitRef`/`githubCommitSha`. Hypotheses to test once readable (unverified): production branch is not `master`; the Git link points at a different repo or branch; an ignored-build or custom-environment setting applies.
+
+Needed from Sam (authorization, not done here): approve Vercel team access for scope `samtheloanmans-projects` for this connection (`authorize_team_access`), or supply the project Settings > Git "Production Branch" value and the three deployments' target/branch/SHA. No Vercel setting was changed. Any change to the production branch setting stays gated on Sam's explicit approval.

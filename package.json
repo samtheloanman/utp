@@ -16,7 +16,8 @@
     "test:web": "vitest run",
     "ci:fast": "npm run lint && npm run typecheck && npm run test:web && npm run test:contracts",
     "deploy:local": "hardhat run scripts/deploy.cjs --network localhost",
-    "deploy:rskTestnet": "hardhat run scripts/deploy.cjs --network rskTestnet"
+    "deploy:rskTestnet": "hardhat run scripts/deploy.cjs --network rskTestnet",
+    "test:db": "bash scripts/test-db.sh"
   },
   "dependencies": {
     "@base-org/account": "^2.5.3",
