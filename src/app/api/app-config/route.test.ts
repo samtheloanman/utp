@@ -3,7 +3,8 @@ import {
   CIVIC_BANNER_CONFIG_KEY,
   resolveDaoChainConfig,
 } from '@/lib/contracts';
-import { handleGetAppConfig, type AppConfigRpcClient } from './route';
+import { handleGetAppConfig, type AppConfigRpcClient } from './handler';
+import { GET } from './route';
 
 const APP_CONFIG = '0x4444444444444444444444444444444444444444';
 const GOVERNOR = '0x1111111111111111111111111111111111111111';
@@ -106,8 +107,8 @@ describe('GET /api/app-config', () => {
     expect(body.value).toBeNull();
   });
 
-  it('returns 400 when key query parameter is empty', async () => {
-    const response = await handleGetAppConfig(
+  it('returns 400 through route GET export when key query parameter is empty', async () => {
+    const response = await GET(
       new Request('http://localhost:3000/api/app-config?key=%20%20')
     );
 
