@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import {Governor} from "@openzeppelin/contracts/governance/Governor.sol";
 import {GovernorSettings} from "@openzeppelin/contracts/governance/extensions/GovernorSettings.sol";
 import {GovernorCountingSimple} from "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol";
+import {GovernorStorage} from "@openzeppelin/contracts/governance/extensions/GovernorStorage.sol";
 import {GovernorVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
 import {GovernorVotesQuorumFraction} from "@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol";
 import {GovernorTimelockControl} from "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
@@ -33,6 +34,7 @@ contract GovernancePlugin is
     Governor,
     GovernorSettings,
     GovernorCountingSimple,
+    GovernorStorage,
     GovernorVotes,
     GovernorVotesQuorumFraction,
     GovernorTimelockControl
@@ -164,6 +166,16 @@ contract GovernancePlugin is
         bytes32 descriptionHash
     ) internal override(Governor, GovernorTimelockControl) returns (uint256) {
         return super._cancel(targets, values, calldatas, descriptionHash);
+    }
+
+    function _propose(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        string memory description,
+        address proposer
+    ) internal override(Governor, GovernorStorage) returns (uint256) {
+        return super._propose(targets, values, calldatas, description, proposer);
     }
 
     function _executor() internal view override(Governor, GovernorTimelockControl) returns (address) {
