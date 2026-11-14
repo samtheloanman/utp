@@ -1,8 +1,42 @@
 import { getAddress, isAddress, verifyMessage } from 'viem';
 import { createSiweMessage, generateSiweNonce, parseSiweMessage } from 'viem/siwe';
 
-export const ALLOWED_LINK_CHAINS = [31] as const;
+export const DEFAULT_LINK_CHAIN_ID = 31;
+export const ALLOWED_LINK_CHAINS = [DEFAULT_LINK_CHAIN_ID] as const;
 export const CHALLENGE_TTL_MS = 10 * 60_000;
+
+function parsePositiveChainId(raw: string | undefined): number | null {
+  if (!raw) return null;
+  const trimmed = raw.trim();
+  if (!/^[1-9]\d*$/.test(trimmed)) return null;
+  const parsed = Number(trimmed);
+  return Number.isSafeInteger(parsed) ? parsed : null;
+}
+
+export function getAllowedLinkChains(
+  env: Record<string, string | undefined> = process.env,
+): number[] {
+  const chains = new Set<number>([DEFAULT_LINK_CHAIN_ID]);
+  for (const candidate of [env.NEXT_PUBLIC_CHAIN_ID, env.UTP_ALPHA_CHAIN_ID]) {
+    const id = parsePositiveChainId(candidate);
+    if (id !== null) chains.add(id);
+  }
+  if (env.ALLOWED_LINK_CHAIN_IDS) {
+    for (const part of env.ALLOWED_LINK_CHAIN_IDS.split(',')) {
+      const id = parsePositiveChainId(part);
+      if (id !== null) chains.add(id);
+    }
+  }
+  return Array.from(chains);
+}
+
+export function isAllowedLinkChain(
+  chainId: number,
+  allowedChains?: readonly number[],
+): boolean {
+  if (!Number.isInteger(chainId) || chainId <= 0) return false;
+  return (allowedChains ?? getAllowedLinkChains()).includes(chainId);
+}
 
 export type Challenge = {
   nonce: string;
@@ -36,15 +70,19 @@ export function normalizeAddress(a: string): `0x${string}` {
   return a.toLowerCase() as `0x${string}`;
 }
 
-function isAllowedChain(chainId: number): boolean {
-  return (ALLOWED_LINK_CHAINS as readonly number[]).includes(chainId);
-}
-
 export async function createWalletChallenge(
-  i: { userId: string; address: string; chainId: number; origin: string; now?: Date },
+  i: {
+    userId: string;
+    address: string;
+    chainId?: number;
+    origin: string;
+    now?: Date;
+    allowedChains?: readonly number[];
+  },
   store: WalletLinkStore,
 ): Promise<{ message: string; nonce: string; expiresAt: string }> {
-  if (!isAllowedChain(i.chainId)) throw new Error('Unsupported chain');
+  const chainId = i.chainId ?? DEFAULT_LINK_CHAIN_ID;
+  if (!isAllowedLinkChain(chainId, i.allowedChains)) throw new Error('Unsupported chain');
   const address = normalizeAddress(i.address);
   const origin = new URL(i.origin);
   const now = i.now ?? new Date();
@@ -54,14 +92,14 @@ export async function createWalletChallenge(
     domain: origin.host,
     uri: origin.origin,
     address: getAddress(address),
-    chainId: i.chainId,
+    chainId,
     nonce,
     version: '1',
     issuedAt: now,
     expirationTime: expiresAt,
     statement: 'Link this wallet to your UTP account.',
   });
-  await store.putChallenge({ nonce, userId: i.userId, chainId: i.chainId, address, domain: origin.host, expiresAt });
+  await store.putChallenge({ nonce, userId: i.userId, chainId, address, domain: origin.host, expiresAt });
   return { message, nonce, expiresAt: expiresAt.toISOString() };
 }
 
@@ -69,7 +107,7 @@ type Proof = { nonce: string; chainId: number; address: `0x${string}` };
 
 /** Checks an ERC-4361 message + signature against the request origin. */
 async function verifyProof(
-  i: { message: string; signature: `0x${string}`; origin: string },
+  i: { message: string; signature: `0x${string}`; origin: string; allowedChains?: readonly number[] },
 ): Promise<{ ok: true; proof: Proof } | { ok: false; reason: VerifyFailure }> {
   const fail = (reason: VerifyFailure) => ({ ok: false as const, reason });
   let expected: URL;
@@ -91,7 +129,7 @@ async function verifyProof(
   } catch {
     return fail('wrong_origin');
   }
-  if (parsed.chainId === undefined || !isAllowedChain(parsed.chainId)) return fail('wrong_chain');
+  if (parsed.chainId === undefined || !isAllowedLinkChain(parsed.chainId, i.allowedChains)) return fail('wrong_chain');
   let address: `0x${string}`;
   try {
     address = normalizeAddress(parsed.address);
@@ -118,7 +156,14 @@ function nonceOrThrow(status: LinkStatus | RevokeStatus): NonceFailure {
 }
 
 export async function verifyWalletLink(
-  i: { userId: string; message: string; signature: `0x${string}`; origin: string; now?: Date },
+  i: {
+    userId: string;
+    message: string;
+    signature: `0x${string}`;
+    origin: string;
+    now?: Date;
+    allowedChains?: readonly number[];
+  },
   store: WalletLinkStore,
 ): Promise<{ ok: true } | { ok: false; reason: VerifyFailure }> {
   const v = await verifyProof(i);
@@ -131,7 +176,14 @@ export async function verifyWalletLink(
 
 /** Unlink requires a fresh wallet proof. Fresh-MFA is deferred to I2. */
 export async function verifyWalletUnlink(
-  i: { userId: string; message: string; signature: `0x${string}`; origin: string; now?: Date },
+  i: {
+    userId: string;
+    message: string;
+    signature: `0x${string}`;
+    origin: string;
+    now?: Date;
+    allowedChains?: readonly number[];
+  },
   store: WalletLinkStore,
 ): Promise<{ ok: true } | { ok: false; reason: Exclude<VerifyFailure, 'address_taken'> | 'not_linked' }> {
   const v = await verifyProof(i);

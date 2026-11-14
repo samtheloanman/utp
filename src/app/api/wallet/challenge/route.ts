@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server';
 import { requireUser } from '@/lib/supabaseAuth/requireUser';
 import { createSupabaseWalletLinkStore } from '@/lib/wallet/store';
-import { createWalletChallenge, normalizeAddress, ALLOWED_LINK_CHAINS } from '@/lib/wallet/walletLink';
+import {
+  createWalletChallenge,
+  DEFAULT_LINK_CHAIN_ID,
+  isAllowedLinkChain,
+  normalizeAddress,
+} from '@/lib/wallet/walletLink';
 
 export async function POST(req: Request) {
   const secret = process.env.WALLET_LINK_SECRET;
@@ -22,7 +27,8 @@ export async function POST(req: Request) {
   } catch {
     return NextResponse.json({ message: 'Invalid address' }, { status: 400 });
   }
-  if (typeof chainId !== 'number' || !(ALLOWED_LINK_CHAINS as readonly number[]).includes(chainId)) {
+  const resolvedChainId = chainId === undefined ? DEFAULT_LINK_CHAIN_ID : chainId;
+  if (typeof resolvedChainId !== 'number' || !isAllowedLinkChain(resolvedChainId)) {
     return NextResponse.json({ message: 'Unsupported chain' }, { status: 400 });
   }
 
@@ -30,7 +36,7 @@ export async function POST(req: Request) {
   const origin = new URL(req.url).origin;
   try {
     const store = createSupabaseWalletLinkStore(auth.accessToken, auth.user.id, secret);
-    const c = await createWalletChallenge({ userId: auth.user.id, address, chainId, origin }, store);
+    const c = await createWalletChallenge({ userId: auth.user.id, address, chainId: resolvedChainId, origin }, store);
     return NextResponse.json(c);
   } catch {
     return NextResponse.json({ message: 'Could not create challenge' }, { status: 500 });

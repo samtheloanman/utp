@@ -76,7 +76,7 @@ export const ISSUES: Issue[] = [
     status: 'live', deadline: 'Closes in 9 days',
     for: 71, against: 18, unsure: 11, voices: 248130,
     history: series(54, 71), deltaWeek: +6,
-    tldr: 'Negotiators are drafting the first legally-binding instrument on plastic pollution. The core fight is whether the treaty caps <b>production</b> or only improves recycling and waste management downstream.',
+    tldr: 'Negotiators are drafting the first legally-binding instrument on plastic pollution. The core fight is whether the treaty caps production or only improves recycling and waste management downstream.',
     argsFor: [
       { t: 'Production caps are the only lever shown to reduce ocean plastic at scale; recycling alone has plateaued near 9% globally.', cite: 'UNEP 2024' },
       { t: 'A predictable global ceiling lets manufacturers invest in refill and reuse systems instead of competing on cheap virgin plastic.', cite: 'OECD Outlook' },
@@ -102,7 +102,7 @@ export const ISSUES: Issue[] = [
     status: 'live', deadline: 'Closes in 21 days',
     for: 58, against: 29, unsure: 13, voices: 176540,
     history: series(61, 58, 14, 4), deltaWeek: -3,
-    tldr: 'Proposals range from an "IAEA for AI" with inspection powers to a voluntary coordination forum. The debate centers on <b>binding authority</b> versus national sovereignty over technology policy.',
+    tldr: 'Proposals range from an "IAEA for AI" with inspection powers to a voluntary coordination forum. The debate centers on binding authority versus national sovereignty over technology policy.',
     argsFor: [
       { t: 'Frontier risks (bio, cyber, autonomous systems) cross borders; no single regulator can contain them alone.', cite: 'Bletchley Decl.' },
       { t: 'Shared evaluations would reduce a race-to-the-bottom on safety testing between labs and states.', cite: 'IDAIS' },
@@ -127,7 +127,7 @@ export const ISSUES: Issue[] = [
     status: 'live', deadline: 'Closes in 30 days',
     for: 84, against: 7, unsure: 9, voices: 312890,
     history: series(78, 84), deltaWeek: +2,
-    tldr: 'The UN recognized water as a right in 2010, but it is non-binding. This poll asks whether it should become <b>enforceable</b>, obligating states and funders to act.',
+    tldr: 'The UN recognized water as a right in 2010, but it is non-binding. This poll asks whether it should become enforceable, obligating states and funders to act.',
     argsFor: [
       { t: '2.2 billion people still lack safely managed drinking water; a binding right would prioritize funding.', cite: 'WHO/UNICEF' },
       { t: 'Enforceability gives communities legal standing against pollution and privatization.', cite: 'UN OHCHR' },
@@ -152,19 +152,19 @@ export const ISSUES: Issue[] = [
     billNo: 'H.R. 1234 · 118th Congress',
     for: 79, against: 14, unsure: 7, voices: 154210,
     history: series(70, 79), deltaWeek: +4,
-    tldr: 'The bill extends the $35 insulin cap beyond Medicare to the commercial market. The dispute is over <b>price controls</b> versus manufacturer-funded patient assistance.',
+    tldr: 'The bill extends the $35 insulin cap beyond Medicare to the commercial market. The dispute is over price controls versus manufacturer-funded patient assistance.',
     argsFor: [
       { t: 'List prices rose over 600% in two decades while production costs fell; a cap restores affordability.', cite: 'Section 2(a)' },
       { t: 'One in four insulin users reports rationing doses, driving costly ER visits.', cite: 'CDC 2023' },
     ],
     argsAgainst: [
       { t: 'Manufacturers warn caps could shift costs to premiums for all insured patients.', cite: 'PhRMA' },
-      { t: 'Targeted subsidies may reach low-income patients more efficiently than a universal cap.', cite: 'CBO score' },
+      { t: 'Targeted subsidies may reach low-income patients more efficiently than a universal cap.', cite: 'Policy brief' },
     ],
     confidence: 0.88,
     sources: [
       { name: 'Congress.gov', meta: 'Bill text & actions · Public domain', ico: 'gov', health: 'Healthy' },
-      { name: 'Congressional Budget Office', meta: 'Cost estimate', ico: 'money', health: 'Healthy' },
+      { name: 'Federal Legislative Fiscal Note', meta: 'Sample cost summary', ico: 'money', health: 'Healthy' },
     ],
   },
   {
@@ -177,7 +177,7 @@ export const ISSUES: Issue[] = [
     status: 'live', deadline: 'Closes in 12 days',
     for: 63, against: 27, unsure: 10, voices: 98730,
     history: series(55, 63), deltaWeek: +5,
-    tldr: 'Following large pilot programs, this asks whether a four-day week should become the legal default. Debate centers on <b>productivity</b> claims versus impacts on shift and care sectors.',
+    tldr: 'Following large pilot programs, this asks whether a four-day week should become the legal default. Debate centers on productivity claims versus impacts on shift and care sectors.',
     argsFor: [
       { t: '89% of companies in the UK pilot kept the policy; most reported steady or higher output.', cite: '4DW Pilot' },
       { t: 'Reduced burnout and commuting cut sick days and carbon emissions.', cite: 'Autonomy' },
@@ -202,7 +202,7 @@ export const ISSUES: Issue[] = [
     status: 'live', deadline: 'Closes in 18 days',
     for: 46, against: 38, unsure: 16, voices: 61240,
     history: series(52, 46, 14, 4), deltaWeek: -4,
-    tldr: 'The EAC monetary union aims for a shared currency. The question is whether 2030 is realistic given <b>convergence criteria</b> on inflation and debt.',
+    tldr: 'The EAC monetary union aims for a shared currency. The question is whether 2030 is realistic given convergence criteria on inflation and debt.',
     argsFor: [
       { t: 'A single currency would cut cross-border transaction costs for regional traders.', cite: 'EAC Sec.' },
       { t: 'Deeper integration could attract larger pooled investment.', cite: 'AfDB' },
@@ -227,7 +227,7 @@ export const ISSUES: Issue[] = [
     status: 'live', deadline: 'Closes in 15 days',
     for: 68, against: 22, unsure: 10, voices: 142060,
     history: series(60, 68), deltaWeek: +3,
-    tldr: 'Building on the Packaging and Packaging Waste Regulation, this targets produce packaging specifically. Debate is over <b>food waste</b> trade-offs versus plastic reduction.',
+    tldr: 'Building on the Packaging and Packaging Waste Regulation, this targets produce packaging specifically. Debate is over food waste trade-offs versus plastic reduction.',
     argsFor: [
       { t: 'Loose produce sales reduce packaging waste with minimal spoilage for most items.', cite: 'PPWR' },
       { t: 'Several member states already ban it with no measured rise in food waste.', cite: 'ADEME' },
@@ -251,7 +251,7 @@ export const ISSUES: Issue[] = [
     status: 'live', deadline: 'Closes in 7 days',
     for: 74, against: 16, unsure: 10, voices: 53310,
     history: series(66, 74), deltaWeek: +5,
-    tldr: 'A single fare card and integrated pricing across the metro region. The fight is over <b>cost-sharing</b> between wealthier and poorer municipalities.',
+    tldr: 'A single fare card and integrated pricing across the metro region. The fight is over cost-sharing between wealthier and poorer municipalities.',
     argsFor: [
       { t: 'Integrated fares cut commute costs for low-income workers who transfer multiple times.', cite: 'Metrô SP' },
       { t: 'Unified ticketing increases ridership and farebox recovery over time.', cite: 'ITDP' },
@@ -275,7 +275,7 @@ export const ISSUES: Issue[] = [
     status: 'live', deadline: 'City council · 11 days',
     for: 57, against: 33, unsure: 10, voices: 8420,
     history: series(49, 57), deltaWeek: +4,
-    tldr: 'A weekend pilot would become permanent. Local businesses are split on whether foot traffic offsets lost <b>parking and deliveries</b>.',
+    tldr: 'A weekend pilot would become permanent. Local businesses are split on whether foot traffic offsets lost parking and deliveries.',
     argsFor: [
       { t: 'Pilot weekends saw a 22% rise in local retail sales along the corridor.', cite: 'City pilot' },
       { t: 'Pedestrian streets reduce collisions and improve air quality.', cite: 'NACTO' },
@@ -299,7 +299,7 @@ export const ISSUES: Issue[] = [
     status: 'live', deadline: 'Closes in 5 days',
     for: 81, against: 9, unsure: 10, voices: 14760,
     history: series(73, 81), deltaWeek: +6,
-    tldr: 'Expands participatory budgeting from a small pilot to a fixed 5% share. Debate is over <b>capacity</b> to administer many small citizen-led projects.',
+    tldr: 'Expands participatory budgeting from a small pilot to a fixed 5% share. Debate is over capacity to administer many small citizen-led projects.',
     argsFor: [
       { t: 'Participatory budgeting raises trust in local government and turnout.', cite: 'OECD' },
       { t: 'Lisbon’s pilot delivered popular parks and accessibility upgrades on budget.', cite: 'CM Lisboa' },
@@ -323,7 +323,7 @@ export const ISSUES: Issue[] = [
     status: 'live', deadline: 'Closes in 26 days',
     for: 69, against: 21, unsure: 10, voices: 19880,
     history: series(64, 69), deltaWeek: +2,
-    tldr: 'Tallinn pioneered fare-free transit in 2013. This asks residents whether to lock it in despite <b>budget pressure</b>.',
+    tldr: 'Tallinn pioneered fare-free transit in 2013. This asks residents whether to lock it in despite budget pressure.',
     argsFor: [
       { t: 'Free transit increased registered residency and local tax revenue.', cite: 'TLU study' },
       { t: 'It improves mobility for low-income and elderly residents.', cite: 'City data' },
@@ -347,7 +347,7 @@ export const ISSUES: Issue[] = [
     status: 'live', deadline: 'Closes in 19 days',
     for: 52, against: 40, unsure: 8, voices: 87420,
     history: series(48, 52, 14, 4), deltaWeek: +1,
-    tldr: 'Germany lowered the EU-election voting age to 16; this extends it to federal elections. The debate weighs <b>youth representation</b> against political maturity arguments.',
+    tldr: 'Germany lowered the EU-election voting age to 16; this extends it to federal elections. The debate weighs youth representation against political maturity arguments.',
     argsFor: [
       { t: '16-year-olds already vote in EU and several state elections without issues.', cite: 'BMI' },
       { t: 'Earlier enfranchisement is linked to lifelong voting habits.', cite: 'Study' },

@@ -35,6 +35,8 @@ function AiDebate({ issue }: { issue: Issue }) {
   }, [issue.id, issue.question]);
 
   const displayData = debate || issue;
+  const plainTldr = String(displayData.tldr ?? '').replace(/<[^>]*>/g, '').replace(/[<>]/g, '');
+  const badgeStatus = debate?.status === 'offline' ? 'unavailable' : (issue.isSample || debate?.isSample) ? 'sample' : null;
 
   return (
     <div className="panel panel-pad">
@@ -44,6 +46,7 @@ function AiDebate({ issue }: { issue: Issue }) {
           <h3 className="panel-title">AI Citizen Digest</h3>
           <p className="panel-sub">Neutral, citation-grounded — generated, then human-reviewed</p>
         </div>
+        {badgeStatus && <div style={{ marginLeft: 'auto' }}><DataStatusBadge status={badgeStatus} /></div>}
       </div>
 
       {loading ? (
@@ -54,29 +57,37 @@ function AiDebate({ issue }: { issue: Issue }) {
         <>
           <div className="digest-tldr">
             <span className="tldr-tag">TL;DR</span>
-            <span dangerouslySetInnerHTML={{ __html: displayData.tldr }} />
+            <span>{plainTldr}</span>
           </div>
 
           <div className="debate-cols">
             <div className="debate-col for">
               <h4><Icon name="up" size={15} stroke={2.4} /> Arguments For</h4>
-              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-              {displayData.argsFor.map((a: any, i: number) => (
-                <div className="arg" key={i}>
-                  <span className="marker">{i + 1}</span>
-                  <span>{a.t}<a className="cite" title={'Source: ' + a.cite}><Icon name="external" size={11} stroke={2} />{a.cite}</a></span>
-                </div>
-              ))}
+              {displayData.argsFor.length === 0 ? (
+                <p className="panel-sub">No sourced arguments indexed yet.</p>
+              ) : (
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                displayData.argsFor.map((a: any, i: number) => (
+                  <div className="arg" key={i}>
+                    <span className="marker">{i + 1}</span>
+                    <span>{a.t}<a className="cite" title={'Source: ' + a.cite}><Icon name="external" size={11} stroke={2} />{a.cite}</a></span>
+                  </div>
+                ))
+              )}
             </div>
             <div className="debate-col against">
               <h4><Icon name="down" size={15} stroke={2.4} /> Arguments Against</h4>
-              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-              {displayData.argsAgainst.map((a: any, i: number) => (
-                <div className="arg" key={i}>
-                  <span className="marker">{i + 1}</span>
-                  <span>{a.t}<a className="cite" title={'Source: ' + a.cite}><Icon name="external" size={11} stroke={2} />{a.cite}</a></span>
-                </div>
-              ))}
+              {displayData.argsAgainst.length === 0 ? (
+                <p className="panel-sub">No sourced arguments indexed yet.</p>
+              ) : (
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                displayData.argsAgainst.map((a: any, i: number) => (
+                  <div className="arg" key={i}>
+                    <span className="marker">{i + 1}</span>
+                    <span>{a.t}<a className="cite" title={'Source: ' + a.cite}><Icon name="external" size={11} stroke={2} />{a.cite}</a></span>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 

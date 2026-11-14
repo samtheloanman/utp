@@ -6,13 +6,9 @@ import { createClient } from '@/lib/supabaseAuth/client';
 import { safeRedirectPath } from '@/lib/supabaseAuth/redirect';
 
 /**
- * Supabase-Auth-backed social login. Separate from the Privy "Sign In"
- * button in TopBar (src/components/ui/Shared.tsx), which drives wallet /
- * embedded-wallet auth and is unaffected by this page. This path exists
- * because user_profiles and tracked_bills (supabase/migrations/
- * 20260711000000_add_bill_actions_profiles_tracked.sql) already key off
- * auth.users + auth.uid() via RLS -- that only works for users who signed
- * in through Supabase Auth, which nothing in the app did until now.
+ * Canonical Supabase-Auth-backed civic sign-in. Powers TopBar Sign In / Sign Out,
+ * VotePanel, /api/propose, and ERC-4361 SIWE wallet linking (wallet_links) via
+ * auth.users + auth.uid() RLS.
  */
 export default function LoginPage() {
   return (

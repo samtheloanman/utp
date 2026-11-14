@@ -5,8 +5,11 @@
 # always tears the cluster down.
 set -euo pipefail
 
+export LC_ALL=C
+export LANG=C
+
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-PGBIN="${PGBIN:-/usr/lib/postgresql/16/bin}"
+PGBIN="${PGBIN:-$(dirname "$(command -v initdb 2>/dev/null || echo /usr/lib/postgresql/16/bin/initdb)")}"
 TMP="$(mktemp -d -t utp-testdb-XXXXXX)"
 DATA="$TMP/data"
 PORT="$(python3 -c 'import socket;s=socket.socket();s.bind(("127.0.0.1",0));print(s.getsockname()[1]);s.close()')"
@@ -19,14 +22,14 @@ if [ "$(id -u)" = "0" ]; then
 fi
 
 cleanup() {
-  "${AS[@]}" "$PGBIN/pg_ctl" -D "$DATA" -m immediate stop >/dev/null 2>&1 || true
+  ${AS[@]+"${AS[@]}"} "$PGBIN/pg_ctl" -D "$DATA" -m immediate stop >/dev/null 2>&1 || true
   rm -rf "$TMP"
 }
 trap cleanup EXIT INT TERM
 
-"${AS[@]}" "$PGBIN/initdb" -D "$DATA" -U postgres -A trust --no-sync >"$TMP/initdb.log" 2>&1 \
+${AS[@]+"${AS[@]}"} "$PGBIN/initdb" -D "$DATA" -U postgres -A trust --no-sync >"$TMP/initdb.log" 2>&1 \
   || { cat "$TMP/initdb.log"; exit 1; }
-"${AS[@]}" "$PGBIN/pg_ctl" -D "$DATA" -l "$TMP/pg.log" -w \
+${AS[@]+"${AS[@]}"} "$PGBIN/pg_ctl" -D "$DATA" -l "$TMP/pg.log" -w \
   -o "-p $PORT -k $TMP -c listen_addresses=127.0.0.1 -c max_connections=200 -c fsync=off" start >/dev/null \
   || { cat "$TMP/pg.log"; exit 1; }
 

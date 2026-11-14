@@ -3,10 +3,9 @@ import { render, screen } from '@testing-library/react';
 
 vi.mock('next/navigation', () => ({
   useParams: () => ({ id: 'natl-insulin' }),
-  useRouter: () => ({ push: vi.fn() }),
+  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
 }));
 vi.mock('next/link', () => ({ default: ({ children }: { children: React.ReactNode }) => <a>{children}</a> }));
-vi.mock('@privy-io/react-auth', () => ({ usePrivy: () => ({ login: vi.fn(), logout: vi.fn(), authenticated: false }) }));
 vi.mock('@/lib/supabaseAuth/client', () => ({ createClient: () => ({ auth: { getSession: vi.fn() } }) }));
 
 import DetailView from './page';

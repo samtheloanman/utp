@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
 import { createSiweMessage, generateSiweNonce } from 'viem/siwe';
 import {
@@ -7,6 +7,7 @@ import {
   normalizeAddress,
   createMemoryWalletLinkStore,
   verifyWalletUnlink,
+  getAllowedLinkChains,
 } from './walletLink';
 
 const ORIGIN = 'https://utp.test';
@@ -130,5 +131,34 @@ describe('wallet link challenge/verify', () => {
     expect(await verifyWalletUnlink({ userId: A, message: u.c.message, signature: u.signature, origin: ORIGIN, now: T0 }, store)).toEqual({ ok: true });
     const b2 = await challengeAndSign(store, B, acct);
     expect(await verifyWalletLink({ userId: B, message: b2.c.message, signature: b2.signature, origin: ORIGIN, now: T0 }, store)).toEqual({ ok: true });
+  });
+
+  it('defaults to chain 31 and supports configured active Alpha-Net chain IDs while rejecting unknown chains', async () => {
+    const store = createMemoryWalletLinkStore();
+    const acct = wallet();
+    const defaultChallenge = await createWalletChallenge(
+      { userId: A, address: acct.address, origin: ORIGIN, now: T0 },
+      store,
+    );
+    expect(defaultChallenge.message).toContain('Chain ID: 31');
+
+    vi.stubEnv('UTP_ALPHA_CHAIN_ID', '99931');
+    try {
+      expect(getAllowedLinkChains()).toContain(99931);
+      const alpha = await createWalletChallenge(
+        { userId: A, address: acct.address, chainId: 99931, origin: ORIGIN, now: T0 },
+        store,
+      );
+      const sig = await acct.signMessage({ message: alpha.message });
+      expect(
+        await verifyWalletLink({ userId: A, message: alpha.message, signature: sig, origin: ORIGIN, now: T0 }, store),
+      ).toEqual({ ok: true });
+
+      await expect(
+        createWalletChallenge({ userId: A, address: acct.address, chainId: 99999, origin: ORIGIN, now: T0 }, store),
+      ).rejects.toThrow(/Unsupported chain/);
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 });

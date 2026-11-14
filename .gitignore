@@ -37,3 +37,6 @@ src/lib/generated/
 /.opencode/agents/
 /.opencode/hooks/
 /.ijfw/logs/
+
+# Archived git bundles
+archive/bundles/*.bundle

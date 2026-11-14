@@ -1,9 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render } from '@testing-library/react';
 
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }));
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }));
 vi.mock('next/link', () => ({ default: ({ children }: { children: React.ReactNode }) => <a>{children}</a> }));
-vi.mock('@privy-io/react-auth', () => ({ usePrivy: () => ({ login: vi.fn(), logout: vi.fn(), authenticated: false }) }));
 vi.mock('@/components/ui/HeroCanvas', () => ({ HeroCanvas: () => null }));
 vi.mock('gsap', () => ({ default: { context: () => ({ revert: () => {} }), fromTo: vi.fn(), from: vi.fn(), to: vi.fn() } }));
 

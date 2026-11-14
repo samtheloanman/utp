@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { SCALES, Issue, photoUrl } from '@/lib/data';
 import { Icon, BrandMark, Flag, CAT_COLOR } from './icons';
-import { usePrivy } from '@privy-io/react-auth';
 import Link from 'next/link';
 import { DataStatusBadge } from './DataStatusBadge';
+import { createBrowserSupabaseClient } from '@/lib/supabaseAuth/browser';
 
 export function fmt(n: number) {
   if (n >= 1000000) return (n / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
@@ -167,7 +168,45 @@ export function IssueCard({ issue, vote, onVote, onOpen }: { issue: Issue, vote:
 }
 
 export function TopBar({ query, onQuery, onHome }: { query?: string, onQuery?: (q: string) => void, onHome?: () => void }) {
-  const { login, authenticated, logout } = usePrivy();
+  const router = useRouter();
+  const [authenticated, setAuthenticated] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    const supabase = createBrowserSupabaseClient();
+    if (!supabase?.auth) return;
+
+    Promise.resolve(supabase.auth.getSession?.())
+      .then((res) => {
+        if (active) setAuthenticated(Boolean(res?.data?.session));
+      })
+      .catch(() => {
+        if (active) setAuthenticated(false);
+      });
+
+    const listener = supabase.auth.onAuthStateChange?.((_event, session) => {
+      if (active) setAuthenticated(Boolean(session));
+    });
+
+    return () => {
+      active = false;
+      listener?.data?.subscription?.unsubscribe?.();
+    };
+  }, []);
+
+  const handleSignIn = () => {
+    router.push('/login');
+  };
+
+  const handleSignOut = async () => {
+    const supabase = createBrowserSupabaseClient();
+    try {
+      await supabase?.auth?.signOut?.();
+    } finally {
+      setAuthenticated(false);
+      router.refresh?.();
+    }
+  };
   
   return (
     <header className="topbar">
@@ -194,9 +233,9 @@ export function TopBar({ query, onQuery, onHome }: { query?: string, onQuery?: (
             <Icon name="shield" size={15} stroke={1.9} />How it works
           </Link>
           {authenticated ? (
-            <button className="btn" style={{ background: 'var(--for)', color: 'white', border: 'none' }} onClick={logout}>Sign Out</button>
+            <button className="btn" style={{ background: 'var(--for)', color: 'white', border: 'none' }} onClick={handleSignOut}>Sign Out</button>
           ) : (
-            <button className="btn" style={{ background: 'var(--accent)', color: 'white', border: 'none' }} onClick={login}>Sign In</button>
+            <button className="btn" style={{ background: 'var(--accent)', color: 'white', border: 'none' }} onClick={handleSignIn}>Sign In</button>
           )}
         </div>
       </div>
