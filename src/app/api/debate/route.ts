@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { ISSUES } from '@/lib/data';
+import { sanitizePlainText } from './sanitize';
 
 const MAX_QUESTION_LEN = 500;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -19,14 +20,6 @@ export interface DebateResponse {
   argsAgainst: DebateArgument[];
   confidence: number;
   sourceUrl?: string;
-}
-
-export function sanitizePlainText(input: string): string {
-  return input
-    .replace(/<[^>]*>/g, '')
-    .replace(/[<>]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
 }
 
 function hasConfiguredSupabaseEnv(): boolean {

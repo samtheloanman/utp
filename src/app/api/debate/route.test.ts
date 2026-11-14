@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { POST, sanitizePlainText } from './route';
+import { POST } from './route';
+import { sanitizePlainText } from './sanitize';
 
 function makeRequest(body: unknown, raw?: string) {
   return new Request('https://utp.test/api/debate', {
