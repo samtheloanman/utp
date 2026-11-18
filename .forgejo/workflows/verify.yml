@@ -1,7 +1,7 @@
 name: UTP staging
 on:
   push:
-    branches: ['feat/**', 'chore/**']
+    branches: ['feat/**', 'chore/**', 'claude/**', 'codex/**']
 jobs:
   verify:
     name: verify
