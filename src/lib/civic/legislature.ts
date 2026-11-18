@@ -1,6 +1,7 @@
 import { congressAdapter } from './congress';
 import { recordHash } from './hash';
 import { withTimeout } from './http';
+import { legistarAdapter, LEGISTAR_JURISDICTIONS } from './legistar';
 import type { CivicBill, SourceResult } from './types';
 
 export interface LegislatureDeps {
@@ -11,6 +12,23 @@ export interface LegislatureDeps {
 }
 
 const LIMIT = 10;
+
+const NOT_INTEGRATED: SourceResult<CivicBill> = {
+  status: 'not_integrated', items: [], fetchedAt: null, source: { name: 'Not integrated', url: '' },
+};
+
+function envelope(result: SourceResult<CivicBill>, now: Date) {
+  return {
+    status: result.status,
+    source: result.source,
+    fetchedAt: result.fetchedAt,
+    error: result.error,
+    items: result.items,
+    bills: result.items,
+    total: result.items.length,
+    timestamp: now.toISOString(),
+  };
+}
 
 async function fetchUK(d: LegislatureDeps, now: Date): Promise<SourceResult<CivicBill>> {
   const source = { name: 'UK Parliament Bills API', url: 'https://bills.parliament.uk' };
@@ -63,18 +81,18 @@ export async function getLegislature(countryParam: string, d: LegislatureDeps = 
   } else if (country === 'UK') {
     result = await fetchUK(d, now);
   } else {
-    result = { status: 'not_integrated', items: [], fetchedAt: null, source: { name: 'Not integrated', url: '' } };
+    result = NOT_INTEGRATED;
   }
 
-  return {
-    status: result.status,
-    source: result.source,
-    fetchedAt: result.fetchedAt,
-    error: result.error,
-    items: result.items,
-    bills: result.items,
-    total: result.items.length,
-    country,
-    timestamp: now.toISOString(),
-  };
+  return { ...envelope(result, now), country };
+}
+
+/** Local government (city or county) bills by Legistar client slug. */
+export async function getLocalLegislature(clientParam: string, d: LegislatureDeps = {}) {
+  const now = d.now ? d.now() : new Date();
+  const jurisdiction = LEGISTAR_JURISDICTIONS.find((j) => j.client === clientParam.toLowerCase()) ?? null;
+  const result = jurisdiction
+    ? await legistarAdapter(jurisdiction, { fetch: d.fetch, now: d.now, timeoutMs: d.timeoutMs }).fetchBills({ limit: LIMIT })
+    : NOT_INTEGRATED;
+  return { ...envelope(result, now), jurisdiction };
 }

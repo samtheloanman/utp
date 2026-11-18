@@ -29,4 +29,12 @@ describe('GET /api/legislature', () => {
     expect(JSON.parse(text).bills).toEqual([]);
     for (const s of ['hr4763', 's2281', 'hr5121', 'McHenry']) expect(text).not.toContain(s);
   });
+
+  it('unknown local place is not_integrated', async () => {
+    const body = await (await call('?local=atlantis')).json();
+    expect(body.status).toBe('not_integrated');
+    expect(body.items).toEqual([]);
+    expect(body.jurisdiction).toBeNull();
+    expect(fetchBills).not.toHaveBeenCalled();
+  });
 });

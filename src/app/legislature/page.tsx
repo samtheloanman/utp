@@ -1,4 +1,4 @@
-import { getLegislature } from '@/lib/civic/legislature';
+import { getLegislature, getLocalLegislature } from '@/lib/civic/legislature';
 import { DataStatusBadge } from '@/components/ui/DataStatusBadge';
 
 export const dynamic = 'force-dynamic';
@@ -8,14 +8,22 @@ interface LegislatureResponse {
   fetchedAt: string | null;
   source: { name: string; url: string };
   items: Array<{ externalId: string; number: string; title: string; status: string; sourceUrl: string }>;
+  jurisdiction?: { name: string } | null;
 }
 
-export default async function LegislaturePage() {
-  const data: LegislatureResponse = await getLegislature('US');
+interface PageProps {
+  searchParams?: Promise<{ local?: string }>;
+}
+
+export default async function LegislaturePage({ searchParams }: PageProps) {
+  const local = (await searchParams)?.local;
+  const data: LegislatureResponse = local ? await getLocalLegislature(local) : await getLegislature('US');
+  const place = data.jurisdiction?.name;
   const status = data.status;
   return (
     <div style={{ padding: '2rem' }}>
-      <h1 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '1rem' }}>Legislature</h1>
+      <h1 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '1rem' }}>{place ? `Legislature: ${place}` : 'Legislature'}</h1>
+      <p><a href="/coverage">Browse cities and counties</a></p>
       <p><DataStatusBadge status={status} fetchedAt={data.fetchedAt} /></p>
       {data.fetchedAt && <p>Fetched: {data.fetchedAt} from {data.source.name}</p>}
       {data.items.length > 0 ? (
