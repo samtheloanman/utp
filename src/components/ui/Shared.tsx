@@ -232,6 +232,10 @@ export function TopBar({ query, onQuery, onHome }: { query?: string, onQuery?: (
           <Link href="/how-it-works" className="btn btn-quiet btn-sm" style={{ textDecoration: 'none', color: 'inherit' }}>
             <Icon name="shield" size={15} stroke={1.9} />How it works
           </Link>
+          <Link href="/bills" className="btn btn-quiet btn-sm" style={{ textDecoration: 'none', color: 'inherit' }}>Bills</Link>
+          <Link href="/propose" className="btn btn-quiet btn-sm" style={{ textDecoration: 'none', color: 'inherit' }}>Propose</Link>
+          <Link href="/governance" className="btn btn-quiet btn-sm" style={{ textDecoration: 'none', color: 'inherit' }}>Governance</Link>
+          {authenticated && <Link href="/account" className="btn btn-quiet btn-sm" style={{ textDecoration: 'none', color: 'inherit' }}>Account</Link>}
           {authenticated ? (
             <button className="btn" style={{ background: 'var(--for)', color: 'white', border: 'none' }} onClick={handleSignOut}>Sign Out</button>
           ) : (

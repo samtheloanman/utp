@@ -7,7 +7,9 @@ import { Icon } from '@/components/ui/icons';
 import { DataStatusBadge } from '@/components/ui/DataStatusBadge';
 import { createClient } from '@/lib/supabaseAuth/client';
 
-export function VotePanel({ issue }: { issue: Issue }) {
+export type VoteTarget = Pick<Issue, 'id' | 'for' | 'against' | 'unsure'> & { isSample?: boolean };
+
+export function VotePanel({ issue, returnPath }: { issue: VoteTarget; returnPath?: string }) {
   const router = useRouter();
   const [vote, setVote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -28,7 +30,7 @@ export function VotePanel({ issue }: { issue: Issue }) {
       const { data } = await createClient().auth.getSession();
       const token = data.session?.access_token;
       if (!token) {
-        router.push(`/login?redirect=/issue/${issue.id}`);
+        router.push(`/login?redirect=${returnPath ?? `/issue/${issue.id}`}`);
         return;
       }
       const res = await fetch('/api/vote', {
@@ -43,6 +45,7 @@ export function VotePanel({ issue }: { issue: Issue }) {
         return;
       }
       setVote(choice);
+      router.refresh?.();
     } catch {
       setError('Your vote could not be recorded.');
     } finally {
