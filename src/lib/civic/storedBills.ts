@@ -36,11 +36,43 @@ function toBill(r: Row): StoredBill {
 
 export const isBillId = (id: string): boolean => UUID_RE.test(id);
 
-/** Most recently updated stored bills. Empty on any read failure. */
-export async function listStoredBills(limit = 50, db: SupabaseClient = supabase): Promise<StoredBill[]> {
-  const { data, error } = await db.from('bills').select(COLUMNS).order('updated_at', { ascending: false }).limit(limit);
-  if (error || !data) return [];
+export interface Place {
+  id: string;
+  name: string;
+}
+
+/** A failed read renders as an empty list, so it is logged to stay visible. */
+function readFailed(what: string, error: { code?: string } | null): void {
+  if (error) console.error(`${what} read failed`, { code: error.code });
+}
+
+/**
+ * Stored bills, newest introduced first, optionally for one place (a
+ * jurisdiction id). Every ingest stamps updated_at, so it cannot order bills.
+ * Empty on any read failure.
+ */
+export async function listStoredBills(limit = 50, db: SupabaseClient = supabase, placeId?: string): Promise<StoredBill[]> {
+  let query = db.from('bills').select(COLUMNS);
+  if (placeId && isBillId(placeId)) query = query.eq('jurisdiction_id', placeId);
+  const { data, error } = await query
+    .order('introduced_date', { ascending: false, nullsFirst: false })
+    .order('updated_at', { ascending: false })
+    .limit(limit);
+  if (error || !data) {
+    readFailed('bills', error);
+    return [];
+  }
   return (data as unknown as Row[]).map(toBill);
+}
+
+/** Every stored jurisdiction, by name. */
+export async function listPlaces(db: SupabaseClient = supabase): Promise<Place[]> {
+  const { data, error } = await db.from('jurisdictions').select('id,name').order('name');
+  if (error || !data) {
+    readFailed('jurisdictions', error);
+    return [];
+  }
+  return data as Place[];
 }
 
 export async function getStoredBill(id: string, db: SupabaseClient = supabase): Promise<StoredBill | null> {

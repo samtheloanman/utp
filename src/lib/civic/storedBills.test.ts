@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/lib/supabase', () => ({ supabase: {} }));
-import { getStoredBill, getTally, isBillId, listStoredBills, tallyPercent } from './storedBills';
+import { getStoredBill, getTally, isBillId, listPlaces, listStoredBills, tallyPercent } from './storedBills';
 
 const ID = '3f2b6c1e-8a4d-4c2b-9e1f-0a1b2c3d4e5f';
 const ROW = {
@@ -17,7 +17,41 @@ function db(result: unknown) {
   return { from: () => chain } as never;
 }
 
+/** Records every query-builder call so a test can assert the filter and ordering. */
+function recordingDb(result: unknown) {
+  const calls: Array<[string, ...unknown[]]> = [];
+  const chain: Record<string, unknown> = { then: (r: (v: unknown) => unknown) => Promise.resolve(result).then(r) };
+  for (const m of ['select', 'order', 'eq', 'limit']) chain[m] = (...a: unknown[]) => { calls.push([m, ...a]); return chain; };
+  return { db: { from: (t: string) => { calls.push(['from', t]); return chain; } } as never, calls };
+}
+
 describe('stored bills', () => {
+  it('filters by place and lists the newest introduced bills first', async () => {
+    const { db: d, calls } = recordingDb({ data: [ROW], error: null });
+    await listStoredBills(10, d, ID);
+    expect(calls).toContainEqual(['eq', 'jurisdiction_id', ID]);
+    expect(calls.find((c) => c[0] === 'order')).toEqual(['order', 'introduced_date', { ascending: false, nullsFirst: false }]);
+  });
+
+  it('ignores a place filter that is not a UUID', async () => {
+    const { db: d, calls } = recordingDb({ data: [], error: null });
+    await listStoredBills(10, d, "x' or 1=1");
+    expect(calls.some((c) => c[0] === 'eq')).toBe(false);
+  });
+
+  it('lists the covered places by name', async () => {
+    const { db: d, calls } = recordingDb({ data: [{ id: ID, name: 'Austin' }], error: null });
+    expect(await listPlaces(d)).toEqual([{ id: ID, name: 'Austin' }]);
+    expect(calls).toContainEqual(['from', 'jurisdictions']);
+  });
+
+  it('logs a failed read instead of hiding it', async () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(await listStoredBills(10, db({ data: null, error: { code: 'PGRST301' } }))).toEqual([]);
+    expect(spy).toHaveBeenCalledWith('bills read failed', { code: 'PGRST301' });
+    spy.mockRestore();
+  });
+
   it('maps rows and reads the place name', async () => {
     expect(await listStoredBills(10, db({ data: [ROW], error: null }))).toEqual([
       { id: ID, number: '251', title: 'Budget', status: 'Passed', sourceUrl: 'https://sfgov.legistar.com/x', updatedAt: '2026-11-18T00:00:00Z', place: 'San Francisco' },

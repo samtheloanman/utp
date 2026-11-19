@@ -39,8 +39,9 @@ export function legistarTarget(j: LegistarJurisdiction): IngestTarget {
 }
 
 /**
- * Stores one adapter result: jurisdiction, data source, then bills. Only a
- * live result is written, so a failed fetch never overwrites stored records.
+ * Stores one adapter result: jurisdiction, data source, then bills. Bills are
+ * written only from a live result, so a failed fetch never overwrites stored
+ * records; the failure is recorded on the source instead.
  * Needs a client that may write these tables (service role).
  */
 export async function ingestBills(
@@ -48,7 +49,13 @@ export async function ingestBills(
   target: IngestTarget,
   result: SourceResult<CivicBill>,
 ): Promise<IngestOutcome> {
-  if (result.status !== 'live') return { ok: false, error: `source ${result.status}` };
+  if (result.status !== 'live') {
+    await db
+      .from('data_sources')
+      .update({ last_attempt_at: new Date().toISOString(), last_error: result.error ?? result.status, adapter_status: 'stale' })
+      .eq('slug', target.sourceSlug);
+    return { ok: false, error: `source ${result.status}` };
+  }
   const j = target.jurisdiction;
 
   const jur = await db

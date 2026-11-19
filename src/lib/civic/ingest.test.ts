@@ -18,8 +18,10 @@ function live(items: CivicBill[]): SourceResult<CivicBill> {
 
 function fakeDb(fail?: string) {
   const calls: Record<string, { rows: unknown; opts: unknown }> = {};
+  const updates: Array<{ table: string; values: unknown; where: unknown[] }> = [];
   const db = {
     from: (table: string) => ({
+      update: (values: unknown) => ({ eq: async (...where: unknown[]) => { updates.push({ table, values, where }); return { error: null }; } }),
       upsert: (rows: unknown, opts: unknown) => {
         calls[table] = { rows, opts };
         const res = fail === table ? { data: null, error: { code: 'X' } } : { data: { id: `${table}-id` }, error: null };
@@ -27,7 +29,7 @@ function fakeDb(fail?: string) {
       },
     }),
   };
-  return { db: db as never, calls };
+  return { db: db as never, calls, updates };
 }
 
 describe('legistarTarget', () => {
@@ -69,11 +71,16 @@ describe('ingestBills', () => {
     });
   });
 
-  it('writes nothing when the source is not live', async () => {
-    const { db, calls } = fakeDb();
-    const out = await ingestBills(db, legistarTarget(SF), { ...live([]), status: 'unavailable' });
+  it('stores no bills when the source is not live, and records the failure on the source', async () => {
+    const { db, calls, updates } = fakeDb();
+    const out = await ingestBills(db, legistarTarget(SF), { ...live([]), status: 'unavailable', fetchedAt: null, error: 'Legistar HTTP 500' });
     expect(out).toEqual({ ok: false, error: 'source unavailable' });
     expect(Object.keys(calls)).toEqual([]);
+    expect(updates).toEqual([{
+      table: 'data_sources',
+      values: { last_attempt_at: expect.any(String), last_error: 'Legistar HTTP 500', adapter_status: 'stale' },
+      where: ['slug', 'legistar-sfgov'],
+    }]);
   });
 
   it('reports a failed bill write', async () => {

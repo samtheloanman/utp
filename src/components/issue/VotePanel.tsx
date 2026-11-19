@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Issue } from '@/lib/data';
 import { Icon } from '@/components/ui/icons';
@@ -15,6 +15,21 @@ export function VotePanel({ issue, returnPath }: { issue: VoteTarget; returnPath
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const sample = issue.isSample === true;
+
+  // Show the vote this user already cast (row-level security returns only their own row).
+  useEffect(() => {
+    if (sample) return;
+    let active = true;
+    (async () => {
+      const supabase = createClient();
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) return;
+      const { data: row } = await supabase.from('shadow_votes').select('vote').eq('bill_id', issue.id).maybeSingle();
+      const cast = (row as { vote?: string } | null)?.vote;
+      if (active && cast) setVote((current) => current ?? cast);
+    })().catch(() => { /* the panel still works without the earlier vote */ });
+    return () => { active = false; };
+  }, [issue.id, sample]);
 
   const opts = [
     { k: 'for', cls: 'for-opt', label: 'For', pct: issue.for, ico: 'up' },

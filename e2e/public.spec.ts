@@ -32,6 +32,19 @@ test('a stored bill shows its source and lets a visitor start a vote', async ({ 
   await expect(page).toHaveURL(/\/login\?redirect=\/bill\/[0-9a-f-]{36}$/);
 });
 
+test('bills can be filtered to one place', async ({ page }) => {
+  await page.goto('/bills');
+  const places = page.getByRole('navigation', { name: 'Filter by place' }).getByRole('link');
+  expect(await places.count()).toBeGreaterThanOrEqual(30);
+  const place = places.nth(1);
+  const name = (await place.innerText()).trim();
+  await place.click();
+  await expect(page).toHaveURL(/\/bills\?place=[0-9a-f-]{36}$/);
+  const rows = page.locator('li', { has: page.locator('a[href^="/bill/"]') });
+  await expect(rows.first()).toContainText(name);
+  for (const row of await rows.all()) await expect(row).toContainText(name);
+});
+
 test('an unknown bill is a 404', async ({ page }) => {
   expect((await page.goto('/bill/00000000-0000-4000-8000-000000000000'))?.status()).toBe(404);
   expect((await page.goto('/bill/not-a-bill'))?.status()).toBe(404);
