@@ -3,9 +3,9 @@ import { legistarAdapter, LEGISTAR_JURISDICTIONS } from './legistar';
 
 const NOW = new Date('2026-11-17T12:00:00.000Z');
 const SF = LEGISTAR_JURISDICTIONS.find((j) => j.client === 'sfgov')!;
-const row = (id: number, status = 'Pending Committee Action') => ({
+const row = (id: number, status = 'Pending Committee Action', title = `Title ${id}`) => ({
   MatterId: id, MatterGuid: `G-${id}`, MatterFile: `25${id}`, MatterName: `Name ${id}`,
-  MatterTitle: `Title ${id}`, MatterStatusName: status, MatterIntroDate: '2025-10-01T00:00:00',
+  MatterTitle: title, MatterStatusName: status, MatterIntroDate: '2025-10-01T00:00:00',
   MatterLastModifiedUtc: '2025-11-03T20:38:19.147',
 });
 const ok = (rows: unknown) => vi.fn(async () => new Response(JSON.stringify(rows), { status: 200 })) as unknown as typeof fetch;
@@ -46,6 +46,10 @@ describe('legistarAdapter', () => {
     const h = async (s?: string) => (await mk(ok([row(1, s)])).fetchBills({ limit: 1 })).items[0].recordHash;
     expect(await h()).toBe(await h());
     expect(await h()).not.toBe(await h('Passed'));
+  });
+  it('hash changes when only the title changes', async () => {
+    const h = async (title?: string) => (await mk(ok([row(1, undefined, title)])).fetchBills({ limit: 1 })).items[0].recordHash;
+    expect(await h()).not.toBe(await h('Amended title'));
   });
   it('registry has unique clients and valid OCD ids', () => {
     const clients = LEGISTAR_JURISDICTIONS.map((j) => j.client);

@@ -61,15 +61,16 @@ function toBill(j: LegistarJurisdiction, m: Record<string, unknown>): CivicBill 
   const id = String(m.MatterId ?? '');
   const externalId = `legistar-${j.client}-${id}`;
   const status = str(m.MatterStatusName) || 'Unknown';
+  const title = str(m.MatterTitle) || str(m.MatterName) || 'Untitled';
   return {
     externalId,
     jurisdictionCode: j.ocdId,
     number: str(m.MatterFile) || id,
-    title: str(m.MatterTitle) || str(m.MatterName) || 'Untitled',
+    title,
     status,
     introducedDate: day(m.MatterIntroDate),
     sourceUrl: `https://${j.client}.legistar.com/LegislationDetail.aspx?ID=${id}&GUID=${str(m.MatterGuid)}`,
-    recordHash: recordHash({ externalId, updateDate: str(m.MatterLastModifiedUtc), latestActionText: status }),
+    recordHash: recordHash({ externalId, updateDate: str(m.MatterLastModifiedUtc), latestActionText: status, title }),
   };
 }
 

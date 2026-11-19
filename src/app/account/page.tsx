@@ -6,7 +6,7 @@ import { useAccount, useConnect, useSignMessage } from 'wagmi';
 import { createClient } from '@/lib/supabaseAuth/client';
 import { linkWallet } from '@/lib/wallet/linkFlow';
 
-const LINK_CHAIN_ID = 31; // Rootstock testnet
+const LINK_CHAIN_ID = Number(process.env.NEXT_PUBLIC_CHAIN_ID || 31); // Rootstock testnet unless configured
 
 interface WalletLink {
   address: string;
