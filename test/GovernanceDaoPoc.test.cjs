@@ -123,6 +123,32 @@ describe("Wave 2 & Wave 3 DAO POC (GovernorStorage + AppConfig + 4-Role Distribu
       ).to.be.rejectedWith(/4-role separation violation/);
     });
 
+    it("splits 250k/200k/50k across three voters when voterC is given (PRD: 3 distinct wallets)", async function () {
+      const core = await deployCore(ethers, deployer, {
+        initialSupply: ethers.parseEther("10000000"),
+        guardian: guardian.address,
+      });
+      const args = {
+        token: core.contracts.token,
+        deployer,
+        voterA: voterA.address,
+        voterB: voterB.address,
+        guardian: guardian.address,
+        timelockAddress: core.addresses.UtPTimelock,
+      };
+      await expect(distributeAndVerify({ ...args, voterC: voterA.address })).to.be.rejectedWith(
+        /separation violation/
+      );
+
+      const summary = await distributeAndVerify({ ...args, voterC: outsider.address });
+      expect(summary.voterABalance).to.equal(ethers.parseEther("250000"));
+      expect(summary.voterBBalance).to.equal(ethers.parseEther("200000"));
+      expect(summary.voterCBalance).to.equal(ethers.parseEther("50000"));
+      expect(summary.voterC).to.equal(outsider.address);
+      expect(summary.timelockBalance).to.equal(ethers.parseEther("9500000"));
+      expect(await core.contracts.token.balanceOf(deployer.address)).to.equal(0n);
+    });
+
     it("distributes 250k/250k/9.5M, zeroes deployer balance & votes, forwards gas stipends, and catches undelegated ERC20Votes signers", async function () {
       const core = await deployCore(ethers, deployer, {
         initialSupply: ethers.parseEther("10000000"),

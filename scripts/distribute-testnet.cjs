@@ -4,12 +4,13 @@
  * Enforces strict 4-role separation:
  *   - deployer  -> 0 UTP balance, 0 voting weight post-distribution
  *   - voterA    -> 250,000 UTP
- *   - voterB    -> 250,000 UTP
+ *   - voterB    -> 250,000 UTP (200,000 when voterC is set)
+ *   - voterC    -> optional third voter, 50,000 UTP (PRD: 3 distinct tester wallets)
  *   - guardian  -> non-deployer emergency timelock canceller (0 UTP required)
  *   - timelock  -> remaining 9,500,000 UTP treasury reserve
  *
  * CLI usage:
- *   VOTER_A_ADDRESS=0x... VOTER_B_ADDRESS=0x... GUARDIAN_ADDRESS=0x... \
+ *   VOTER_A_ADDRESS=0x... VOTER_B_ADDRESS=0x... [VOTER_C_ADDRESS=0x...] GUARDIAN_ADDRESS=0x... \
  *     npx hardhat run scripts/distribute-testnet.cjs --network rskTestnet
  */
 const fs = require("fs");
@@ -17,6 +18,7 @@ const path = require("path");
 const { ethers } = require("ethers");
 
 const VOTER_ALLOCATION = ethers.parseEther("250000");
+const VOTER_C_ALLOCATION = ethers.parseEther("50000");
 const EXPECTED_TREASURY_REMAINDER = ethers.parseEther("9500000");
 const DEFAULT_STIPEND_WEI = ethers.parseEther("0.002");
 const MIN_NATIVE_BALANCE = ethers.parseEther("0.001");
@@ -47,13 +49,14 @@ async function resolveAddress(label, accountOrAddress) {
   return checksummed;
 }
 
-function assertDistinctRoles({ deployerAddr, voterAAddr, voterBAddr, guardianAddr, timelockAddr }) {
+function assertDistinctRoles({ deployerAddr, voterAAddr, voterBAddr, voterCAddr, guardianAddr, timelockAddr }) {
   const roleEntries = [
     ["deployer", deployerAddr],
     ["voterA", voterAAddr],
     ["voterB", voterBAddr],
     ["guardian", guardianAddr],
   ];
+  if (voterCAddr) roleEntries.push(["voterC", voterCAddr]);
 
   const seen = new Map();
   for (const [role, addr] of roleEntries) {
@@ -80,6 +83,7 @@ async function distributeAndVerify({
   deployer,
   voterA,
   voterB,
+  voterC,
   guardian,
   timelockAddress,
   stipendWei = 0n,
@@ -93,6 +97,8 @@ async function distributeAndVerify({
   const deployerAddr = await resolveAddress("deployer", deployer);
   const voterAAddr = await resolveAddress("voterA", voterA);
   const voterBAddr = await resolveAddress("voterB", voterB);
+  const voterCAddr = voterC ? await resolveAddress("voterC", voterC) : null;
+  const voterBAllocation = voterCAddr ? VOTER_ALLOCATION - VOTER_C_ALLOCATION : VOTER_ALLOCATION;
   const guardianAddr = await resolveAddress("guardian", guardian);
   const timelockAddr = await resolveAddress("timelockAddress", timelockAddress);
 
@@ -100,6 +106,7 @@ async function distributeAndVerify({
     deployerAddr,
     voterAAddr,
     voterBAddr,
+    voterCAddr,
     guardianAddr,
     timelockAddr,
   });
@@ -123,8 +130,13 @@ async function distributeAndVerify({
   log(logger, `Transferring ${ethers.formatEther(VOTER_ALLOCATION)} UTP -> voterA (${voterAAddr})`);
   await (await tokenAsDeployer.transfer(voterAAddr, VOTER_ALLOCATION)).wait();
 
-  log(logger, `Transferring ${ethers.formatEther(VOTER_ALLOCATION)} UTP -> voterB (${voterBAddr})`);
-  await (await tokenAsDeployer.transfer(voterBAddr, VOTER_ALLOCATION)).wait();
+  log(logger, `Transferring ${ethers.formatEther(voterBAllocation)} UTP -> voterB (${voterBAddr})`);
+  await (await tokenAsDeployer.transfer(voterBAddr, voterBAllocation)).wait();
+
+  if (voterCAddr) {
+    log(logger, `Transferring ${ethers.formatEther(VOTER_C_ALLOCATION)} UTP -> voterC (${voterCAddr})`);
+    await (await tokenAsDeployer.transfer(voterCAddr, VOTER_C_ALLOCATION)).wait();
+  }
 
   const remaining = await token.balanceOf(deployerAddr);
   if (remaining !== EXPECTED_TREASURY_REMAINDER) {
@@ -145,6 +157,7 @@ async function distributeAndVerify({
     for (const [role, addr] of [
       ["voterA", voterAAddr],
       ["voterB", voterBAddr],
+      ...(voterCAddr ? [["voterC", voterCAddr]] : []),
       ["guardian", guardianAddr],
     ]) {
       const nativeBal = await deployer.provider.getBalance(addr);
@@ -176,6 +189,8 @@ async function distributeAndVerify({
     deployer: deployerAddr,
     voterA: voterAAddr,
     voterB: voterBAddr,
+    voterC: voterCAddr,
+    voterCBalance: voterCAddr ? await token.balanceOf(voterCAddr) : 0n,
     guardian: guardianAddr,
     timelockAddress: timelockAddr,
     voterABalance,
@@ -248,6 +263,7 @@ async function main() {
     deployer,
     voterA: process.env.VOTER_A_ADDRESS,
     voterB: process.env.VOTER_B_ADDRESS,
+    voterC: process.env.VOTER_C_ADDRESS || undefined,
     guardian: process.env.GUARDIAN_ADDRESS || manifest.params?.guardian,
     timelockAddress: manifest.contracts.UtPTimelock,
     stipendWei,
@@ -275,6 +291,7 @@ module.exports = {
   distributeAndVerify,
   assertPreProposalDelegation,
   VOTER_ALLOCATION,
+  VOTER_C_ALLOCATION,
   EXPECTED_TREASURY_REMAINDER,
   DEFAULT_STIPEND_WEI,
   MIN_NATIVE_BALANCE,
