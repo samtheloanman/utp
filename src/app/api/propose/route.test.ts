@@ -66,6 +66,23 @@ describe('/api/propose', () => {
     expect(insert).not.toHaveBeenCalled();
   });
 
+  it('stores the bill a proposal is about, and rejects a billId that is not a UUID', async () => {
+    const { POST } = await load();
+    const BILL = '3f2b6c1e-8a4d-4c2b-9e1f-0a1b2c3d4e5f';
+    expect((await POST(post({ title: 'x', billId: BILL }) as never)).status).toBe(201);
+    expect(insert).toHaveBeenLastCalledWith(expect.objectContaining({ bill_id: BILL }));
+    insert.mockClear();
+    expect((await POST(post({ title: 'x', billId: 'not-a-bill' }) as never)).status).toBe(400);
+    expect(insert).not.toHaveBeenCalled();
+  });
+
+  it('answers 400 when the bill does not exist', async () => {
+    single.mockResolvedValue({ data: null, error: { code: '23503' } });
+    const { POST } = await load();
+    const res = await POST(post({ title: 'x', billId: '3f2b6c1e-8a4d-4c2b-9e1f-0a1b2c3d4e5f' }) as never);
+    expect(res.status).toBe(400);
+  });
+
   it('rejects a sourceUrl that is not http(s)', async () => {
     const { POST } = await load();
     for (const sourceUrl of ['javascript:alert(1)', 'ftp://x.test/a', 'not a url', 'data:text/html,hi']) {

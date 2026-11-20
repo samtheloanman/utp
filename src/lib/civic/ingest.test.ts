@@ -66,12 +66,14 @@ describe('shortTitle', () => {
 });
 
 describe('ingestBills', () => {
-  it('never stores a title as the official summary', async () => {
+  it('never stores a title as the official summary; the full text goes to source_title', async () => {
     const { db, last } = fakeDb();
     await ingestBills(db, legistarTarget(SF), live([{ ...bill(9), title: 'Budget\nLong agenda text' }, bill(10)]));
     const rows = last('bills', 'upsert')!.values as Array<Record<string, unknown>>;
     expect(rows[0].title).toBe('Budget');
     for (const r of rows) expect('summary_official' in r).toBe(false);
+    expect(rows[0].source_title).toBe('Budget\nLong agenda text');
+    expect(rows[1].source_title).toBeNull();
   });
 
   it('stores jurisdiction, source and bills keyed for idempotent upsert', async () => {

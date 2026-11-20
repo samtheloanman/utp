@@ -23,7 +23,9 @@ describe('bill page', () => {
     expect(getByText('4 votes so far')).toBeTruthy();
     expect(container.textContent).toContain('75%');
     expect(getAllByRole('button').every((b) => !(b as HTMLButtonElement).disabled)).toBe(true);
-    expect((getByText('Propose action on this bill') as HTMLAnchorElement).getAttribute('href')).toContain('sourceUrl=https%3A%2F%2Fsfgov.legistar.com%2Fx');
+    const href = (getByText('Propose action on this bill') as HTMLAnchorElement).getAttribute('href');
+    expect(href).toContain('sourceUrl=https%3A%2F%2Fsfgov.legistar.com%2Fx');
+    expect(href).toContain(`billId=${ID}`);
   });
 
   it('is a 404 when the bill is not stored', async () => {

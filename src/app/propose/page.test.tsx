@@ -35,6 +35,21 @@ describe('propose page', () => {
     expect(((await findByText('source')) as HTMLAnchorElement).href).toBe('https://sfgov.legistar.com/x');
   });
 
+  it('sends the bill id from a bill link and links a listed proposal to its bill', async () => {
+    const BILL = '3f2b6c1e-8a4d-4c2b-9e1f-0a1b2c3d4e5f';
+    m.params = new URLSearchParams({ title: 'Budget', sourceUrl: 'https://sfgov.legistar.com/x', billId: BILL });
+    fetchMock
+      .mockResolvedValueOnce(json(200, { proposals: [] }))
+      .mockResolvedValueOnce(json(201, { success: true }))
+      .mockResolvedValueOnce(json(200, { proposals: [{ id: 'p1', title: 'Budget', description: null, source_url: null, category: null, bill_id: BILL }] }));
+    const { findByText, getByText } = render(<ProposePage />);
+    await findByText('No proposals yet.');
+    fireEvent.click(getByText('Submit proposal'));
+    await findByText('Proposal submitted.');
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body).billId).toBe(BILL);
+    expect(((await findByText('vote on the bill')) as HTMLAnchorElement).getAttribute('href')).toBe(`/bill/${BILL}`);
+  });
+
   it('sends a signed-out user to sign in', async () => {
     fetchMock.mockResolvedValueOnce(json(200, { proposals: [] })).mockResolvedValueOnce(json(401, { message: 'Unauthorized' }));
     const { findByText, getByText, getByLabelText } = render(<ProposePage />);

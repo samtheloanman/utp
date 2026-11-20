@@ -14,7 +14,7 @@ export default async function BillPage({ params }: PageProps) {
   const bill = await getStoredBill(id);
   if (!bill) notFound();
   const tally = await getTally(bill.id);
-  const proposeHref = `/propose?title=${encodeURIComponent(bill.title)}&sourceUrl=${encodeURIComponent(bill.sourceUrl)}`;
+  const proposeHref = `/propose?title=${encodeURIComponent(bill.title)}&sourceUrl=${encodeURIComponent(bill.sourceUrl)}&billId=${bill.id}`;
 
   return (
     <div style={{ padding: '2rem', maxWidth: 900, margin: '0 auto' }}>

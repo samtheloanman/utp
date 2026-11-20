@@ -9,6 +9,7 @@ interface Proposal {
   description: string | null;
   source_url: string | null;
   category: string | null;
+  bill_id?: string | null;
 }
 
 const field: React.CSSProperties = { display: 'block', width: '100%', padding: '0.5rem', margin: '0.25rem 0 0.75rem', border: '1px solid var(--border, #ccc)', borderRadius: 8 };
@@ -26,6 +27,7 @@ function ProposeForm() {
   const params = useSearchParams();
   const [title, setTitle] = useState(params.get('title') ?? '');
   const [sourceUrl, setSourceUrl] = useState(params.get('sourceUrl') ?? '');
+  const billId = params.get('billId');
   const [description, setDescription] = useState('');
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
@@ -49,7 +51,7 @@ function ProposeForm() {
       const res = await fetch('/api/propose', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, description, sourceUrl }),
+        body: JSON.stringify({ title, description, sourceUrl, ...(billId ? { billId } : {}) }),
       });
       if (res.status === 401) {
         router.push('/login?redirect=/propose');
@@ -95,6 +97,7 @@ function ProposeForm() {
             <li key={p.id} style={{ margin: '0.5rem 0' }}>
               <b>{p.title}</b>
               {p.source_url ? <> · <a href={p.source_url} target="_blank" rel="noopener noreferrer">source</a></> : null}
+              {p.bill_id ? <> · <a href={`/bill/${p.bill_id}`}>vote on the bill</a></> : null}
               {p.description ? <div style={{ fontSize: 14 }}>{p.description}</div> : null}
             </li>
           ))}

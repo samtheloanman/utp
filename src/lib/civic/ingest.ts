@@ -106,6 +106,7 @@ export async function ingestBills(
       external_id: b.externalId,
       bill_number: b.number || b.externalId,
       title: shortTitle(b.title),
+      source_title: shortTitle(b.title) === b.title.trim() ? null : b.title.trim(),
       status: b.status,
       introduced_date: b.introducedDate,
       source_url: b.sourceUrl,

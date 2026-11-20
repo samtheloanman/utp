@@ -8,7 +8,8 @@ const MAX_DESCRIPTION = 2000;
 const MAX_URL = 2048;
 const MAX_SHORT = 50;
 // Explicit list: proposer_id (an auth user UUID) is never exposed to anonymous callers.
-const PUBLIC_COLUMNS = 'id,title,description,source_url,bias_score,category,status,created_at';
+const PUBLIC_COLUMNS = 'id,title,description,source_url,bias_score,category,status,created_at,bill_id';
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
 
@@ -53,6 +54,10 @@ export async function POST(req: NextRequest) {
   if (sourceUrl === undefined || (sourceUrl !== null && !isHttpUrl(sourceUrl))) {
     return NextResponse.json({ error: 'sourceUrl must be an http(s) URL' }, { status: 400 });
   }
+  const billId = optionalString(b.billId, 36);
+  if (billId === undefined || (billId !== null && !UUID_RE.test(billId))) {
+    return NextResponse.json({ error: 'billId must be a bill id' }, { status: 400 });
+  }
   const description = optionalString(b.description, MAX_DESCRIPTION);
   const bias = optionalString(b.bias, MAX_SHORT);
   const category = optionalString(b.category, MAX_SHORT);
@@ -72,6 +77,7 @@ export async function POST(req: NextRequest) {
         category: category ?? 'General',
         status: 'active',
         proposer_id: auth.user.id,
+        bill_id: billId,
       })
       .select()
       .single();
@@ -79,6 +85,9 @@ export async function POST(req: NextRequest) {
     if (error) {
       if ((error as { code?: string }).code === '23505') {
         return NextResponse.json({ error: 'This article has already been proposed' }, { status: 409 });
+      }
+      if ((error as { code?: string }).code === '23503') {
+        return NextResponse.json({ error: 'That bill is not stored here' }, { status: 400 });
       }
       console.error('propose insert failed', { code: (error as { code?: string }).code });
       return NextResponse.json({ error: 'Failed to create proposal' }, { status: 500 });
