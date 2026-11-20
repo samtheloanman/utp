@@ -19,6 +19,7 @@ const { ethers } = require("ethers");
 
 const VOTER_ALLOCATION = ethers.parseEther("250000");
 const VOTER_C_ALLOCATION = ethers.parseEther("50000");
+const VOTER_B_THREE_WAY_ALLOCATION = VOTER_ALLOCATION - VOTER_C_ALLOCATION;
 const EXPECTED_TREASURY_REMAINDER = ethers.parseEther("9500000");
 const DEFAULT_STIPEND_WEI = ethers.parseEther("0.002");
 const MIN_NATIVE_BALANCE = ethers.parseEther("0.001");
@@ -202,25 +203,77 @@ async function distributeAndVerify({
   };
 }
 
+const ALLOWED_WEIGHT_MAP_KEYS = new Set(["voterA", "voterB", "voterC"]);
+
+function parseMinWeights(minWeight, hasVoterC) {
+  const defaultB = hasVoterC ? VOTER_B_THREE_WAY_ALLOCATION : VOTER_ALLOCATION;
+  if (minWeight === undefined || minWeight === null) {
+    return { reqA: VOTER_ALLOCATION, reqB: defaultB, reqC: VOTER_C_ALLOCATION };
+  }
+  if (typeof minWeight === "string" && ethers.isAddress(minWeight)) {
+    throw new Error(
+      `Invalid minWeight: received an address (${minWeight}). Pass voterC as the 5th argument (with undefined for minWeight).`
+    );
+  }
+  if (typeof minWeight === "object") {
+    const proto = Object.getPrototypeOf(minWeight);
+    if (proto !== Object.prototype && proto !== null) {
+      throw new Error(
+        "Invalid minWeight: expected a bigint/number or plain { voterA?, voterB?, voterC? } object (pass voterC as the 5th argument)."
+      );
+    }
+    const keys = Object.keys(minWeight);
+    for (const key of keys) {
+      if (!ALLOWED_WEIGHT_MAP_KEYS.has(key)) {
+        throw new Error(`Invalid minWeight key "${key}": expected voterA, voterB, or voterC`);
+      }
+    }
+    if (!hasVoterC && "voterC" in minWeight) {
+      throw new Error("Invalid minWeight: voterC weight provided without a voterC address");
+    }
+    return {
+      reqA: BigInt(minWeight.voterA ?? VOTER_ALLOCATION),
+      reqB: BigInt(minWeight.voterB ?? defaultB),
+      reqC: BigInt(minWeight.voterC ?? VOTER_C_ALLOCATION),
+    };
+  }
+  const scalar = BigInt(minWeight);
+  return { reqA: scalar, reqB: scalar, reqC: scalar };
+}
+
 /**
- * Verifies both voterA and voterB have delegated and hold at least minWeight active ERC20Votes
- * BEFORE `propose()` snapshots voting weight (preventing the zero-weight snapshot trap).
+ * Verifies voterA, voterB (and optional voterC) have delegated and hold at least their required
+ * active ERC20Votes BEFORE `propose()` snapshots voting weight (preventing the zero-weight trap).
+ *
+ * - 2-voter mode (voterC omitted): defaults to minWeight = VOTER_ALLOCATION (250k each).
+ * - 3-voter mode (voterC provided): when minWeight is omitted or a plain object, defaults to
+ *   { voterA: 250k, voterB: 200k, voterC: 50k }; when a scalar bigint/number is passed,
+ *   applies that floor to all three voters.
  */
 async function assertPreProposalDelegation(
   token,
   voterA,
   voterB,
-  minWeight = VOTER_ALLOCATION
+  minWeight = undefined,
+  voterC = undefined
 ) {
   if (!token) throw new Error("token contract instance is required");
   const voterAAddr = await resolveAddress("voterA", voterA);
   const voterBAddr = await resolveAddress("voterB", voterB);
-  const requiredWeight = BigInt(minWeight);
+  const voterCAddr = voterC ? await resolveAddress("voterC", voterC) : null;
 
-  for (const [label, addr] of [
-    ["voterA", voterAAddr],
-    ["voterB", voterBAddr],
-  ]) {
+  const { reqA, reqB, reqC } = parseMinWeights(minWeight, Boolean(voterCAddr));
+
+  const checks = [
+    ["voterA", voterAAddr, reqA],
+    ["voterB", voterBAddr, reqB],
+  ];
+  if (voterCAddr) {
+    checks.push(["voterC", voterCAddr, reqC]);
+  }
+
+  const votesByRole = {};
+  for (const [label, addr, requiredWeight] of checks) {
     const delegatee = await token.delegates(addr);
     const votes = await token.getVotes(addr);
     if (delegatee === ethers.ZeroAddress || votes < requiredWeight) {
@@ -231,12 +284,19 @@ async function assertPreProposalDelegation(
           `Each voter must call token.delegate() before propose() is submitted.`
       );
     }
+    votesByRole[label] = votes;
   }
 
-  return {
-    voterAVotes: await token.getVotes(voterAAddr),
-    voterBVotes: await token.getVotes(voterBAddr),
-  };
+  return voterCAddr
+    ? {
+        voterAVotes: votesByRole.voterA,
+        voterBVotes: votesByRole.voterB,
+        voterCVotes: votesByRole.voterC,
+      }
+    : {
+        voterAVotes: votesByRole.voterA,
+        voterBVotes: votesByRole.voterB,
+      };
 }
 
 async function main() {
@@ -263,7 +323,7 @@ async function main() {
     deployer,
     voterA: process.env.VOTER_A_ADDRESS,
     voterB: process.env.VOTER_B_ADDRESS,
-    voterC: process.env.VOTER_C_ADDRESS || undefined,
+    voterC: process.env.VOTER_C_ADDRESS?.trim() || undefined,
     guardian: process.env.GUARDIAN_ADDRESS || manifest.params?.guardian,
     timelockAddress: manifest.contracts.UtPTimelock,
     stipendWei,
@@ -291,6 +351,7 @@ module.exports = {
   distributeAndVerify,
   assertPreProposalDelegation,
   VOTER_ALLOCATION,
+  VOTER_B_THREE_WAY_ALLOCATION,
   VOTER_C_ALLOCATION,
   EXPECTED_TREASURY_REMAINDER,
   DEFAULT_STIPEND_WEI,

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, waitFor } from '@testing-library/react';
 
 const m = vi.hoisted(() => ({
@@ -30,6 +30,10 @@ describe('account page', () => {
     m.account = { address: undefined, isConnected: false };
   });
 
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it('asks a signed-out visitor to sign in', async () => {
     m.getSession.mockResolvedValue({ data: { session: null } });
     const { findByText } = render(<AccountPage />);
@@ -56,5 +60,30 @@ describe('account page', () => {
     const { findByText, findByRole } = render(<AccountPage />);
     fireEvent.click(await findByText('Link this wallet'));
     expect((await findByRole('alert')).textContent).toBe('This wallet is already linked to another account.');
+  });
+
+  it('uses NEXT_PUBLIC_CHAIN_ID when configured to a valid positive integer', async () => {
+    vi.stubEnv('NEXT_PUBLIC_CHAIN_ID', '99931');
+    m.getSession.mockResolvedValue({ data: { session: { access_token: 't' } } });
+    m.account = { address: ADDR, isConnected: true };
+    m.linkWallet.mockResolvedValue({ ok: true });
+    const { findByText } = render(<AccountPage />);
+    fireEvent.click(await findByText('Link this wallet'));
+    await findByText('Wallet linked to your account.');
+    expect(m.linkWallet).toHaveBeenCalledWith(expect.objectContaining({ address: ADDR, chainId: 99931 }));
+  });
+
+  it('falls back to chain 31 when NEXT_PUBLIC_CHAIN_ID is invalid', async () => {
+    for (const invalid of ['testnet', '   ', '0', '-5', '31.5']) {
+      vi.stubEnv('NEXT_PUBLIC_CHAIN_ID', invalid);
+      m.linkWallet.mockReset().mockResolvedValue({ ok: true });
+      m.getSession.mockResolvedValue({ data: { session: { access_token: 't' } } });
+      m.account = { address: ADDR, isConnected: true };
+      const { findByText, unmount } = render(<AccountPage />);
+      fireEvent.click(await findByText('Link this wallet'));
+      await findByText('Wallet linked to your account.');
+      expect(m.linkWallet).toHaveBeenCalledWith(expect.objectContaining({ address: ADDR, chainId: 31 }));
+      unmount();
+    }
   });
 });

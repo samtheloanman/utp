@@ -169,4 +169,26 @@ describe('canonical modular schema & RLS baseline', () => {
     );
     expect(matches).toEqual([matchingBill]);
   });
+
+  it('has a covering index on every public foreign key constraint (Supabase perf advisor)', async () => {
+    const unindexed = await sql(`
+      SELECT con.conrelid::regclass::text || '.' || con.conname AS unindexed_fk
+        FROM pg_constraint con
+        JOIN pg_namespace n ON n.oid = con.connamespace
+       WHERE n.nspname = 'public'
+         AND con.contype = 'f'
+         AND NOT EXISTS (
+           SELECT 1
+             FROM pg_index i
+            WHERE i.indrelid = con.conrelid
+              AND i.indisvalid
+              AND i.indisready
+              AND i.indpred IS NULL
+              AND i.indnkeyatts >= array_length(con.conkey, 1)
+              AND (i.indkey::int2[])[0 : array_length(con.conkey, 1) - 1] = con.conkey
+         )
+       ORDER BY 1;
+    `);
+    expect(unindexed).toEqual([]);
+  });
 });

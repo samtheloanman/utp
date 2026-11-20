@@ -147,6 +147,77 @@ describe("Wave 2 & Wave 3 DAO POC (GovernorStorage + AppConfig + 4-Role Distribu
       expect(summary.voterC).to.equal(outsider.address);
       expect(summary.timelockBalance).to.equal(ethers.parseEther("9500000"));
       expect(await core.contracts.token.balanceOf(deployer.address)).to.equal(0n);
+
+      // 3-wallet pre-proposal delegation check catches undelegated voterC and passes once all 3 delegate
+      await (await core.contracts.token.connect(voterA).delegate(voterA.address)).wait();
+      await (await core.contracts.token.connect(voterB).delegate(voterB.address)).wait();
+      await expect(
+        assertPreProposalDelegation(
+          core.contracts.token,
+          voterA.address,
+          voterB.address,
+          undefined,
+          outsider.address
+        )
+      ).to.be.rejectedWith(/voterC/);
+
+      await (await core.contracts.token.connect(outsider).delegate(outsider.address)).wait();
+      const verified = await assertPreProposalDelegation(
+        core.contracts.token,
+        voterA.address,
+        voterB.address,
+        undefined,
+        outsider.address
+      );
+      expect(verified.voterAVotes).to.equal(ethers.parseEther("250000"));
+      expect(verified.voterBVotes).to.equal(ethers.parseEther("200000"));
+      expect(verified.voterCVotes).to.equal(ethers.parseEther("50000"));
+
+      // Guardrail: passing a Signer or address in the 4th (minWeight) slot must throw, not silently skip voterC
+      await expect(
+        assertPreProposalDelegation(core.contracts.token, voterA.address, voterB.address, outsider)
+      ).to.be.rejectedWith(/Invalid minWeight/);
+      await expect(
+        assertPreProposalDelegation(
+          core.contracts.token,
+          voterA.address,
+          voterB.address,
+          outsider.address
+        )
+      ).to.be.rejectedWith(/Invalid minWeight/);
+      await expect(
+        assertPreProposalDelegation(core.contracts.token, voterA.address, voterB.address, {
+          voterC: ethers.parseEther("50000"),
+        })
+      ).to.be.rejectedWith(/without a voterC address/);
+    });
+
+    it("forwards native gas stipend to an unfunded voterC when stipendWei > 0n", async function () {
+      const core = await deployCore(ethers, deployer, {
+        initialSupply: ethers.parseEther("10000000"),
+        guardian: guardian.address,
+      });
+      const lowBalanceVoterC = ethers.Wallet.createRandom().connect(ethers.provider);
+      await setBalance(lowBalanceVoterC.address, ethers.parseEther("0.0001"));
+
+      const summary = await distributeAndVerify({
+        token: core.contracts.token,
+        deployer,
+        voterA: voterA.address,
+        voterB: voterB.address,
+        voterC: lowBalanceVoterC.address,
+        guardian: guardian.address,
+        timelockAddress: core.addresses.UtPTimelock,
+        stipendWei: DEFAULT_STIPEND_WEI,
+      });
+
+      expect(summary.voterCBalance).to.equal(ethers.parseEther("50000"));
+      expect(summary.stipendsSent).to.have.lengthOf(1);
+      expect(summary.stipendsSent[0].role).to.equal("voterC");
+      expect(summary.stipendsSent[0].address).to.equal(lowBalanceVoterC.address);
+      expect(await ethers.provider.getBalance(lowBalanceVoterC.address)).to.equal(
+        ethers.parseEther("0.0021")
+      );
     });
 
     it("distributes 250k/250k/9.5M, zeroes deployer balance & votes, forwards gas stipends, and catches undelegated ERC20Votes signers", async function () {
@@ -395,6 +466,69 @@ describe("Wave 2 & Wave 3 DAO POC (GovernorStorage + AppConfig + 4-Role Distribu
       await time.increase(TIMELOCK_DELAY);
       await expect(contracts.governance["execute(uint256)"](id2)).to.be.reverted;
       expect(await contracts.appConfig.getConfig(bannerKey)).to.equal("approved-by-dao");
+    });
+
+    it("executes a 3-wallet proposal (250k + 200k + 50k = 500k >= 400k quorum) through UtPTimelock", async function () {
+      const threeWayCore = await deployCore(ethers, deployer, {
+        initialSupply: ethers.parseEther("10000000"),
+        votingDelay: VOTING_DELAY,
+        votingPeriod: VOTING_PERIOD,
+        proposalThreshold: ethers.parseEther("10000"),
+        quorumPercent: 4,
+        timelockMinDelay: TIMELOCK_DELAY,
+        guardian: guardian.address,
+      });
+      const c = threeWayCore.contracts;
+      const a = threeWayCore.addresses;
+
+      await distributeAndVerify({
+        token: c.token,
+        deployer,
+        voterA: voterA.address,
+        voterB: voterB.address,
+        voterC: outsider.address,
+        guardian: guardian.address,
+        timelockAddress: a.UtPTimelock,
+      });
+
+      await (await c.token.connect(voterA).delegate(voterA.address)).wait();
+      await (await c.token.connect(voterB).delegate(voterB.address)).wait();
+      await (await c.token.connect(outsider).delegate(outsider.address)).wait();
+      await mine(1);
+
+      await assertPreProposalDelegation(
+        c.token,
+        voterA.address,
+        voterB.address,
+        undefined,
+        outsider.address
+      );
+
+      const bannerKey = ethers.id("banner");
+      const calldata = c.appConfig.interface.encodeFunctionData("setConfig", [
+        bannerKey,
+        "alpha-accepted",
+      ]);
+      await (
+        await c.governance
+          .connect(voterA)
+          .propose([a.AppConfig], [0n], [calldata], "Proposal #1: Alpha acceptance banner")
+      ).wait();
+
+      const [proposalId] = await c.governance.proposalDetailsAt(0n);
+      await mine(VOTING_DELAY + 1);
+
+      await (await c.governance.connect(voterA).castVote(proposalId, FOR)).wait();
+      await (await c.governance.connect(voterB).castVote(proposalId, FOR)).wait();
+      await (await c.governance.connect(outsider).castVote(proposalId, FOR)).wait();
+      await mine(VOTING_PERIOD);
+
+      expect(await c.governance.state(proposalId)).to.equal(STATE.Succeeded);
+      await (await c.governance["queue(uint256)"](proposalId)).wait();
+      await time.increase(TIMELOCK_DELAY);
+      await (await c.governance["execute(uint256)"](proposalId)).wait();
+
+      expect(await c.appConfig.getConfig(bannerKey)).to.equal("alpha-accepted");
     });
   });
 });

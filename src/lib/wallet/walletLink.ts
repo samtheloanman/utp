@@ -13,6 +13,10 @@ function parsePositiveChainId(raw: string | undefined): number | null {
   return Number.isSafeInteger(parsed) ? parsed : null;
 }
 
+export function resolveLinkChainId(raw: string | undefined): number {
+  return parsePositiveChainId(raw) ?? DEFAULT_LINK_CHAIN_ID;
+}
+
 export function getAllowedLinkChains(
   env: Record<string, string | undefined> = process.env,
 ): number[] {

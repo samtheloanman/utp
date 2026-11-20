@@ -5,8 +5,7 @@ import Link from 'next/link';
 import { useAccount, useConnect, useSignMessage } from 'wagmi';
 import { createClient } from '@/lib/supabaseAuth/client';
 import { linkWallet } from '@/lib/wallet/linkFlow';
-
-const LINK_CHAIN_ID = Number(process.env.NEXT_PUBLIC_CHAIN_ID || 31); // Rootstock testnet unless configured
+import { resolveLinkChainId } from '@/lib/wallet/walletLink';
 
 interface WalletLink {
   address: string;
@@ -41,7 +40,11 @@ export default function AccountPage() {
     if (!address || busy) return;
     setBusy(true);
     setNote(null);
-    const r = await linkWallet({ address, chainId: LINK_CHAIN_ID, signMessage: (message) => signMessageAsync({ message }) });
+    const r = await linkWallet({
+      address,
+      chainId: resolveLinkChainId(process.env.NEXT_PUBLIC_CHAIN_ID),
+      signMessage: (message) => signMessageAsync({ message }),
+    });
     setNote(r.ok ? { ok: true, text: 'Wallet linked to your account.' } : { ok: false, text: r.message });
     if (r.ok) await loadLinks();
     setBusy(false);
