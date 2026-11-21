@@ -155,6 +155,8 @@ async function distributeAndVerify({
     if (!deployer.provider) {
       throw new Error("deployer.provider is required when stipendWei > 0n");
     }
+    const minNativeThreshold =
+      stipendAmount < MIN_NATIVE_BALANCE ? stipendAmount : MIN_NATIVE_BALANCE;
     for (const [role, addr] of [
       ["voterA", voterAAddr],
       ["voterB", voterBAddr],
@@ -162,7 +164,7 @@ async function distributeAndVerify({
       ["guardian", guardianAddr],
     ]) {
       const nativeBal = await deployer.provider.getBalance(addr);
-      if (nativeBal < MIN_NATIVE_BALANCE) {
+      if (nativeBal < minNativeThreshold) {
         log(
           logger,
           `Forwarding ${ethers.formatEther(stipendAmount)} native stipend -> ${role} (${addr})`

@@ -5,7 +5,15 @@ import { safeRedirectPath } from '@/lib/supabaseAuth/redirect';
 /** Handles Allow/Deny submissions from src/app/oauth/consent/page.tsx. */
 export async function POST(request: Request) {
   const { origin } = new URL(request.url);
-  const formData = await request.formData();
+  let formData: FormData;
+  try {
+    formData = await request.formData();
+  } catch {
+    return NextResponse.json(
+      { error: 'Expected form-encoded OAuth consent payload' },
+      { status: 400 },
+    );
+  }
   const authorizationId = formData.get('authorization_id') as string | null;
   const decision = formData.get('decision') as string | null;
 

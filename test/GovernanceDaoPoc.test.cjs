@@ -68,19 +68,26 @@ describe("Wave 2 & Wave 3 DAO POC (GovernorStorage + AppConfig + 4-Role Distribu
   });
 
   describe("2. Network Config & 4-Role Multi-Signer Distribution", function () {
-    it("supports RSK_TESTNET_VOTING_PERIOD override (default 2880, rehearsal 90) and utpAlpha config", function () {
+    it("supports RSK_TESTNET_VOTING_PERIOD, RSK_TESTNET_MIN_BALANCE_WEI, dynamic gasPrice, and utpAlpha config", function () {
       const defaultCfg = deployConfig.buildDeployConfig({});
       expect(defaultCfg.rskTestnet.chainId).to.equal(31);
       expect(defaultCfg.rskTestnet.votingPeriod).to.equal(2880);
+      expect(defaultCfg.rskTestnet.minDeployerBalance).to.equal(ethers.parseEther("0.0004"));
       expect(defaultCfg.utpAlpha.chainId).to.equal(99931);
 
       const rehearsalCfg = deployConfig.buildDeployConfig({
         RSK_TESTNET_VOTING_PERIOD: "90",
+        RSK_TESTNET_MIN_BALANCE_WEI: "1000000000000000",
         UTP_ALPHA_CHAIN_ID: "99932",
       });
       expect(rehearsalCfg.rskTestnet.votingPeriod).to.equal(90);
+      expect(rehearsalCfg.rskTestnet.minDeployerBalance).to.equal(1000000000000000n);
       expect(rehearsalCfg.utpAlpha.chainId).to.equal(99932);
+      expect(deployConfig.buildDeployConfig({ RSK_TESTNET_MIN_BALANCE_WEI: "0" }).rskTestnet.minDeployerBalance).to.equal(0n);
       expect(hardhatConfig.networks.utpAlpha.chainId).to.equal(99931);
+      if (!process.env.RSK_TESTNET_GAS_PRICE) {
+        expect(hardhatConfig.networks.rskTestnet.gasPrice).to.equal("auto");
+      }
     });
 
     it("rejects zero addresses and duplicate role assignments in distributeAndVerify", async function () {
@@ -218,6 +225,34 @@ describe("Wave 2 & Wave 3 DAO POC (GovernorStorage + AppConfig + 4-Role Distribu
       expect(await ethers.provider.getBalance(lowBalanceVoterC.address)).to.equal(
         ethers.parseEther("0.0021")
       );
+    });
+
+    it("caps stipend threshold to stipendWei when stipendWei < MIN_NATIVE_BALANCE to prevent double-sends", async function () {
+      const core = await deployCore(ethers, deployer, {
+        initialSupply: ethers.parseEther("10000000"),
+        guardian: guardian.address,
+      });
+      const smallStipend = ethers.parseEther("0.0001"); // 100000000000000 wei
+      const unfundedVoter = ethers.Wallet.createRandom().connect(ethers.provider);
+      const alreadyFundedVoter = ethers.Wallet.createRandom().connect(ethers.provider);
+      await setBalance(unfundedVoter.address, 0n);
+      await setBalance(alreadyFundedVoter.address, smallStipend);
+
+      const summary = await distributeAndVerify({
+        token: core.contracts.token,
+        deployer,
+        voterA: unfundedVoter.address,
+        voterB: alreadyFundedVoter.address,
+        guardian: guardian.address,
+        timelockAddress: core.addresses.UtPTimelock,
+        stipendWei: smallStipend,
+      });
+
+      expect(summary.stipendsSent).to.have.lengthOf(1);
+      expect(summary.stipendsSent[0].role).to.equal("voterA");
+      expect(summary.stipendsSent[0].amountWei).to.equal(smallStipend);
+      expect(await ethers.provider.getBalance(unfundedVoter.address)).to.equal(smallStipend);
+      expect(await ethers.provider.getBalance(alreadyFundedVoter.address)).to.equal(smallStipend);
     });
 
     it("distributes 250k/250k/9.5M, zeroes deployer balance & votes, forwards gas stipends, and catches undelegated ERC20Votes signers", async function () {

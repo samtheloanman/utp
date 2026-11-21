@@ -59,7 +59,6 @@ function AnimatedText() {
     <Float speed={2} rotationIntensity={0.2} floatIntensity={0.5}>
       <Text
         ref={textRef}
-        font="https://fonts.gstatic.com/s/schibstedgrotesk/v2/DHIZX_X_H_OovQO6Yd4iL-P-2a8uL5H_D3EIf-E.woff"
         fontSize={1.5}
         maxWidth={200}
         lineHeight={1}
