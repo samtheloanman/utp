@@ -41,7 +41,9 @@ function buildDeployConfig(env = process.env) {
       quorumPercent: 4,
       timelockMinDelay: 3600, // 1 hour
       guardian: env.GUARDIAN_ADDRESS || ZERO,
-      minDeployerBalance: ethers.parseEther("0.01"), // tRBTC for deploy + gas stipends
+      minDeployerBalance: env.RSK_TESTNET_MIN_BALANCE_WEI?.trim()
+        ? BigInt(env.RSK_TESTNET_MIN_BALANCE_WEI.trim())
+        : ethers.parseEther("0.0004"), // tRBTC for deploy + gas stipends
     },
     utpAlpha: {
       chainId: Number(env.UTP_ALPHA_CHAIN_ID || 99931),

@@ -37,7 +37,10 @@ module.exports = {
         rskTestnet: {
             url: process.env.RSK_TESTNET_RPC_URL || "https://public-node.testnet.rsk.co",
             chainId: 31,
-            gasPrice: 60000000, // 0.06 gwei
+            gasPrice:
+                process.env.RSK_TESTNET_GAS_PRICE && process.env.RSK_TESTNET_GAS_PRICE !== "auto"
+                    ? Number(process.env.RSK_TESTNET_GAS_PRICE)
+                    : "auto",
             accounts: process.env.DEPLOYER_PRIVATE_KEY
                 ? [process.env.DEPLOYER_PRIVATE_KEY]
                 : [],
