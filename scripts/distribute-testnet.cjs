@@ -112,6 +112,14 @@ async function distributeAndVerify({
     timelockAddr,
   });
 
+  const stipendAmount = BigInt(stipendWei ?? 0n);
+  if (stipendAmount < 0n) {
+    throw new Error(`stipendWei must be non-negative, got ${stipendAmount}`);
+  }
+  if (stipendAmount > 0n && !deployer.provider) {
+    throw new Error("deployer.provider is required when stipendWei > 0n");
+  }
+
   const tokenAsDeployer = token.connect(deployer);
 
   // If deployer previously self-delegated, clear delegation before zeroing balance.
@@ -149,12 +157,8 @@ async function distributeAndVerify({
   log(logger, `Transferring ${ethers.formatEther(remaining)} UTP -> timelock (${timelockAddr})`);
   await (await tokenAsDeployer.transfer(timelockAddr, remaining)).wait();
 
-  const stipendAmount = BigInt(stipendWei || 0n);
   const stipendsSent = [];
   if (stipendAmount > 0n) {
-    if (!deployer.provider) {
-      throw new Error("deployer.provider is required when stipendWei > 0n");
-    }
     const minNativeThreshold =
       stipendAmount < MIN_NATIVE_BALANCE ? stipendAmount : MIN_NATIVE_BALANCE;
     for (const [role, addr] of [
@@ -301,6 +305,15 @@ async function assertPreProposalDelegation(
       };
 }
 
+function parseStipendWei(raw, fallback) {
+  const trimmed = raw === undefined || raw === null ? "" : String(raw).trim();
+  if (!trimmed) return fallback;
+  if (!/^\d+$/.test(trimmed)) {
+    throw new Error(`Invalid STIPEND_WEI="${raw}": expected a non-negative integer in wei`);
+  }
+  return BigInt(trimmed);
+}
+
 async function main() {
   const hre = require("hardhat");
   const network = hre.network.name;
@@ -317,8 +330,7 @@ async function main() {
 
   const token = await hre.ethers.getContractAt("UTPToken", manifest.contracts.UTPToken);
   const defaultStipend = LOCAL_NETWORKS.has(network) ? 0n : DEFAULT_STIPEND_WEI;
-  const stipendWei =
-    process.env.STIPEND_WEI !== undefined ? BigInt(process.env.STIPEND_WEI) : defaultStipend;
+  const stipendWei = parseStipendWei(process.env.STIPEND_WEI, defaultStipend);
 
   const result = await distributeAndVerify({
     token,
@@ -352,6 +364,7 @@ if (require.main === module) {
 module.exports = {
   distributeAndVerify,
   assertPreProposalDelegation,
+  parseStipendWei,
   VOTER_ALLOCATION,
   VOTER_B_THREE_WAY_ALLOCATION,
   VOTER_C_ALLOCATION,

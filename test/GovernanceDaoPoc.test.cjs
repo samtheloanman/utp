@@ -7,6 +7,7 @@ const hardhatConfig = require("../hardhat.config.cjs");
 const {
   distributeAndVerify,
   assertPreProposalDelegation,
+  parseStipendWei,
   VOTER_ALLOCATION,
   DEFAULT_STIPEND_WEI,
 } = require("../scripts/distribute-testnet.cjs");
@@ -84,10 +85,29 @@ describe("Wave 2 & Wave 3 DAO POC (GovernorStorage + AppConfig + 4-Role Distribu
       expect(rehearsalCfg.rskTestnet.minDeployerBalance).to.equal(1000000000000000n);
       expect(rehearsalCfg.utpAlpha.chainId).to.equal(99932);
       expect(deployConfig.buildDeployConfig({ RSK_TESTNET_MIN_BALANCE_WEI: "0" }).rskTestnet.minDeployerBalance).to.equal(0n);
+      expect(() => deployConfig.buildDeployConfig({ RSK_TESTNET_MIN_BALANCE_WEI: "-1" })).to.throw(/RSK_TESTNET_MIN_BALANCE_WEI/);
+      expect(() => deployConfig.buildDeployConfig({ RSK_TESTNET_MIN_BALANCE_WEI: "abc" })).to.throw(/RSK_TESTNET_MIN_BALANCE_WEI/);
       expect(hardhatConfig.networks.utpAlpha.chainId).to.equal(99931);
       if (!process.env.RSK_TESTNET_GAS_PRICE) {
         expect(hardhatConfig.networks.rskTestnet.gasPrice).to.equal("auto");
       }
+      expect(hardhatConfig.resolveGasPrice(undefined)).to.equal("auto");
+      expect(hardhatConfig.resolveGasPrice("")).to.equal("auto");
+      expect(hardhatConfig.resolveGasPrice("   ")).to.equal("auto");
+      expect(hardhatConfig.resolveGasPrice("AUTO")).to.equal("auto");
+      expect(hardhatConfig.resolveGasPrice(" auto ")).to.equal("auto");
+      expect(hardhatConfig.resolveGasPrice("60000000")).to.equal(60000000);
+      expect(() => hardhatConfig.resolveGasPrice("0")).to.throw(/RSK_TESTNET_GAS_PRICE/);
+      expect(() => hardhatConfig.resolveGasPrice("-5")).to.throw(/RSK_TESTNET_GAS_PRICE/);
+      expect(() => hardhatConfig.resolveGasPrice("abc")).to.throw(/RSK_TESTNET_GAS_PRICE/);
+
+      expect(parseStipendWei(undefined, DEFAULT_STIPEND_WEI)).to.equal(DEFAULT_STIPEND_WEI);
+      expect(parseStipendWei("", DEFAULT_STIPEND_WEI)).to.equal(DEFAULT_STIPEND_WEI);
+      expect(parseStipendWei("   ", DEFAULT_STIPEND_WEI)).to.equal(DEFAULT_STIPEND_WEI);
+      expect(parseStipendWei("0", DEFAULT_STIPEND_WEI)).to.equal(0n);
+      expect(parseStipendWei("100000000000000", DEFAULT_STIPEND_WEI)).to.equal(100000000000000n);
+      expect(() => parseStipendWei("-1", DEFAULT_STIPEND_WEI)).to.throw(/STIPEND_WEI/);
+      expect(() => parseStipendWei("abc", DEFAULT_STIPEND_WEI)).to.throw(/STIPEND_WEI/);
     });
 
     it("rejects zero addresses and duplicate role assignments in distributeAndVerify", async function () {
@@ -253,6 +273,25 @@ describe("Wave 2 & Wave 3 DAO POC (GovernorStorage + AppConfig + 4-Role Distribu
       expect(summary.stipendsSent[0].amountWei).to.equal(smallStipend);
       expect(await ethers.provider.getBalance(unfundedVoter.address)).to.equal(smallStipend);
       expect(await ethers.provider.getBalance(alreadyFundedVoter.address)).to.equal(smallStipend);
+
+      const core2 = await deployCore(ethers, deployer, {
+        initialSupply: ethers.parseEther("10000000"),
+        guardian: guardian.address,
+      });
+      await expect(
+        distributeAndVerify({
+          token: core2.contracts.token,
+          deployer,
+          voterA: voterA.address,
+          voterB: voterB.address,
+          guardian: guardian.address,
+          timelockAddress: core2.addresses.UtPTimelock,
+          stipendWei: -1n,
+        })
+      ).to.be.rejectedWith(/stipendWei must be non-negative/);
+      expect(await core2.contracts.token.balanceOf(deployer.address)).to.equal(
+        ethers.parseEther("10000000")
+      );
     });
 
     it("distributes 250k/250k/9.5M, zeroes deployer balance & votes, forwards gas stipends, and catches undelegated ERC20Votes signers", async function () {

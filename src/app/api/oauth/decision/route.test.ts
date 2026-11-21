@@ -106,4 +106,62 @@ describe('POST /api/oauth/decision', () => {
     expect(res.status).toBe(307);
     expect(res.headers.get('location')).toBe('https://client.example/cb?code=ok');
   });
+
+  it('rejects File uploads for authorization_id instead of coercing to [object File]', async () => {
+    const form = new FormData();
+    form.set('authorization_id', new File(['evil'], 'evil.txt', { type: 'text/plain' }));
+    form.set('decision', 'approve');
+
+    const res = await POST(
+      new Request('https://utp.test/api/oauth/decision', {
+        method: 'POST',
+        body: form,
+      }),
+    );
+
+    expect(res.status).toBe(307);
+    const loc = new URL(res.headers.get('location')!);
+    expect(loc.pathname).toBe('/login');
+    expect(loc.searchParams.get('error')).toContain('Malformed');
+    expect(getUser).not.toHaveBeenCalled();
+    expect(approveAuthorization).not.toHaveBeenCalled();
+  });
+
+  it('rejects whitespace-only authorization_id submissions', async () => {
+    const form = new URLSearchParams({ authorization_id: '   ', decision: 'deny' });
+    const res = await POST(
+      new Request('https://utp.test/api/oauth/decision', {
+        method: 'POST',
+        headers: { 'content-type': 'application/x-www-form-urlencoded' },
+        body: form.toString(),
+      }),
+    );
+
+    expect(res.status).toBe(307);
+    const loc = new URL(res.headers.get('location')!);
+    expect(loc.pathname).toBe('/login');
+    expect(loc.searchParams.get('error')).toContain('Malformed');
+    expect(getUser).not.toHaveBeenCalled();
+    expect(denyAuthorization).not.toHaveBeenCalled();
+  });
+
+  it('denies OAuth authorization for authenticated users', async () => {
+    getUser.mockResolvedValue({ data: { user: { id: 'u1' } } });
+    denyAuthorization.mockResolvedValue({
+      data: { redirect_url: 'https://client.example/cb?error=access_denied' },
+      error: null,
+    });
+    const form = new URLSearchParams({ authorization_id: ' auth-456 ', decision: 'deny' });
+    const res = await POST(
+      new Request('https://utp.test/api/oauth/decision', {
+        method: 'POST',
+        headers: { 'content-type': 'application/x-www-form-urlencoded' },
+        body: form.toString(),
+      }),
+    );
+
+    expect(denyAuthorization).toHaveBeenCalledWith('auth-456');
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe('https://client.example/cb?error=access_denied');
+  });
 });
