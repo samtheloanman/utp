@@ -14,8 +14,10 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
-  const authorizationId = formData.get('authorization_id') as string | null;
-  const decision = formData.get('decision') as string | null;
+  const rawAuthId = formData.get('authorization_id');
+  const rawDecision = formData.get('decision');
+  const authorizationId = typeof rawAuthId === 'string' ? rawAuthId.trim() : '';
+  const decision = typeof rawDecision === 'string' ? rawDecision : null;
 
   if (!authorizationId || (decision !== 'approve' && decision !== 'deny')) {
     return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent('Malformed OAuth consent submission')}`, origin));

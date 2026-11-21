@@ -30,6 +30,7 @@ async function main() {
     governance: await at("GovernancePlugin", A.GovernancePlugin),
     treasury: await at("Treasury", A.Treasury),
     registry: await at("PluginRegistry", A.PluginRegistry),
+    ...(A.AppConfig ? { appConfig: await at("AppConfig", A.AppConfig) } : {}),
   };
   const g = contracts.governance;
 
@@ -41,6 +42,20 @@ async function main() {
   }
   console.log("Invariants");
   await verifyCore({ contracts }, dep.deployer, console.log);
+  const guardian = dep.params?.guardian;
+  if (guardian && guardian !== ethers.ZeroAddress) {
+    const CANCELLER = await contracts.timelock.CANCELLER_ROLE();
+    const guardianOk = await contracts.timelock.hasRole(CANCELLER, guardian);
+    const deployerIsCanceller = await contracts.timelock.hasRole(CANCELLER, dep.deployer);
+    if (!guardianOk) {
+      throw new Error(`Guardian ${guardian} does not hold timelock CANCELLER_ROLE`);
+    }
+    if (deployerIsCanceller) {
+      throw new Error(`Deployer ${dep.deployer} must not hold timelock CANCELLER_ROLE`);
+    }
+    console.log(`  ✔ guardian ${guardian} holds timelock CANCELLER_ROLE`);
+    console.log("  ✔ deployer has no timelock CANCELLER_ROLE");
+  }
   console.log("Live settings");
   const clock = await g.clock();
   console.log(`  votingDelay=${await g.votingDelay()} votingPeriod=${await g.votingPeriod()} threshold=${ethers.formatEther(await g.proposalThreshold())} UTP`);

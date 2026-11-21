@@ -8,6 +8,17 @@ const { ethers } = require("ethers");
 
 const ZERO = "0x0000000000000000000000000000000000000000";
 
+function parseMinBalanceWei(raw, fallback) {
+  const trimmed = raw === undefined || raw === null ? "" : String(raw).trim();
+  if (!trimmed) return fallback;
+  if (!/^\d+$/.test(trimmed)) {
+    throw new Error(
+      `Invalid RSK_TESTNET_MIN_BALANCE_WEI="${raw}": expected a non-negative integer in wei`
+    );
+  }
+  return BigInt(trimmed);
+}
+
 function buildDeployConfig(env = process.env) {
   return {
     hardhat: {
@@ -41,9 +52,10 @@ function buildDeployConfig(env = process.env) {
       quorumPercent: 4,
       timelockMinDelay: 3600, // 1 hour
       guardian: env.GUARDIAN_ADDRESS || ZERO,
-      minDeployerBalance: env.RSK_TESTNET_MIN_BALANCE_WEI?.trim()
-        ? BigInt(env.RSK_TESTNET_MIN_BALANCE_WEI.trim())
-        : ethers.parseEther("0.0004"), // tRBTC for deploy + gas stipends
+      minDeployerBalance: parseMinBalanceWei(
+        env.RSK_TESTNET_MIN_BALANCE_WEI,
+        ethers.parseEther("0.0004") // tRBTC for deploy + gas stipends
+      ),
     },
     utpAlpha: {
       chainId: Number(env.UTP_ALPHA_CHAIN_ID || 99931),

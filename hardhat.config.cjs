@@ -12,8 +12,22 @@ if (process.env.SOLC_JS_PATH) {
     });
 }
 
+function resolveGasPrice(raw) {
+    if (raw === undefined || raw === null) return "auto";
+    const trimmed = String(raw).trim();
+    if (!trimmed || trimmed.toLowerCase() === "auto") return "auto";
+    if (!/^\d+$/.test(trimmed)) {
+        throw new Error(`Invalid RSK_TESTNET_GAS_PRICE="${raw}": expected "auto" or a positive integer in wei`);
+    }
+    const parsed = Number(trimmed);
+    if (!Number.isSafeInteger(parsed) || parsed <= 0) {
+        throw new Error(`Invalid RSK_TESTNET_GAS_PRICE="${raw}": expected a positive safe integer in wei`);
+    }
+    return parsed;
+}
+
 /** @type import('hardhat/config').HardhatUserConfig */
-module.exports = {
+const config = {
     solidity: {
         version: "0.8.24",
         settings: {
@@ -37,10 +51,7 @@ module.exports = {
         rskTestnet: {
             url: process.env.RSK_TESTNET_RPC_URL || "https://public-node.testnet.rsk.co",
             chainId: 31,
-            gasPrice:
-                process.env.RSK_TESTNET_GAS_PRICE && process.env.RSK_TESTNET_GAS_PRICE !== "auto"
-                    ? Number(process.env.RSK_TESTNET_GAS_PRICE)
-                    : "auto",
+            gasPrice: resolveGasPrice(process.env.RSK_TESTNET_GAS_PRICE),
             accounts: process.env.DEPLOYER_PRIVATE_KEY
                 ? [process.env.DEPLOYER_PRIVATE_KEY]
                 : [],
@@ -72,3 +83,10 @@ module.exports = {
         currency: "USD",
     },
 };
+
+Object.defineProperty(config, "resolveGasPrice", {
+    value: resolveGasPrice,
+    enumerable: false,
+});
+
+module.exports = config;
