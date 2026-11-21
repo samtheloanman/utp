@@ -1,0 +1,27 @@
+{
+  "network": "rskTestnet",
+  "chainId": 31,
+  "deployer": "0x43a6059C9e1E504436Ac309b45914271e8D0D00D",
+  "deployedAt": "2026-11-21T09:29:30.514Z",
+  "blockNumber": 8318791,
+  "params": {
+    "chainId": 31,
+    "initialSupply": "10000000000000000000000000",
+    "votingDelay": 1,
+    "votingPeriod": 90,
+    "proposalThreshold": "10000000000000000000000",
+    "quorumPercent": 4,
+    "timelockMinDelay": 3600,
+    "guardian": "0x0BCc094a4944aF73ea39bf198c96a2A40dbCC0d5",
+    "minDeployerBalance": "400000000000000"
+  },
+  "contracts": {
+    "DAO": "0xda0839a871c0D882669a689ad847562f9Bc0cfE4",
+    "UTPToken": "0x112E2AFb65Dfa84Dfd975eE25B5AE0a7c3bcb9a7",
+    "UtPTimelock": "0x4D9c8a46D579F7C85Fa90ad133ce806B87be7AD8",
+    "GovernancePlugin": "0x0437E78E9217DA39C4e8c1a36fDCE45A746a948F",
+    "Treasury": "0xAFCb2b9f60374FA0A6e317251B44906c1a40F4ED",
+    "PluginRegistry": "0xc4D734d7cBC67A3BA08C24F52E5E1a95733F68a7",
+    "AppConfig": "0x099809F6a0859c0A8707337440169F88AF306a46"
+  }
+}
