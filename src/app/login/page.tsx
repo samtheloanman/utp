@@ -23,28 +23,28 @@ function LoginForm() {
   const redirectTo = safeRedirectPath(searchParams.get('redirect'));
   const callbackError = searchParams.get('error');
   const [error, setError] = useState<string | null>(callbackError);
-  const [loading, setLoading] = useState<'google' | 'github' | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = async (provider: 'google' | 'github') => {
+  const handleGoogleLogin = async () => {
     setError(null);
-    setLoading(provider);
+    setLoading(true);
     try {
       const supabase = createClient();
       const callbackUrl = new URL('/auth/callback', window.location.origin);
       callbackUrl.searchParams.set('redirect', redirectTo);
 
       const { error } = await supabase.auth.signInWithOAuth({
-        provider,
+        provider: 'google',
         options: { redirectTo: callbackUrl.toString() },
       });
       if (error) {
         setError(error.message);
-        setLoading(null);
+        setLoading(false);
       }
       // On success the browser navigates to the provider; nothing else to do.
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not start sign-in');
-      setLoading(null);
+      setLoading(false);
     }
   };
 
@@ -57,7 +57,7 @@ function LoginForm() {
         </p>
 
         {error && (
-          <div style={{ fontSize: 13, color: '#b91c1c', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '8px 12px', marginBottom: 16 }}>
+          <div role="alert" style={{ fontSize: 13, color: '#b91c1c', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '8px 12px', marginBottom: 16 }}>
             {error}
           </div>
         )}
@@ -65,21 +65,12 @@ function LoginForm() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <button
             type="button"
-            disabled={loading !== null}
-            onClick={() => handleLogin('google')}
+            disabled={loading}
+            onClick={handleGoogleLogin}
             className="btn"
-            style={{ width: '100%', justifyContent: 'center', opacity: loading && loading !== 'google' ? 0.5 : 1 }}
+            style={{ width: '100%', justifyContent: 'center' }}
           >
-            {loading === 'google' ? 'Redirecting…' : 'Continue with Google'}
-          </button>
-          <button
-            type="button"
-            disabled={loading !== null}
-            onClick={() => handleLogin('github')}
-            className="btn"
-            style={{ width: '100%', justifyContent: 'center', opacity: loading && loading !== 'github' ? 0.5 : 1 }}
-          >
-            {loading === 'github' ? 'Redirecting…' : 'Continue with GitHub'}
+            {loading ? 'Redirecting…' : 'Continue with Google'}
           </button>
         </div>
       </div>
