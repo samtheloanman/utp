@@ -289,6 +289,9 @@ describe("Wave 2 & Wave 3 DAO POC (GovernorStorage + AppConfig + 4-Role Distribu
           stipendWei: -1n,
         })
       ).to.be.rejectedWith(/stipendWei must be non-negative/);
+      expect(await core2.contracts.token.balanceOf(deployer.address)).to.equal(
+        ethers.parseEther("10000000")
+      );
     });
 
     it("distributes 250k/250k/9.5M, zeroes deployer balance & votes, forwards gas stipends, and catches undelegated ERC20Votes signers", async function () {

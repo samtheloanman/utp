@@ -112,6 +112,14 @@ async function distributeAndVerify({
     timelockAddr,
   });
 
+  const stipendAmount = BigInt(stipendWei ?? 0n);
+  if (stipendAmount < 0n) {
+    throw new Error(`stipendWei must be non-negative, got ${stipendAmount}`);
+  }
+  if (stipendAmount > 0n && !deployer.provider) {
+    throw new Error("deployer.provider is required when stipendWei > 0n");
+  }
+
   const tokenAsDeployer = token.connect(deployer);
 
   // If deployer previously self-delegated, clear delegation before zeroing balance.
@@ -149,15 +157,8 @@ async function distributeAndVerify({
   log(logger, `Transferring ${ethers.formatEther(remaining)} UTP -> timelock (${timelockAddr})`);
   await (await tokenAsDeployer.transfer(timelockAddr, remaining)).wait();
 
-  const stipendAmount = BigInt(stipendWei ?? 0n);
-  if (stipendAmount < 0n) {
-    throw new Error(`stipendWei must be non-negative, got ${stipendAmount}`);
-  }
   const stipendsSent = [];
   if (stipendAmount > 0n) {
-    if (!deployer.provider) {
-      throw new Error("deployer.provider is required when stipendWei > 0n");
-    }
     const minNativeThreshold =
       stipendAmount < MIN_NATIVE_BALANCE ? stipendAmount : MIN_NATIVE_BALANCE;
     for (const [role, addr] of [
