@@ -2,8 +2,9 @@ name: Deploy governance to RSK testnet
 
 # Manual only. Requires the "rsk-testnet" environment with:
 #   secret   DEPLOYER_PRIVATE_KEY  (a dedicated testnet-only key funded with tRBTC)
-#   variable GUARDIAN_ADDRESS      (optional emergency canceller, e.g. a multisig)
-#   variable RSK_TESTNET_RPC_URL   (optional; defaults to the public RSK node)
+#   variable GUARDIAN_ADDRESS          (optional emergency canceller, e.g. a multisig)
+#   variable RSK_TESTNET_RPC_URL       (optional; defaults to the public RSK node)
+#   variable RSK_TESTNET_VOTING_PERIOD (optional; defaults to 2880 blocks)
 # Repository variable UTP_TESTNET_DEPLOY_ENABLED must be explicitly set to true.
 # The utp runner and protected environment must be configured before enabling it.
 on:
@@ -28,6 +29,7 @@ jobs:
     env:
       GUARDIAN_ADDRESS: ${{ vars.GUARDIAN_ADDRESS }}
       RSK_TESTNET_RPC_URL: ${{ vars.RSK_TESTNET_RPC_URL || 'https://public-node.testnet.rsk.co' }}
+      RSK_TESTNET_VOTING_PERIOD: ${{ vars.RSK_TESTNET_VOTING_PERIOD || '2880' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

@@ -5,40 +5,8 @@ import { useParams, useRouter } from 'next/navigation';
 import { ISSUES, Issue, makeActivity } from '@/lib/data';
 import { scaleMeta, Media, SentimentBar, TrendChart, TopBar, fmt } from '@/components/ui/Shared';
 import { Icon, Flag } from '@/components/ui/icons';
-import { useWriteContract } from 'wagmi';
-import { usePrivy } from '@privy-io/react-auth';
-import { UTP_POLLING_ADDRESS, UTP_POLLING_ABI } from '@/lib/contracts';
-
-function VotePanel({ issue, vote, onVote }: { issue: Issue, vote: string | null, onVote: (id: string, vote: string) => void }) {
-  const { authenticated, login } = usePrivy();
-  
-  const opts = [
-    { k: 'for', cls: 'for-opt', label: 'For', pct: issue.for, ico: 'up' },
-    { k: 'against', cls: 'against-opt', label: 'Against', pct: issue.against, ico: 'down' },
-    { k: 'unsure', cls: 'unsure-opt', label: 'Unsure', pct: issue.unsure, ico: 'question' },
-  ];
-  return (
-    <div className="panel panel-pad votecard">
-      <h3 className="panel-title">Cast your voice</h3>
-      <p className="panel-sub">On-chain shadow vote · one voice per verified wallet</p>
-      <div className="vopts">
-        {opts.map(o => (
-          <button key={o.k} className={'vopt ' + o.cls + (vote === o.k ? ' sel' : '')}
-            onClick={() => authenticated ? onVote(issue.id, o.k) : login()}>
-            <i className="fillbar" style={{ width: o.pct + '%' }} />
-            <span className="vleft"><span className="vico"><Icon name={o.ico} size={16} stroke={2.4} /></span>{o.label}</span>
-            <span className="vpct">{o.pct}%</span>
-          </button>
-        ))}
-      </div>
-      {vote
-        ? <div className="voted-note"><Icon name="check" size={15} stroke={2.4} /> Your voice is counted as <b>{vote}</b> · change anytime</div>
-        : authenticated
-          ? <p className="signin-note">Select an option above to add your voice.</p>
-          : <p className="signin-note">Connect wallet or email to vote.</p>}
-    </div>
-  );
-}
+import { VotePanel } from '@/components/issue/VotePanel';
+import { DataStatusBadge } from '@/components/ui/DataStatusBadge';
 
 function AiDebate({ issue }: { issue: Issue }) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -67,6 +35,8 @@ function AiDebate({ issue }: { issue: Issue }) {
   }, [issue.id, issue.question]);
 
   const displayData = debate || issue;
+  const plainTldr = String(displayData.tldr ?? '').replace(/<[^>]*>/g, '').replace(/[<>]/g, '');
+  const badgeStatus = debate?.status === 'offline' ? 'unavailable' : (issue.isSample || debate?.isSample) ? 'sample' : null;
 
   return (
     <div className="panel panel-pad">
@@ -76,6 +46,7 @@ function AiDebate({ issue }: { issue: Issue }) {
           <h3 className="panel-title">AI Citizen Digest</h3>
           <p className="panel-sub">Neutral, citation-grounded — generated, then human-reviewed</p>
         </div>
+        {badgeStatus && <div style={{ marginLeft: 'auto' }}><DataStatusBadge status={badgeStatus} /></div>}
       </div>
 
       {loading ? (
@@ -86,29 +57,37 @@ function AiDebate({ issue }: { issue: Issue }) {
         <>
           <div className="digest-tldr">
             <span className="tldr-tag">TL;DR</span>
-            <span dangerouslySetInnerHTML={{ __html: displayData.tldr }} />
+            <span>{plainTldr}</span>
           </div>
 
           <div className="debate-cols">
             <div className="debate-col for">
               <h4><Icon name="up" size={15} stroke={2.4} /> Arguments For</h4>
-              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-              {displayData.argsFor.map((a: any, i: number) => (
-                <div className="arg" key={i}>
-                  <span className="marker">{i + 1}</span>
-                  <span>{a.t}<a className="cite" title={'Source: ' + a.cite}><Icon name="external" size={11} stroke={2} />{a.cite}</a></span>
-                </div>
-              ))}
+              {displayData.argsFor.length === 0 ? (
+                <p className="panel-sub">No sourced arguments indexed yet.</p>
+              ) : (
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                displayData.argsFor.map((a: any, i: number) => (
+                  <div className="arg" key={i}>
+                    <span className="marker">{i + 1}</span>
+                    <span>{a.t}<a className="cite" title={'Source: ' + a.cite}><Icon name="external" size={11} stroke={2} />{a.cite}</a></span>
+                  </div>
+                ))
+              )}
             </div>
             <div className="debate-col against">
               <h4><Icon name="down" size={15} stroke={2.4} /> Arguments Against</h4>
-              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-              {displayData.argsAgainst.map((a: any, i: number) => (
-                <div className="arg" key={i}>
-                  <span className="marker">{i + 1}</span>
-                  <span>{a.t}<a className="cite" title={'Source: ' + a.cite}><Icon name="external" size={11} stroke={2} />{a.cite}</a></span>
-                </div>
-              ))}
+              {displayData.argsAgainst.length === 0 ? (
+                <p className="panel-sub">No sourced arguments indexed yet.</p>
+              ) : (
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                displayData.argsAgainst.map((a: any, i: number) => (
+                  <div className="arg" key={i}>
+                    <span className="marker">{i + 1}</span>
+                    <span>{a.t}<a className="cite" title={'Source: ' + a.cite}><Icon name="external" size={11} stroke={2} />{a.cite}</a></span>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
@@ -176,7 +155,7 @@ function ActivityWidget({ issue }: { issue: Issue }) {
 
   return (
     <div className="widget">
-      <h4 className="widget-title"><span className="live-dot" /> Live activity</h4>
+      <h4 className="widget-title"><span className="live-dot" /> {issue.isSample ? "Sample activity" : "Live activity"}</h4>
       {acts.map((a, i) => (
         <div className="act" key={i}>
           <span className={'adot a-' + a.v}><Icon name={ico[a.v]} size={13} stroke={2.4} /></span>
@@ -195,46 +174,12 @@ export default function DetailView() {
   
   const issue = ISSUES.find(i => i.id === id);
 
-  const [votes, setVotes] = useState<Record<string, string>>({});
-  const { writeContract } = useWriteContract();
-  
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem('utp_votes');
-      if (saved) setVotes(JSON.parse(saved));
-    } catch {}
-    
     const r = document.documentElement;
     r.setAttribute('data-palette', 'civic');
     r.setAttribute('data-density', 'comfortable');
     r.setAttribute('data-display', 'grotesk');
   }, []);
-
-  const onVote = (id: string, v: string) => {
-    // 1=for, 2=against, 3=unsure
-    const voteMap: Record<string, number> = { 'for': 1, 'against': 2, 'unsure': 3 };
-    const voteType = voteMap[v];
-
-    writeContract({
-      address: UTP_POLLING_ADDRESS,
-      abi: UTP_POLLING_ABI,
-      functionName: 'castVote',
-      args: [id, voteType],
-    }, {
-      onSuccess: () => {
-        setVotes(prev => {
-          const next = { ...prev, [id]: prev[id] === v ? undefined : v };
-          if (next[id] === undefined) delete next[id];
-          try { localStorage.setItem('utp_votes', JSON.stringify(next)); } catch {}
-          return next as Record<string, string>;
-        });
-      },
-      onError: (err) => {
-        console.error('Failed to vote:', err);
-        alert('Failed to vote on-chain. Make sure you are connected to the right network.');
-      }
-    });
-  };
 
   if (!issue) {
     return (
@@ -248,7 +193,6 @@ export default function DetailView() {
   }
 
   const sm = scaleMeta(issue.scale);
-  const vote = votes[issue.id] || null;
   
   const related = ISSUES.filter(i => i.id !== issue.id && (i.category === issue.category || i.scale === issue.scale)).slice(0, 4);
   const delta = issue.deltaWeek;
@@ -268,7 +212,7 @@ export default function DetailView() {
                 <span className="mchip solid"><Icon name={issue.category} size={13} stroke={2} />{issue.category}</span>
                 <span className="mchip solid"><Flag cc={issue.cc || undefined} size={15} />{issue.region}</span>
                 {issue.scope && <span className="mchip solid"><Icon name="doc" size={13} stroke={2} />{issue.scope}</span>}
-                <span className="mchip live"><span className="live-dot" />Live</span>
+                {issue.isSample && <span className="mchip solid"><DataStatusBadge status="sample" /></span>}
               </div>
               <h1 className="dtitle">{issue.question}</h1>
               {issue.billNo && <div className="dbill mono">{issue.billNo}</div>}
@@ -277,10 +221,10 @@ export default function DetailView() {
         </div>
 
         <div className="dmeta">
-          <div className="m"><span className="k">Voices</span><span className="v">{fmt(issue.voices)}</span></div>
+          <div className="m"><span className="k">{issue.isSample ? 'Sample voices' : 'Voices'}</span><span className="v">{fmt(issue.voices)}</span></div>
           <div className="m"><span className="k">Lean For</span><span className="v" style={{ color: 'var(--for)' }}>{issue.for}%</span></div>
           <div className="m"><span className="k">7-day shift</span><span className={'v ' + (delta >= 0 ? 'trend-up' : 'trend-down')}><Icon name={delta >= 0 ? 'up' : 'down'} size={14} stroke={2.4} />{Math.abs(delta)} pts</span></div>
-          <div className="m"><span className="k">Status</span><span className="v vstatus">{issue.deadline}</span></div>
+          <div className="m"><span className="k">Status</span><span className="v vstatus">{issue.isSample ? 'Sample' : issue.deadline}</span></div>
         </div>
 
         <div className="detail-grid">
@@ -296,13 +240,13 @@ export default function DetailView() {
               <TrendChart data={issue.history} />
               <div className="chart-legend">
                 <span className="lg"><span className="sw" style={{ background: 'var(--for)' }} /> Share voting For over time</span>
-                <span className="lg" style={{ marginLeft: 'auto' }}><Icon name="clock" size={13} stroke={1.9} /> Updated continuously</span>
+                <span className="lg" style={{ marginLeft: 'auto' }}><Icon name="clock" size={13} stroke={1.9} /> {issue.isSample ? 'Sample figures — illustrative only' : 'Updated continuously'}</span>
               </div>
             </div>
 
             <div className="panel panel-pad" style={{ marginTop: 20 }}>
               <h3 className="panel-title">Where people stand</h3>
-              <p className="panel-sub">{fmt(issue.voices)} verified voices so far</p>
+              <p className="panel-sub">{issue.isSample ? 'Sample figures — illustrative only' : `${fmt(issue.voices)} verified voices so far`}</p>
               <SentimentBar issue={issue} />
             </div>
 
@@ -310,7 +254,7 @@ export default function DetailView() {
           </div>
 
           <aside className="detail-side">
-            <VotePanel issue={issue} vote={vote} onVote={onVote} />
+            <VotePanel issue={issue} />
             <SourcesWidget issue={issue} />
             <ActivityWidget issue={issue} />
             <RelatedWidget issues={related} onOpen={(id) => router.push('/issue/' + id)} />

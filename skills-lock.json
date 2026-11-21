@@ -19,6 +19,11 @@
       "skillPath": "skills/find-skills/SKILL.md",
       "computedHash": "9e1c8b3103f92fa8092568a44fe64858de7c5c9dc65ce4bea8f168080e889cfd"
     },
+    "github-workflow-automation": {
+      "source": "../agent-skills/skills/github-workflow-automation",
+      "sourceType": "local",
+      "computedHash": "656abc91b4332eebf0b832ec6c7f1dd5773c5dd977fdfcce2e177ef18bfdace7"
+    },
     "kpi-dashboard-design": {
       "source": "wshobson/agents",
       "sourceType": "github",

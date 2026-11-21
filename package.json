@@ -16,7 +16,9 @@
     "test:web": "vitest run",
     "ci:fast": "npm run lint && npm run typecheck && npm run test:web && npm run test:contracts",
     "deploy:local": "hardhat run scripts/deploy.cjs --network localhost",
-    "deploy:rskTestnet": "hardhat run scripts/deploy.cjs --network rskTestnet"
+    "deploy:rskTestnet": "hardhat run scripts/deploy.cjs --network rskTestnet",
+    "test:db": "bash scripts/test-db.sh",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@base-org/account": "^2.5.3",
@@ -31,6 +33,7 @@
     "@react-three/fiber": "^9.6.1",
     "@safe-global/safe-apps-provider": "^0.18.6",
     "@safe-global/safe-apps-sdk": "^9.1.0",
+    "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.91.0",
     "@tailwindcss/postcss": "^4.2.1",
     "@tanstack/react-query": "^5.90.21",
@@ -63,6 +66,7 @@
     "@nomicfoundation/hardhat-verify": "^2.1.3",
     "@nomicfoundation/ignition-core": "^0.15.15",
     "@openzeppelin/contracts": "^5.0.0",
+    "@playwright/test": "^1.65.1",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",

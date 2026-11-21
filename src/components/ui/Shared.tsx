@@ -1,10 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { SCALES, Issue, photoUrl } from '@/lib/data';
 import { Icon, BrandMark, Flag, CAT_COLOR } from './icons';
-import { usePrivy } from '@privy-io/react-auth';
 import Link from 'next/link';
+import { DataStatusBadge } from './DataStatusBadge';
+import { createBrowserSupabaseClient } from '@/lib/supabaseAuth/browser';
 
 export function fmt(n: number) {
   if (n >= 1000000) return (n / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
@@ -137,6 +139,7 @@ export function IssueCard({ issue, vote, onVote, onOpen }: { issue: Issue, vote:
         <div className="media-chips">
           <span className="mchip"><Icon name={sm.ico} size={13} stroke={2} />{sm.label}</span>
           <span className="mchip"><Icon name={issue.category} size={13} stroke={2} />{issue.category}</span>
+          {issue.isSample && <span className="mchip"><DataStatusBadge status="sample" /></span>}
         </div>
         <div className="media-region">
           <Flag cc={issue.cc || undefined} size={18} />{issue.region}
@@ -156,8 +159,8 @@ export function IssueCard({ issue, vote, onVote, onOpen }: { issue: Issue, vote:
         <QuickVote issue={issue} vote={vote} onVote={onVote} />
 
         <div className="icard-foot">
-          <span className="icard-voices"><Icon name="users" size={14} stroke={1.9} /><b>{fmt(issue.voices)}</b> voices</span>
-          <span className="deadline"><Icon name="clock" size={13} stroke={1.9} />{issue.deadline}</span>
+          <span className="icard-voices"><Icon name="users" size={14} stroke={1.9} /><b>{fmt(issue.voices)}</b> {issue.isSample ? 'sample voices' : 'voices'}</span>
+          {!issue.isSample && <span className="deadline"><Icon name="clock" size={13} stroke={1.9} />{issue.deadline}</span>}
         </div>
       </div>
     </article>
@@ -165,7 +168,45 @@ export function IssueCard({ issue, vote, onVote, onOpen }: { issue: Issue, vote:
 }
 
 export function TopBar({ query, onQuery, onHome }: { query?: string, onQuery?: (q: string) => void, onHome?: () => void }) {
-  const { login, authenticated, logout } = usePrivy();
+  const router = useRouter();
+  const [authenticated, setAuthenticated] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    const supabase = createBrowserSupabaseClient();
+    if (!supabase?.auth) return;
+
+    Promise.resolve(supabase.auth.getSession?.())
+      .then((res) => {
+        if (active) setAuthenticated(Boolean(res?.data?.session));
+      })
+      .catch(() => {
+        if (active) setAuthenticated(false);
+      });
+
+    const listener = supabase.auth.onAuthStateChange?.((_event, session) => {
+      if (active) setAuthenticated(Boolean(session));
+    });
+
+    return () => {
+      active = false;
+      listener?.data?.subscription?.unsubscribe?.();
+    };
+  }, []);
+
+  const handleSignIn = () => {
+    router.push('/login');
+  };
+
+  const handleSignOut = async () => {
+    const supabase = createBrowserSupabaseClient();
+    try {
+      await supabase?.auth?.signOut?.();
+    } finally {
+      setAuthenticated(false);
+      router.refresh?.();
+    }
+  };
   
   return (
     <header className="topbar">
@@ -191,10 +232,14 @@ export function TopBar({ query, onQuery, onHome }: { query?: string, onQuery?: (
           <Link href="/how-it-works" className="btn btn-quiet btn-sm" style={{ textDecoration: 'none', color: 'inherit' }}>
             <Icon name="shield" size={15} stroke={1.9} />How it works
           </Link>
+          <Link href="/bills" className="btn btn-quiet btn-sm" style={{ textDecoration: 'none', color: 'inherit' }}>Bills</Link>
+          <Link href="/propose" className="btn btn-quiet btn-sm" style={{ textDecoration: 'none', color: 'inherit' }}>Propose</Link>
+          <Link href="/governance" className="btn btn-quiet btn-sm" style={{ textDecoration: 'none', color: 'inherit' }}>Governance</Link>
+          {authenticated && <Link href="/account" className="btn btn-quiet btn-sm" style={{ textDecoration: 'none', color: 'inherit' }}>Account</Link>}
           {authenticated ? (
-            <button className="btn" style={{ background: 'var(--for)', color: 'white', border: 'none' }} onClick={logout}>Sign Out</button>
+            <button className="btn" style={{ background: 'var(--for)', color: 'white', border: 'none' }} onClick={handleSignOut}>Sign Out</button>
           ) : (
-            <button className="btn" style={{ background: 'var(--accent)', color: 'white', border: 'none' }} onClick={login}>Sign In</button>
+            <button className="btn" style={{ background: 'var(--accent)', color: 'white', border: 'none' }} onClick={handleSignIn}>Sign In</button>
           )}
         </div>
       </div>

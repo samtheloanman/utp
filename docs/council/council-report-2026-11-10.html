@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LLM Council Report — UTP Modular DB, Rootstock DAO POC &amp; Alpha-Net</title>
+  <style>
+    :root {
+      --bg: #f8fafb;
+      --surface: #ffffff;
+      --border: #dce5e7;
+      --text: #0f172a;
+      --muted: #475569;
+      --teal: #0d9488;
+      --teal-soft: #f0fdfa;
+      --teal-border: #99f6e4;
+      --amber: #b45309;
+      --amber-soft: #fffbeb;
+      --amber-border: #fde68a;
+      --rose: #be123c;
+      --rose-soft: #fff1f2;
+      --indigo: #3730a3;
+      --indigo-soft: #eef2ff;
+      --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+      --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      line-height: 1.6;
+      padding: 2rem 1.25rem 4rem;
+    }
+    .container {
+      max-width: 980px;
+      margin: 0 auto;
+    }
+    header {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-top: 4px solid var(--teal);
+      border-radius: 12px;
+      padding: 1.75rem 2rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+    }
+    .eyebrow {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--teal);
+      font-weight: 600;
+    }
+    h1 {
+      margin: 0.4rem 0 0.75rem;
+      font-size: 1.65rem;
+      line-height: 1.25;
+      letter-spacing: -0.02em;
+    }
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      margin-top: 0.75rem;
+    }
+    .badge {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 999px;
+      background: var(--teal-soft);
+      border: 1px solid var(--teal-border);
+      color: #115e59;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem 2rem;
+      margin-bottom: 1.25rem;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+    }
+    h2 {
+      margin-top: 0;
+      font-size: 1.2rem;
+      letter-spacing: -0.01em;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.55rem;
+      margin-bottom: 1rem;
+    }
+    h3 {
+      font-size: 1rem;
+      margin: 1.25rem 0 0.4rem;
+      color: #0f172a;
+    }
+    code {
+      font-family: var(--mono);
+      font-size: 0.84em;
+      background: #f1f5f9;
+      padding: 0.12rem 0.35rem;
+      border-radius: 4px;
+    }
+    .first-action {
+      background: var(--teal-soft);
+      border: 1px solid var(--teal-border);
+      border-left: 5px solid var(--teal);
+      border-radius: 10px;
+      padding: 1.15rem 1.35rem;
+      margin-top: 1.25rem;
+    }
+    .first-action strong {
+      color: #0f766e;
+    }
+    .clash-box {
+      background: var(--amber-soft);
+      border: 1px solid var(--amber-border);
+      border-left: 4px solid var(--amber);
+      border-radius: 8px;
+      padding: 0.9rem 1.15rem;
+      margin: 0.85rem 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+      margin-top: 0.5rem;
+    }
+    th, td {
+      text-align: left;
+      padding: 0.65rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    th {
+      background: #f8fafc;
+      font-weight: 600;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+    }
+    .pill-agree {
+      display: inline-block;
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      background: #dcfce7;
+      color: #166534;
+      font-weight: 600;
+    }
+    .pill-clash {
+      display: inline-block;
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      background: #fef3c7;
+      color: #92400e;
+      font-weight: 600;
+    }
+    details {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 0.75rem;
+      overflow: hidden;
+    }
+    summary {
+      cursor: pointer;
+      padding: 0.9rem 1.25rem;
+      font-weight: 600;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #fcfdfd;
+      list-style: none;
+    }
+    summary::-webkit-details-marker { display: none; }
+    summary:hover { background: #f1f5f9; }
+    .advisor-tag {
+      font-family: var(--mono);
+      font-size: 0.73rem;
+      padding: 0.18rem 0.55rem;
+      border-radius: 6px;
+      font-weight: 500;
+    }
+    .tag-contrarian { background: var(--rose-soft); color: var(--rose); }
+    .tag-fp { background: var(--indigo-soft); color: var(--indigo); }
+    .tag-exp { background: var(--teal-soft); color: #0f766e; }
+    .tag-out { background: var(--amber-soft); color: var(--amber); }
+    .tag-exec { background: #f1f5f9; color: #334155; }
+    .details-body {
+      padding: 1rem 1.25rem 1.25rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.92rem;
+    }
+    ul { padding-left: 1.25rem; margin: 0.5rem 0; }
+    li { margin-bottom: 0.45rem; }
+    footer {
+      margin-top: 2rem;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.8rem;
+      font-family: var(--mono);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="eyebrow">Karpathy 5-Advisor LLM Council + Blind Peer Review + Live Autoresearch</div>
+      <h1>UTP End-to-End Architecture Verdict: Modular Schema, Rootstock DAO POC &amp; Alpha-Net</h1>
+      <p style="margin:0;color:var(--muted);font-size:0.95rem;">
+        Deliberation across 4 Architecture Decisions (<code>D1–D4</code>) and 3 Execution Questions (<code>Q1–Q3</code>), grounded in live workspace, Supabase org, and Rootstock Testnet RPC verification.
+      </p>
+      <div class="meta-row">
+        <span class="badge">Branch: feat/superpowers-civic-auth</span>
+        <span class="badge">Bundle 23f70bf: 107/107 Web + 27/27 DB Verified</span>
+        <span class="badge">Contracts: 175/175 Hardhat Verified</span>
+        <span class="badge">RSK Chain 31 Block Time: 25.82s (eth_getLogs Disabled)</span>
+        <span class="badge">Supabase UTP Prod DB: Greenfield (0 Existing Projects)</span>
+      </div>
+    </header>
+
+    <section class="card">
+      <h2>1. The Question Brought to the Council</h2>
+      <p style="margin-top:0;font-size:0.93rem;color:var(--muted);">
+        How should UTP sequence and architect its database schema consolidation (<code>D1</code>), TypeScript DB access layer (<code>D2</code>), on-chain DAO indexing from Rootstock Testnet <code>31</code> to UTP Alpha-Net (<code>D3</code>), AI Data Chat interface (<code>D4</code>), <code>utp-first-cycle.bundle</code> integration + XSS remediation (<code>Q1</code>), L2 rollout track (<code>Q2</code>), and multi-signer governance parameters (<code>Q3</code>)?
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>2. Chairman's Verdict</h2>
+
+      <h3>Where the Council Agrees (5/5 Unanimous Signals)</h3>
+      <ul>
+        <li><strong>D2 → Option 2A (Zero-ORM <code>@supabase/supabase-js</code> + <code>@supabase/ssr</code> + CLI Generated Types):</strong> Every advisor rejected Drizzle/Kysely over direct TCP (<code>2B</code>). Direct TCP bypasses Postgres RLS unless every query manually sets JWT claims inside a transaction—where one missed wrapper leaks private civic votes—and requires unapproved npm dependencies for zero gain.</li>
+        <li><strong>D3 → Option 3A (<code>GovernorStorage</code> + <code>viem</code> <code>eth_call</code> Now; Ponder on Alpha-Net):</strong> Live probes at Rootstock block <code>8,282,078</code> proved public RPCs reject <code>eth_getLogs</code> (<code>-32601</code> / <code>code 19</code>), making Ponder (<code>3B</code>) non-viable today. OpenZeppelin <code>GovernorStorage</code> (already installed in <code>@openzeppelin/contracts@^5.0.0</code>) enumerates proposals deterministically via <code>eth_call</code>; Ponder attaches when <strong>UTP Alpha-Net</strong> launches with controlled sequencer logs.</li>
+        <li><strong>D4 → Option 4A (Defer LLM Data Chat; Strip <code>/api/debate</code> XSS &amp; Fake CBO Citations Today):</strong> All five advisors rejected shipping free-form LLM chat in the MVP. Interpolating user questions into <code>dangerouslySetInnerHTML</code> alongside fabricated Congressional Budget Office quotes is both an active XSS hole and a fatal trust defect. Deterministic source-grounded summaries + Postgres <code>TSVECTOR</code> search ship first.</li>
+        <li><strong>Q2 → Rootstock Testnet (<code>31</code>) DAO POC First → UTP Alpha-Net Second → Gated STARK/ML-DSA-65 Track in Parallel:</strong> Never block live civic &amp; DAO users on custom post-quantum rollup R&amp;D. Ship the EVM DAO POC on Rootstock Testnet (explicitly labeled Bitcoin-anchored EVM sidechain), promote to Alpha-Net via data config, and run Rust/STARK + ML-DSA-65 strictly behind gates <code>G0–G4</code>.</li>
+        <li><strong>Unify Split-Brain Auth &amp; Enforce Multi-Signer Governance (<code>Q3</code>):</strong> Eliminate the <code>Shared.tsx</code> Privy vs. Supabase Auth split, enforce 4 distinct roles (<code>Deployer</code> → <code>0</code> votes post-setup, <code>Voter A</code> <code>250k</code> + <code>Voter B</code> <code>250k</code> ≥ <code>400k</code> quorum, non-deployer <code>Guardian</code>), and provide a fast testnet <code>votingPeriod</code> override instead of waiting 21–26 hours per test run.</li>
+      </ul>
+
+      <h3>Where the Council Clashes (And How Live Evidence Resolves It)</h3>
+      <div class="clash-box">
+        <strong>D1 / Q1 Clash — Option 1A (Contrarian + First Principles + 4/5 Peer Reviewers) vs. Option 1B (Executor + Outsider + Expansionist):</strong><br/>
+        <strong>1A</strong> argued that because zero live UTP Supabase project exists yet, patching 18 colliding tables bakes permanent day-zero technical debt into a greenfield database. <strong>1B</strong> countered that rewriting <code>utp-first-cycle.bundle</code> (<code>23f70bf</code>) throws away 16 tested commits (verified live on <code>mbp-2023</code>: <code>107/107</code> web tests + <code>27/27</code> Postgres RLS tests passing).<br/><br/>
+        <strong>Synthesis Resolution:</strong> Live inspection proved the worst schema collisions live in root <code>supabase/migration.sql</code> (unused by <code>scripts/test-db.sh</code>). Unpacking <code>23f70bf</code> intact, archiving <code>supabase/migration.sql</code> to <code>archive/sql-legacy/</code>, and applying the canonical consolidation migration <em>before</em> creating the remote UTP Supabase project delivers <strong>both</strong> zero legacy table cruft on production day one <strong>and</strong> zero rewrite churn on the 134 passing tests.
+      </div>
+
+      <h3>Blind Spots Caught Only Through Blind Peer Review &amp; Live Testing</h3>
+      <ul>
+        <li><strong><code>ERC20Votes</code> Delegation Snapshot Trap (Peer Reviewer 1):</strong> <code>Voter A</code> and <code>Voter B</code> vote with <strong>zero weight</strong> unless each calls <code>token.delegate(self)</code> <em>before</em> <code>propose()</code> snapshots voting power. <code>distribute-testnet.cjs</code> and the E2E runbook must verify <code>getVotes() &gt;= 250,000e18</code> pre-proposal.</li>
+        <li><strong>Skip Fragile <code>service_role</code> Sync in MVP via a <code>DaoReader</code> Port (Peer Reviewers 1, 2, 3, 5):</strong> Writing <code>eth_call</code> results into RLS-locked <code>dao_proposals</code> without Ponder requires a privileged cron writer and reorg confirmation guards. Instead, read <code>GovernorStorage</code> directly behind a <code>DaoReader</code> TypeScript port with 15s Server-Component caching on Rootstock POC, while provisioning the <code>dao_proposals</code> table now for Alpha-Net Ponder.</li>
+        <li><strong>Off-Chain Ballot Privacy vs. Public On-Chain EOAs (Peer Reviewer 4):</strong> Publicly exposing <code>wallet_links</code> (<code>user_id ↔ address</code>) would de-anonymize private off-chain legislative <code>shadow_votes</code>. Keep <code>wallet_links</code> strictly owner-only RLS and never join <code>user_id</code> to wallet addresses in public views.</li>
+        <li><strong>Remove Privy Lock-In Using Existing <code>viem</code> SIWE (Peer Reviewers 2, 3, 5):</strong> <code>Providers.tsx:23</code> has a hardcoded Privy fallback ID while <code>23f70bf</code> already ships keyless <code>viem</code> EIP-4361 verification. Standardizing <code>TopBar</code> on Supabase Auth + standard <code>wagmi</code> injected wallets makes UTP 100% open-source forkable with zero proprietary auth keys.</li>
+        <li><strong>Faucet Stipends &amp; macOS <code>test-db.sh</code> Bugs (Peer Reviewer 5 + Live Scratch Run):</strong> Have <code>Deployer</code> forward <code>0.002 tRBTC</code> gas stipends to <code>Voter A</code>, <code>Voter B</code>, and <code>Guardian</code> to bypass faucet rate limits; patch <code>scripts/test-db.sh</code> for macOS Sequoia (<code>LC_ALL=C</code>, dynamic <code>PGBIN</code>, Bash 3.2 <code>${AS[@]+"${AS[@]}"}</code>).</li>
+      </ul>
+
+      <div class="first-action">
+        <strong>The One Thing to Do First:</strong> Authorize <strong>Wave 1 on <code>feat/superpowers-civic-auth</code></strong> — unpack <code>utp-first-cycle.bundle</code> (<code>23f70bf</code>) over the superseded raw OAuth files, apply the 3-line macOS <code>scripts/test-db.sh</code> fix + <code>/api/debate</code> XSS removal + Privy <code>TopBar</code> removal + canonical schema migration (<code>20261110000000_canonical_modular_schema.sql</code>), and verify <code>npm run ci:fast</code> (<code>107+</code> web, <code>175</code> contract tests) and <code>npm run test:db</code> (<code>27+</code> Postgres RLS tests) green in one atomic local commit before creating the dedicated <code>utp</code> Supabase project.
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>3. Advisor Alignment &amp; Clash Matrix</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Decision</th>
+            <th>Contrarian (B)</th>
+            <th>First Principles (E)</th>
+            <th>Expansionist (A)</th>
+            <th>Outsider (D)</th>
+            <th>Executor (C)</th>
+            <th>Status &amp; Final Call</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>D1: Schema</strong></td>
+            <td><code>1A</code> Clean 8-table</td>
+            <td><code>1A</code> Clean 8-table</td>
+            <td><code>1B</code> Unpack + forward</td>
+            <td><code>1B</code> Unpack + fix leaks</td>
+            <td><code>1B</code> Unpack + forward</td>
+            <td><span class="pill-clash">3–2 CLASH</span><br/><strong>Hybrid 1A/1B:</strong> Unpack <code>23f70bf</code>, archive <code>migration.sql</code>, land canonical schema pre-prod</td>
+          </tr>
+          <tr>
+            <td><strong>D2: DB Layer</strong></td>
+            <td><code>2A</code> Supabase RLS</td>
+            <td><code>2A</code> Supabase RLS</td>
+            <td><code>2A</code> PostgREST + RLS</td>
+            <td><code>2A</code> Zero-config RLS</td>
+            <td><code>2A</code> Installed SDK</td>
+            <td><span class="pill-agree">5–0 AGREE</span><br/><strong>2A</strong> + remove Privy split-brain</td>
+          </tr>
+          <tr>
+            <td><strong>D3: Indexing</strong></td>
+            <td><code>3A</code> + reorg guard</td>
+            <td><code>3A</code> Direct <code>eth_call</code></td>
+            <td><code>3A</code> → Ponder Alpha</td>
+            <td><code>3A</code> Instant tallies</td>
+            <td><code>3A</code> → Ponder Alpha</td>
+            <td><span class="pill-agree">5–0 AGREE</span><br/><strong>3A</strong> via <code>DaoReader</code> port (15s cache now, Ponder on Alpha-Net)</td>
+          </tr>
+          <tr>
+            <td><strong>D4: AI Chat</strong></td>
+            <td><code>4A</code> Kill XSS/chat</td>
+            <td><code>4A</code> Plain citations</td>
+            <td><code>4A</code> → MCP later</td>
+            <td><code>4A</code> Kill fake CBO</td>
+            <td><code>4A</code> Cut MVP chat</td>
+            <td><span class="pill-agree">5–0 AGREE</span><br/><strong>4A</strong> Strip XSS + fake citations; ship <code>TSVECTOR</code></td>
+          </tr>
+          <tr>
+            <td><strong>Q1: Bundle</strong></td>
+            <td>Salvage routes/tests</td>
+            <td>Port logic cleanly</td>
+            <td>Unpack + patch XSS</td>
+            <td>Unpack + unify login</td>
+            <td>Unpack + patch XSS</td>
+            <td><span class="pill-agree">CONVERGED</span><br/>Unpack <code>23f70bf</code> + fix <code>test-db.sh</code>, XSS &amp; Privy in Wave 1</td>
+          </tr>
+          <tr>
+            <td><strong>Q2: L2 Path</strong></td>
+            <td>RSK 31 → Alpha-Net</td>
+            <td>RSK 31 → Alpha-Net</td>
+            <td>RSK 31 → Alpha-Net</td>
+            <td>RSK 31 (plain labels)</td>
+            <td>RSK 31 → Alpha-Net</td>
+            <td><span class="pill-agree">5–0 AGREE</span><br/>RSK 31 DAO POC → UTP Alpha-Net → Gated STARK/PQ R&amp;D</td>
+          </tr>
+          <tr>
+            <td><strong>Q3: Signers</strong></td>
+            <td>4 EOAs, ~60 blk QA</td>
+            <td>4 EOAs, ~70 blk QA</td>
+            <td>3+ EOAs, dual preset</td>
+            <td>3+ EOAs, ~35 blk QA</td>
+            <td>4 EOAs, 120 blk QA</td>
+            <td><span class="pill-agree">5–0 AGREE</span><br/>4 distinct roles + pre-propose <code>delegate()</code> + <code>90</code>-blk QA override</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section style="margin-bottom:1.5rem;">
+      <h2 style="padding:0 0.25rem;border:none;margin-bottom:0.75rem;">4. Individual Advisor Responses &amp; Peer Review Highlights (Click to Expand)</h2>
+
+      <details>
+        <summary>
+          <span>Advisor 1 — The Contrarian (Anonymized as Response B · Voted Strongest by 2/5 Reviewers)</span>
+          <span class="advisor-tag tag-contrarian">Risk &amp; Failure Modes</span>
+        </summary>
+        <div class="details-body">
+          <p>The fatal flaw everyone is dodging is split-brain identity: client UI runs Privy while bundle APIs enforce Supabase Auth (<code>auth.uid()</code>). Until Privy is removed or bridged into Supabase JWTs, RLS rejects wallet users.</p>
+          <ul>
+            <li><strong>D1 (1A):</strong> Zero live database exists. Patching 18 colliding tables and a <code>poll_votes</code> privacy leak via <code>20261110000000_*.sql</code> bakes permanent debt into greenfield infrastructure just to save 16 unshipped commits. Ship 8 canonical tables first.</li>
+            <li><strong>D2 (2A):</strong> Direct-TCP ORMs require manual RLS transaction wrappers; one missed wrapper leaks ballots, and unapproved packages stall delivery.</li>
+            <li><strong>D3 (3A):</strong> 3B is dead (<code>eth_getLogs</code> returns <code>-32601</code> and <code>code 19</code>). <code>GovernorStorage</code> + <code>eth_call</code> works, but <code>dao_proposals</code> sync lacks confirmation guards against Rootstock reorgs.</li>
+            <li><strong>D4 (4A):</strong> Adding LLM chat to <code>/api/debate</code> alongside <code>dangerouslySetInnerHTML</code> XSS and fake CBO citations invites prompt-injected XSS and credibility ruin.</li>
+            <li><strong>Q1:</strong> Salvage <code>scripts/test-db.sh</code> and valid routes from <code>23f70bf</code>, drop colliding SQL and raw OAuth, fix XSS, and unify Privy/Supabase Auth first.</li>
+            <li><strong>Q2:</strong> Ship Rootstock 31 DAO first; gating MVP on custom STARK + ML-DSA-65 guarantees vaporware.</li>
+            <li><strong>Q3:</strong> Enforce 4 distinct EOAs (<code>Deployer</code>, <code>Voter A</code>, <code>Voter B</code>, <code>Guardian</code>), and parameterize short (~60-block) QA voting periods before one <code>3600</code>-block (<code>25.8h</code>) rehearsal.</li>
+          </ul>
+        </div>
+      </details>
+
+      <details>
+        <summary>
+          <span>Advisor 2 — The First Principles Thinker (Anonymized as Response E · Voted Strongest by 2/5 Reviewers)</span>
+          <span class="advisor-tag tag-fp">Ground-Truth Reduction</span>
+        </summary>
+        <div class="details-body">
+          <p>You are solving one problem: proving a citizen can authenticate, inspect real legislation, and cast a verifiable on-chain vote. Everything else is premature scaffolding. Fix the unasked flaw first: Privy in UI and Supabase Auth in APIs creates two competing identity roots. Make Supabase Auth canonical and bind one verified wallet per user first.</p>
+          <ul>
+            <li><strong>D1 (1A):</strong> Migrations exist to protect live data; you have zero production database. Patching 18 colliding tables (<code>1B</code>) bakes in day-zero tech debt. Write the 8 canonical tables cleanly.</li>
+            <li><strong>D2 (2A):</strong> Drizzle/Kysely (<code>2B</code>) bypasses native Postgres RLS just to rebuild auth wrappers in TypeScript. Use <code>@supabase/supabase-js</code> with generated types.</li>
+            <li><strong>D3 (3A):</strong> Logs are derivative, and Rootstock RPCs reject <code>eth_getLogs</code>. Contract storage is ground truth. Read <code>GovernorStorage</code> via <code>eth_call</code>; skip Ponder until scale demands it.</li>
+            <li><strong>D4 (4A):</strong> Hallucinated citations destroy civic trust. Delete <code>/api/debate</code> XSS and fake CBO claims; ship <code>TSVECTOR</code> search.</li>
+            <li><strong>Q1:</strong> Port <code>utp-first-cycle.bundle</code> app/auth logic onto the 8-table schema and patch <code>/api/debate</code> XSS immediately.</li>
+            <li><strong>Q2:</strong> Ship Rootstock 31 DAO first. Governance mechanics are orthogonal to STARK/ML-DSA-65 R&amp;D.</li>
+            <li><strong>Q3:</strong> Enforce the 4-role EOA split; set testnet <code>votingPeriod</code> to ~70 blocks (~30m) rather than waiting 25.8 hours.</li>
+          </ul>
+        </div>
+      </details>
+
+      <details>
+        <summary>
+          <span>Advisor 3 — The Expansionist (Anonymized as Response A · Flagged for Scope Creep by 5/5 Reviewers)</span>
+          <span class="advisor-tag tag-exp">10x Open-Source Upside</span>
+        </summary>
+        <div class="details-body">
+          <ul>
+            <li><strong>D1 (1B) &amp; Q1 (Unpack + Patch):</strong> Unpack <code>utp-first-cycle.bundle</code> onto <code>feat/superpowers-civic-auth</code>, patch <code>/api/debate</code>, and add the forward migration. Pairing <code>ocd_id</code> (Open Civic Data) with <code>chain_networks</code> and <code>dao_proposals</code> creates a forkable municipal-to-DAO standard any city can boot in one command.</li>
+            <li><strong>D2 (2A):</strong> Choose zero-ORM <code>@supabase/supabase-js</code> with generated TypeScript types and native RLS. PostgREST turns UTP's schema into an instant, permissioned public civic API.</li>
+            <li><strong>D3 (3A):</strong> Ship <code>GovernorStorage</code> + <code>viem</code> <code>eth_call</code> sync now, reserving Ponder for Alpha-Net. On-chain proposal enumeration makes governance verifiable from any IPFS frontend or community mirror without paid archive RPCs.</li>
+            <li><strong>D4 (4A → 4B):</strong> Ship deterministic summaries and <code>TSVECTOR</code> search now as an MCP-ready, citation-verified retrieval primitive so open-weight civic AI agents plug in cleanly right after MVP.</li>
+            <li><strong>Q2 &amp; Q3:</strong> Launch Rootstock 31 first to capture Bitcoin-ecosystem mindshare while Rust/STARK + ML-DSA-65 matures. Enforce the EOA split with fast-track vs constitutional presets.</li>
+          </ul>
+        </div>
+      </details>
+
+      <details>
+        <summary>
+          <span>Advisor 4 — The Outsider (Anonymized as Response D · Citizen &amp; Contributor Lens)</span>
+          <span class="advisor-tag tag-out">Zero-Jargon Citizen Lens</span>
+        </summary>
+        <div class="details-body">
+          <p>Real voters do not care about rollups or ORMs; they leave the moment login breaks, votes leak, or policy facts look fake.</p>
+          <ul>
+            <li><strong>D1 (1B) &amp; Q1:</strong> Unpack <code>utp-first-cycle.bundle</code> (<code>23f70bf</code>) with <code>scripts/test-db.sh</code>, patch <code>/api/debate</code> XSS and <code>poll_votes</code> privacy immediately, and unify the split Privy/Supabase login before shipping. Forcing a citizen through two disconnected logins destroys trust on screen one.</li>
+            <li><strong>D2 (2A):</strong> Use standard <code>@supabase/supabase-js</code>. Open-source contributors clone repos expecting zero-config setup and native RLS.</li>
+            <li><strong>D3 (3A):</strong> Use <code>GovernorStorage</code> + <code>eth_call</code>. Voters opening a ballot expect instant tallies, not blank screens from broken <code>eth_getLogs</code> endpoints.</li>
+            <li><strong>D4 (4A):</strong> Strip XSS and fake CBO citations today. One fabricated budget statistic permanently ruins civic credibility.</li>
+            <li><strong>Q2 &amp; Q3:</strong> Ship the working DAO now with honest, jargon-free labels; enforce separate signers and a fast ~15-minute testnet preset.</li>
+          </ul>
+        </div>
+      </details>
+
+      <details>
+        <summary>
+          <span>Advisor 5 — The Executor (Anonymized as Response C · Voted Strongest by 1/5 Reviewers)</span>
+          <span class="advisor-tag tag-exec">Monday-Morning Critical Path</span>
+        </summary>
+        <div class="details-body">
+          <ul>
+            <li><strong>D1 (1B):</strong> Never rewrite 16 working commits before landing them. Unpack <code>utp-first-cycle.bundle</code> (<code>23f70bf</code>), archive <code>supabase/migration.sql</code>, pass <code>scripts/test-db.sh</code> locally, then layer <code>20261110000000_*.sql</code> forward.</li>
+            <li><strong>D2 (2A):</strong> <code>@supabase/supabase-js</code> and <code>@supabase/ssr</code> are installed with native RLS. Unify auth on <code>@supabase/ssr</code> and remove conflicting Privy session paths.</li>
+            <li><strong>D3 (3A):</strong> Rootstock 31 rejects <code>eth_getLogs</code> (<code>-32601</code>, <code>code 19</code>). Use installed <code>@openzeppelin/contracts</code> <code>GovernorStorage</code> plus <code>viem</code> <code>eth_call</code>. Save Ponder for Alpha-Net.</li>
+            <li><strong>D4 (4A):</strong> Cut LLM chat from MVP. Strip <code>dangerouslySetInnerHTML</code> XSS and fake CBO citations in <code>/api/debate</code> now; ship <code>TSVECTOR</code> search.</li>
+            <li><strong>Q1–Q3:</strong> Unpack <code>23f70bf</code>, drop raw OAuth drafts, ship Rootstock 31 first, enforce distinct EOAs, and parameterize Testnet <code>votingPeriod</code> to <code>120</code> blocks (~52m).</li>
+          </ul>
+        </div>
+      </details>
+
+      <details>
+        <summary>
+          <span>Blind Peer Review Round — All 5 Reviewer Verdicts (Anonymized Mapping: A=Exp, B=Con, C=Exec, D=Out, E=FP)</span>
+          <span class="advisor-tag tag-fp">Karpathy Peer Review</span>
+        </summary>
+        <div class="details-body">
+          <ul>
+            <li><strong>Reviewer 1 (Risk):</strong> Strongest = <strong>B</strong> (Contrarian); Blind spot = <strong>A</strong> (Expansionist). <em>Caught:</em> <code>ERC20Votes</code> requires <code>delegate()</code> before <code>propose()</code> snapshot or 250k tokens vote zero; <code>dao_proposals</code> sync needs <code>service_role</code>.</li>
+            <li><strong>Reviewer 2 (Simplicity):</strong> Strongest = <strong>E</strong> (First Principles); Blind spot = <strong>A</strong>. <em>Caught:</em> Skip <code>dao_proposals</code> DB cron sync in MVP; read <code>GovernorStorage</code> directly via <code>eth_call</code> + HTTP cache until Alpha-Net Ponder.</li>
+            <li><strong>Reviewer 3 (Modularity):</strong> Strongest = <strong>E</strong> (<strong>B</strong> second); Blind spot = <strong>A</strong>. <em>Caught:</em> Replace Privy with installed <code>viem</code> EIP-4361 SIWE for keyless self-hosting; wrap <code>eth_call</code> behind a <code>DaoReader</code> adapter port.</li>
+            <li><strong>Reviewer 4 (Citizen Trust):</strong> Strongest = <strong>B</strong>; Blind spot = <strong>A</strong>. <em>Caught:</em> Publicly linking Supabase PII to <code>Governor</code> EOAs de-anonymizes off-chain civic ballots; keep <code>wallet_links</code> strictly owner-only RLS.</li>
+            <li><strong>Reviewer 5 (Velocity):</strong> Strongest = <strong>C</strong> (Executor); Blind spot = <strong>A</strong>. <em>Caught:</em> 4 Rootstock EOAs hit tRBTC faucet rate limits—forward gas stipends from <code>Deployer</code> during token distribution.</li>
+          </ul>
+        </div>
+      </details>
+    </section>
+
+    <footer>
+      Generated 2026-11-10T18:45:00-08:00 · Workspace: /Users/maysamtehranchi/Code/utp · Full transcript: docs/council/council-transcript-2026-11-10.md
+    </footer>
+  </div>
+</body>
+</html>
