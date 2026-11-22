@@ -41,63 +41,47 @@ describe('canonical modular schema & RLS baseline', () => {
     }
   });
 
-  it('denies anon reads on poll_votes, civic_proposal_votes, shadow_votes, and wallet_links while keeping owner-only SELECT', async () => {
+  it('keeps the vote ledger, voter links and wallet links private while tallies stay public', async () => {
     const [alice, bob] = await makeUsers(2);
-    const pollId = randomUUID();
-    const pollOptionId = randomUUID();
-    const proposalId = randomUUID();
-    const proposalOptionId = randomUUID();
     const billId = randomUUID();
     const wallet = addr();
     const n = nonce();
 
     await sql(`
-      INSERT INTO public.polls (id, topic, question) VALUES ('${pollId}', 'Fiscal', 'Balance federal budget?');
-      INSERT INTO public.poll_options (id, poll_id, option_text) VALUES ('${pollOptionId}', '${pollId}', 'Yes');
-      INSERT INTO public.civic_proposals (id, kind, proposer_id, title, category)
-        VALUES ('${proposalId}', 'community_proposal', '${alice}', 'Require open municipal contract ledger', 'Transparency');
-      INSERT INTO public.civic_proposal_options (id, proposal_id, option_key, option_text)
-        VALUES ('${proposalOptionId}', '${proposalId}', 'for', 'Support');
       INSERT INTO public.bills (id, external_id, bill_number, title, source_url)
         VALUES ('${billId}', '${billId}', 'HR-9001', 'Taxpayer Receipt Act', 'https://congress.gov/bill/hr9001');
     `);
 
     await sql(
       asUser(alice) +
-        `INSERT INTO public.poll_votes (poll_id, option_id, user_id) VALUES ('${pollId}', '${pollOptionId}', auth.uid());
-         INSERT INTO public.civic_proposal_votes (proposal_id, option_id, user_id) VALUES ('${proposalId}', '${proposalOptionId}', auth.uid());
-         INSERT INTO public.shadow_votes (bill_id, user_id, vote) VALUES ('${billId}', auth.uid(), 'for');
+        `SELECT public.cast_bill_vote('${billId}', 'for') \\g /dev/null
          SELECT public.create_wallet_challenge('${n}', 31, '${wallet}', 'utp.test') \\g /dev/null
          SELECT public.link_wallet('${n}', '${att(alice, 31, wallet, n)}', 'aal1') \\g /dev/null`,
     );
 
-    for (const privateTable of ['poll_votes', 'civic_proposal_votes', 'shadow_votes', 'wallet_links']) {
+    for (const privateTable of ['vote_events', 'vote_voter_links', 'wallet_links']) {
       await expect(sql(asAnon + `SELECT count(*) FROM public.${privateTable};`)).rejects.toThrow(
         /permission denied/,
       );
     }
+    // No signed-in user reads the ledger rows either, their own included.
+    await expect(sql(asUser(alice) + `SELECT count(*) FROM public.vote_events;`)).rejects.toThrow(/permission denied/);
 
-    // Bob cannot see Alice's private ballots or wallet links
-    expect(await sql(asUser(bob) + `SELECT count(*) FROM public.poll_votes WHERE poll_id = '${pollId}';`)).toEqual(['0']);
-    expect(
-      await sql(asUser(bob) + `SELECT count(*) FROM public.civic_proposal_votes WHERE proposal_id = '${proposalId}';`),
-    ).toEqual(['0']);
-    expect(await sql(asUser(bob) + `SELECT count(*) FROM public.shadow_votes WHERE bill_id = '${billId}';`)).toEqual([
-      '0',
-    ]);
+    // Bob cannot see Alice's vote link or wallet link
+    expect(await sql(asUser(bob) + `SELECT count(*) FROM public.vote_voter_links;`)).toEqual(['0']);
     expect(await sql(asUser(bob) + `SELECT count(*) FROM public.wallet_links WHERE address = '${wallet}';`)).toEqual([
       '0',
     ]);
 
-    // Alice sees her own ballots & link; public aggregate option count updates atomically
-    expect(await sql(asUser(alice) + `SELECT count(*) FROM public.poll_votes WHERE poll_id = '${pollId}';`)).toEqual([
-      '1',
-    ]);
+    // Alice sees her own link; the public tally updated in the same transaction
+    expect(await sql(asUser(alice) + `SELECT count(*) FROM public.vote_voter_links;`)).toEqual(['1']);
     expect(
-      await sql(asUser(alice) + `SELECT count(*) FROM public.civic_proposal_votes WHERE proposal_id = '${proposalId}';`),
-    ).toEqual(['1']);
-    expect(
-      await sql(asAnon + `SELECT vote_count FROM public.civic_proposal_options WHERE id = '${proposalOptionId}';`),
+      await sql(
+        asAnon +
+          `SELECT o.vote_count FROM public.civic_proposal_options o
+             JOIN public.civic_proposals p ON p.id = o.proposal_id
+            WHERE p.bill_id = '${billId}' AND o.option_key = 'for';`,
+      ),
     ).toEqual(['1']);
   });
 

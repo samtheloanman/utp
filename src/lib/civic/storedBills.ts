@@ -84,12 +84,15 @@ export async function getStoredBill(id: string, db: SupabaseClient = supabase): 
 
 export async function getTally(id: string, db: SupabaseClient = supabase): Promise<Tally> {
   const { data } = await db
-    .from('vote_aggregates')
-    .select('count_for,count_against,count_unsure,total_votes')
+    .from('civic_proposals')
+    .select('civic_proposal_options(option_key,vote_count)')
+    .eq('kind', 'bill_sentiment')
     .eq('bill_id', id)
     .maybeSingle();
-  const a = data as { count_for: number; count_against: number; count_unsure: number; total_votes: number } | null;
-  return { for: a?.count_for ?? 0, against: a?.count_against ?? 0, unsure: a?.count_unsure ?? 0, total: a?.total_votes ?? 0 };
+  const options = (data as { civic_proposal_options?: Array<{ option_key: string; vote_count: number }> } | null)?.civic_proposal_options ?? [];
+  const count = (key: string) => options.find((o) => o.option_key === key)?.vote_count ?? 0;
+  const tally = { for: count('for'), against: count('against'), unsure: count('unsure') };
+  return { ...tally, total: tally.for + tally.against + tally.unsure };
 }
 
 /** Whole-number shares; all zero when nobody has voted. */

@@ -83,6 +83,17 @@ describe('/api/propose', () => {
     expect(res.status).toBe(400);
   });
 
+  it('reads and writes community proposals on the ballot table', async () => {
+    const { POST, GET } = await load();
+    expect((await POST(post({ title: 'x' }) as never)).status).toBe(201);
+    expect(from).toHaveBeenLastCalledWith('civic_proposals');
+    // status and other control columns are left to the database
+    expect(insert.mock.calls[0][0]).not.toHaveProperty('status');
+    await GET(new Request('http://localhost/api/propose') as never);
+    expect(from).toHaveBeenLastCalledWith('civic_proposals');
+    expect(chain.eq).toHaveBeenCalledWith('kind', 'community_proposal');
+  });
+
   it('rejects a sourceUrl that is not http(s)', async () => {
     const { POST } = await load();
     for (const sourceUrl of ['javascript:alert(1)', 'ftp://x.test/a', 'not a url', 'data:text/html,hi']) {

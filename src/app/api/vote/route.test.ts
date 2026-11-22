@@ -3,9 +3,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const requireUser = vi.fn();
 vi.mock('@/lib/supabaseAuth/requireUser', () => ({ requireUser }));
 
-const upsert = vi.fn();
-const from = vi.fn(() => ({ upsert }));
-const createClient = vi.fn(() => ({ from }));
+const rpc = vi.fn();
+const createClient = vi.fn(() => ({ rpc }));
 vi.mock('@supabase/supabase-js', () => ({ createClient }));
 
 const BILL = '3f2b6c1e-8a4d-4c2b-9e1f-0a1b2c3d4e5f';
@@ -28,13 +27,11 @@ describe('POST /api/vote', () => {
   beforeEach(() => {
     vi.unstubAllEnvs();
     requireUser.mockReset();
-    upsert.mockReset().mockResolvedValue({ error: null });
-    from.mockClear();
+    rpc.mockReset().mockResolvedValue({ data: { event_seq: 7, row_hash: 'ab', changed: true }, error: null });
     createClient.mockClear();
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://example.supabase.co');
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY', 'anon-key');
     vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'service-key');
-    vi.stubEnv('IP_SALT', 'salt');
   });
 
   it('passes through 401 from requireUser', async () => {
@@ -52,45 +49,40 @@ describe('POST /api/vote', () => {
       const res = await POST(req(b) as never);
       expect(res.status).toBe(400);
     }
-    expect(upsert).not.toHaveBeenCalled();
+    expect(rpc).not.toHaveBeenCalled();
   });
 
-  it('upserts once with the session user, ignoring body user_id, using anon key + caller auth', async () => {
+  it('casts through the ledger function as the session user and returns the receipt', async () => {
     requireUser.mockResolvedValue({ user: { id: USER }, accessToken: 'tok' });
     const POST = await load();
     const res = await POST(req({ billId: BILL, vote: 'for', user_id: 'someone-else' }) as never);
     expect(res.status).toBe(200);
-    expect(upsert).toHaveBeenCalledTimes(1);
-    const [row, opts] = upsert.mock.calls[0];
-    expect(row.user_id).toBe(USER);
-    expect(row.bill_id).toBe(BILL);
-    expect(row.vote).toBe('for');
-    expect(opts).toEqual({ onConflict: 'bill_id,user_id' });
-    expect(createClient).toHaveBeenCalledTimes(1);
+    expect((await res.json()).receipt).toEqual({ event_seq: 7, row_hash: 'ab', changed: true });
+    expect(rpc).toHaveBeenCalledTimes(1);
+    // Only the bill and the choice are sent; the voter comes from the caller's token.
+    expect(rpc).toHaveBeenCalledWith('cast_bill_vote', { p_bill_id: BILL, p_vote: 'for' });
     const [, key, cOpts] = createClient.mock.calls[0] as unknown as [string, string, { global: { headers: Record<string, string> } }];
     expect(key).toBe('anon-key');
-    expect(key).not.toBe('service-key');
     expect(cOpts.global.headers.Authorization).toBe('Bearer tok');
+  });
+
+  it('answers 404 for a bill that is not stored and 409 when voting is closed', async () => {
+    requireUser.mockResolvedValue({ user: { id: USER }, accessToken: 'tok' });
+    const POST = await load();
+    rpc.mockResolvedValue({ data: null, error: { code: 'P0002', message: 'unknown bill' } });
+    expect((await POST(req({ billId: BILL, vote: 'for' }) as never)).status).toBe(404);
+    rpc.mockResolvedValue({ data: null, error: { code: 'P0001', message: 'ballot is not open' } });
+    expect((await POST(req({ billId: BILL, vote: 'for' }) as never)).status).toBe(409);
   });
 
   it('returns generic 500 without leaking DB error text', async () => {
     requireUser.mockResolvedValue({ user: { id: USER }, accessToken: 'tok' });
-    upsert.mockResolvedValue({ error: { message: 'relation secret_table violates policy' } });
+    rpc.mockResolvedValue({ data: null, error: { message: 'relation secret_table violates policy' } });
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const POST = await load();
     const res = await POST(req({ billId: BILL, vote: 'for' }) as never);
     expect(res.status).toBe(500);
     expect(await res.text()).not.toContain('secret_table');
     spy.mockRestore();
-  });
-
-  it('returns 503 in production when IP_SALT is unset', async () => {
-    vi.stubEnv('NODE_ENV', 'production');
-    vi.stubEnv('IP_SALT', '');
-    requireUser.mockResolvedValue({ user: { id: USER }, accessToken: 'tok' });
-    const POST = await load();
-    const res = await POST(req({ billId: BILL, vote: 'for' }) as never);
-    expect(res.status).toBe(503);
-    expect(upsert).not.toHaveBeenCalled();
   });
 });

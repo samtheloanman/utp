@@ -16,7 +16,7 @@ export function VotePanel({ issue, returnPath }: { issue: VoteTarget; returnPath
   const [busy, setBusy] = useState(false);
   const sample = issue.isSample === true;
 
-  // Show the vote this user already cast (row-level security returns only their own row).
+  // Show the vote this user already cast (the function answers for the caller only).
   useEffect(() => {
     if (sample) return;
     let active = true;
@@ -24,9 +24,8 @@ export function VotePanel({ issue, returnPath }: { issue: VoteTarget; returnPath
       const supabase = createClient();
       const { data } = await supabase.auth.getSession();
       if (!data.session) return;
-      const { data: row } = await supabase.from('shadow_votes').select('vote').eq('bill_id', issue.id).maybeSingle();
-      const cast = (row as { vote?: string } | null)?.vote;
-      if (active && cast) setVote((current) => current ?? cast);
+      const { data: cast } = await supabase.rpc('my_bill_vote', { p_bill_id: issue.id });
+      if (active && typeof cast === 'string') setVote((current) => current ?? cast);
     })().catch(() => { /* the panel still works without the earlier vote */ });
     return () => { active = false; };
   }, [issue.id, sample]);

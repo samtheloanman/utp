@@ -69,7 +69,7 @@ describe('stored bills', () => {
 
   it('reads one bill and its tally', async () => {
     expect((await getStoredBill(ID, db({ data: { ...ROW, jurisdictions: [{ name: 'SF' }] }, error: null })))?.place).toBe('SF');
-    expect(await getTally(ID, db({ data: { count_for: 3, count_against: 1, count_unsure: 0, total_votes: 4 } }))).toEqual({ for: 3, against: 1, unsure: 0, total: 4 });
+    expect(await getTally(ID, db({ data: { civic_proposal_options: [{ option_key: 'for', vote_count: 3 }, { option_key: 'against', vote_count: 1 }, { option_key: 'unsure', vote_count: 0 }] } }))).toEqual({ for: 3, against: 1, unsure: 0, total: 4 });
     expect(await getTally(ID, db({ data: null }))).toEqual({ for: 0, against: 0, unsure: 0, total: 0 });
   });
 

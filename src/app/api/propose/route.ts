@@ -68,18 +68,17 @@ export async function POST(req: NextRequest) {
   try {
     const client = createUserScopedClient(auth.accessToken);
     const { data, error } = await client
-      .from('voting_proposals')
+      .from('civic_proposals')
       .insert({
         title,
         description: description ?? '',
         source_url: sourceUrl,
         bias_score: bias ?? 'center',
         category: category ?? 'General',
-        status: 'active',
         proposer_id: auth.user.id,
         bill_id: billId,
       })
-      .select()
+      .select(PUBLIC_COLUMNS)
       .single();
 
     if (error) {
@@ -110,8 +109,9 @@ export async function GET(req: NextRequest) {
   const limit = Number.isFinite(parsed) && parsed > 0 ? Math.min(parsed, MAX_LIMIT) : DEFAULT_LIMIT;
 
   const { data, error } = await supabase
-    .from('voting_proposals')
+    .from('civic_proposals')
     .select(PUBLIC_COLUMNS)
+    .eq('kind', 'community_proposal')
     .eq('status', status)
     .order('created_at', { ascending: false })
     .limit(limit);
