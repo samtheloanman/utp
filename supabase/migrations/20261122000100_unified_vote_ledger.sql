@@ -11,6 +11,12 @@
 -- their current vote lives in vote_voter_links, which is deleted with the
 -- account while the ledger stays intact.
 --
+-- Each vote also carries a self-declared perspective cohort (global,
+-- in_country, displaced_diaspora). It is a statement by the voter, not a
+-- measurement: no IP address, location or identity document is stored. The
+-- cohort is part of each event's hash, and per-cohort tallies are audited
+-- against the ledger like the totals.
+--
 -- Replaces three overlapping vote families. The legacy tables are dropped
 -- only if they are empty; the migration aborts otherwise.
 
@@ -81,13 +87,30 @@ ALTER TABLE public.civic_proposals
     ADD COLUMN IF NOT EXISTS vote_change_allowed boolean NOT NULL DEFAULT true,
     ADD COLUMN IF NOT EXISTS opens_at timestamptz NOT NULL DEFAULT now(),
     ADD COLUMN IF NOT EXISTS closes_at timestamptz,
-    ADD COLUMN IF NOT EXISTS manual_lock boolean NOT NULL DEFAULT false;
+    ADD COLUMN IF NOT EXISTS manual_lock boolean NOT NULL DEFAULT false,
+    -- Translated text by language: {"fa": {"title": "...", "description": "..."}}.
+    -- Written by the server only; the original stays in title/description.
+    ADD COLUMN IF NOT EXISTS translations jsonb NOT NULL DEFAULT '{}'::jsonb
+        CHECK (jsonb_typeof(translations) = 'object');
+
+-- closes_at is the only deadline. expires_at was never read or written.
+ALTER TABLE public.civic_proposals DROP COLUMN IF EXISTS expires_at;
+ALTER TABLE public.civic_proposals
+    ADD CONSTRAINT civic_proposals_closes_after_opens CHECK (closes_at IS NULL OR closes_at > opens_at);
+
+-- Translated option text by language: {"fa": {"option_text": "..."}}.
+ALTER TABLE public.civic_proposal_options
+    ADD COLUMN IF NOT EXISTS translations jsonb NOT NULL DEFAULT '{}'::jsonb
+        CHECK (jsonb_typeof(translations) = 'object');
 
 CREATE INDEX IF NOT EXISTS idx_civic_proposals_bill ON public.civic_proposals (bill_id);
 -- One sentiment ballot per bill; one community proposal per source link.
 CREATE UNIQUE INDEX IF NOT EXISTS civic_proposals_bill_sentiment_key
     ON public.civic_proposals (bill_id) WHERE kind = 'bill_sentiment';
-CREATE UNIQUE INDEX IF NOT EXISTS civic_proposals_source_url_key
+-- An index of this name already exists with a wider predicate, so it is
+-- replaced rather than created only when missing.
+DROP INDEX IF EXISTS public.civic_proposals_source_url_key;
+CREATE UNIQUE INDEX civic_proposals_source_url_key
     ON public.civic_proposals (source_url) WHERE kind = 'community_proposal' AND source_url IS NOT NULL;
 
 -- A signed-in user may propose, but only sets the descriptive columns.
@@ -125,6 +148,10 @@ CREATE TRIGGER create_profile_for_user
     AFTER INSERT ON auth.users
     FOR EACH ROW EXECUTE FUNCTION private.create_profile_for_user();
 INSERT INTO public.user_profiles (id) SELECT id FROM auth.users ON CONFLICT (id) DO NOTHING;
+-- Profiles are now created only by the trigger above, so no API role inserts
+-- one (a self-inserted row could otherwise claim any identity_level).
+REVOKE INSERT ON public.user_profiles FROM anon, authenticated;
+DROP POLICY IF EXISTS "Users can insert own profile" ON public.user_profiles;
 
 -- 4. The ledger. ---------------------------------------------------------------
 CREATE TABLE public.vote_events (
@@ -135,6 +162,7 @@ CREATE TABLE public.vote_events (
     voter_commitment bytea NOT NULL,
     event_kind text NOT NULL CHECK (event_kind IN ('cast', 'supersede')),
     identity_level smallint NOT NULL DEFAULT 1,
+    cohort text NOT NULL DEFAULT 'global' CHECK (cohort IN ('global', 'in_country', 'displaced_diaspora')),
     prev_hash bytea NOT NULL,
     row_hash bytea NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
@@ -168,6 +196,7 @@ CREATE TABLE public.vote_voter_links (
     user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     voter_commitment bytea NOT NULL,
     current_option_id uuid NOT NULL,
+    current_cohort text NOT NULL DEFAULT 'global' CHECK (current_cohort IN ('global', 'in_country', 'displaced_diaspora')),
     last_event_seq bigint NOT NULL REFERENCES public.vote_events(seq),
     updated_at timestamptz NOT NULL DEFAULT now(),
     PRIMARY KEY (ballot_id, user_id)
@@ -180,21 +209,38 @@ GRANT SELECT ON public.vote_voter_links TO authenticated;
 CREATE POLICY "Users can view their own vote links" ON public.vote_voter_links
     FOR SELECT TO authenticated USING (user_id = (SELECT auth.uid()));
 
+-- Running tally per option and cohort. A row appears with the first vote for
+-- that pair; a missing row means zero. Changed only inside cast_vote().
+CREATE TABLE public.civic_proposal_option_cohorts (
+    proposal_id uuid NOT NULL,
+    option_id uuid NOT NULL,
+    cohort text NOT NULL CHECK (cohort IN ('global', 'in_country', 'displaced_diaspora')),
+    vote_count integer NOT NULL DEFAULT 0 CHECK (vote_count >= 0),
+    PRIMARY KEY (proposal_id, option_id, cohort),
+    FOREIGN KEY (option_id, proposal_id) REFERENCES public.civic_proposal_options (id, proposal_id) ON DELETE CASCADE
+);
+CREATE INDEX idx_civic_proposal_option_cohorts_option ON public.civic_proposal_option_cohorts (option_id, proposal_id);
+ALTER TABLE public.civic_proposal_option_cohorts ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.civic_proposal_option_cohorts FROM PUBLIC, anon, authenticated;
+GRANT SELECT ON public.civic_proposal_option_cohorts TO anon, authenticated;
+CREATE POLICY "Cohort tallies are publicly readable" ON public.civic_proposal_option_cohorts
+    FOR SELECT USING (true);
+
 -- 5. Hashing. -------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION private.vote_row_hash(
     p_prev bytea, p_id uuid, p_ballot uuid, p_option uuid, p_commitment bytea,
-    p_kind text, p_level smallint, p_at timestamptz
+    p_kind text, p_level smallint, p_cohort text, p_at timestamptz
 ) RETURNS bytea
 LANGUAGE sql STABLE SET search_path = pg_catalog AS $$
     SELECT extensions.digest(
         p_prev || convert_to(concat_ws('|',
-            p_id::text, p_ballot::text, p_option::text, encode(p_commitment, 'hex'), p_kind, p_level::text,
+            p_id::text, p_ballot::text, p_option::text, encode(p_commitment, 'hex'), p_kind, p_level::text, p_cohort,
             to_char(p_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')), 'UTF8'),
         'sha256')
 $$;
 
 -- 6. Casting a vote. ------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.cast_vote(p_ballot_id uuid, p_option_id uuid) RETURNS jsonb
+CREATE OR REPLACE FUNCTION public.cast_vote(p_ballot_id uuid, p_option_id uuid, p_cohort text DEFAULT 'global') RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public AS $$
 DECLARE
     v_uid uuid := auth.uid();
@@ -213,6 +259,9 @@ BEGIN
     IF v_uid IS NULL THEN
         RAISE EXCEPTION 'sign in to vote' USING ERRCODE = '28000';
     END IF;
+    IF p_cohort IS NULL OR p_cohort NOT IN ('global', 'in_country', 'displaced_diaspora') THEN
+        RAISE EXCEPTION 'cohort must be global, in_country or displaced_diaspora' USING ERRCODE = '22023';
+    END IF;
 
     -- One writer per ballot at a time, so the hash chain cannot fork.
     SELECT * INTO v_ballot FROM public.civic_proposals WHERE id = p_ballot_id FOR UPDATE;
@@ -229,10 +278,10 @@ BEGIN
 
     SELECT * INTO v_link FROM public.vote_voter_links WHERE ballot_id = p_ballot_id AND user_id = v_uid;
     IF FOUND THEN
-        IF v_link.current_option_id = p_option_id THEN
+        IF v_link.current_option_id = p_option_id AND v_link.current_cohort = p_cohort THEN
             SELECT * INTO v_event FROM public.vote_events WHERE seq = v_link.last_event_seq;
             RETURN jsonb_build_object(
-                'event_seq', v_event.seq, 'event_kind', v_event.event_kind, 'changed', false,
+                'event_seq', v_event.seq, 'event_kind', v_event.event_kind, 'changed', false, 'cohort', v_event.cohort,
                 'row_hash', encode(v_event.row_hash, 'hex'), 'prev_hash', encode(v_event.prev_hash, 'hex'),
                 'created_at', v_event.created_at);
         END IF;
@@ -244,38 +293,46 @@ BEGIN
 
     SELECT vote_hmac_key INTO v_key FROM private.ledger_settings WHERE id = 1;
     IF v_key IS NULL THEN
-        RAISE EXCEPTION 'vote ledger is not configured' USING ERRCODE = 'P0001';
+        -- Not the voter's fault and not a closed ballot: its own code, so the API can tell them apart.
+        RAISE EXCEPTION 'vote ledger is not configured' USING ERRCODE = '55000';
     END IF;
     v_commitment := extensions.hmac(
         convert_to(v_uid::text || ':' || p_ballot_id::text, 'UTF8'), convert_to(v_key, 'UTF8'), 'sha256');
     SELECT coalesce((SELECT identity_level FROM public.user_profiles WHERE id = v_uid), 1) INTO v_level;
 
-    v_hash := private.vote_row_hash(v_ballot.head_hash, v_id, p_ballot_id, p_option_id, v_commitment, v_kind, v_level, v_at);
+    v_hash := private.vote_row_hash(v_ballot.head_hash, v_id, p_ballot_id, p_option_id, v_commitment, v_kind, v_level, p_cohort, v_at);
     INSERT INTO public.vote_events
-        (id, ballot_id, option_id, voter_commitment, event_kind, identity_level, prev_hash, row_hash, created_at)
-    VALUES (v_id, p_ballot_id, p_option_id, v_commitment, v_kind, v_level, v_ballot.head_hash, v_hash, v_at)
+        (id, ballot_id, option_id, voter_commitment, event_kind, identity_level, cohort, prev_hash, row_hash, created_at)
+    VALUES (v_id, p_ballot_id, p_option_id, v_commitment, v_kind, v_level, p_cohort, v_ballot.head_hash, v_hash, v_at)
     RETURNING seq INTO v_seq;
 
     IF v_kind = 'supersede' THEN
         UPDATE public.civic_proposal_options SET vote_count = vote_count - 1 WHERE id = v_link.current_option_id;
+        UPDATE public.civic_proposal_option_cohorts SET vote_count = vote_count - 1
+         WHERE proposal_id = p_ballot_id AND option_id = v_link.current_option_id AND cohort = v_link.current_cohort;
     END IF;
     UPDATE public.civic_proposal_options SET vote_count = vote_count + 1 WHERE id = p_option_id;
+    INSERT INTO public.civic_proposal_option_cohorts AS t (proposal_id, option_id, cohort, vote_count)
+    VALUES (p_ballot_id, p_option_id, p_cohort, 1)
+    ON CONFLICT (proposal_id, option_id, cohort) DO UPDATE SET vote_count = t.vote_count + 1;
     UPDATE public.civic_proposals SET head_hash = v_hash WHERE id = p_ballot_id;
 
-    INSERT INTO public.vote_voter_links (ballot_id, user_id, voter_commitment, current_option_id, last_event_seq, updated_at)
-    VALUES (p_ballot_id, v_uid, v_commitment, p_option_id, v_seq, v_at)
+    INSERT INTO public.vote_voter_links
+        (ballot_id, user_id, voter_commitment, current_option_id, current_cohort, last_event_seq, updated_at)
+    VALUES (p_ballot_id, v_uid, v_commitment, p_option_id, p_cohort, v_seq, v_at)
     ON CONFLICT (ballot_id, user_id) DO UPDATE
         SET current_option_id = EXCLUDED.current_option_id,
+            current_cohort = EXCLUDED.current_cohort,
             last_event_seq = EXCLUDED.last_event_seq,
             updated_at = EXCLUDED.updated_at;
 
     RETURN jsonb_build_object(
-        'event_seq', v_seq, 'event_kind', v_kind, 'changed', true,
+        'event_seq', v_seq, 'event_kind', v_kind, 'changed', true, 'cohort', p_cohort,
         'row_hash', encode(v_hash, 'hex'), 'prev_hash', encode(v_ballot.head_hash, 'hex'), 'created_at', v_at);
 END $$;
 
 -- For / against / unsure on a stored bill; opens the bill's ballot on first use.
-CREATE OR REPLACE FUNCTION public.cast_bill_vote(p_bill_id uuid, p_vote text) RETURNS jsonb
+CREATE OR REPLACE FUNCTION public.cast_bill_vote(p_bill_id uuid, p_vote text, p_cohort text DEFAULT 'global') RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public AS $$
 DECLARE
     v_title text;
@@ -302,7 +359,7 @@ BEGIN
     IF NOT FOUND THEN
         RAISE EXCEPTION 'vote must be for, against or unsure' USING ERRCODE = '22023';
     END IF;
-    RETURN public.cast_vote(v_ballot, v_option);
+    RETURN public.cast_vote(v_ballot, v_option, p_cohort);
 END $$;
 
 -- The caller's current vote on a bill, or NULL.
@@ -331,7 +388,7 @@ BEGIN
     END IF;
     FOR e IN SELECT * FROM public.vote_events WHERE ballot_id = p_ballot_id ORDER BY seq LOOP
         IF e.prev_hash <> v_head OR e.row_hash <> private.vote_row_hash(
-               e.prev_hash, e.id, e.ballot_id, e.option_id, e.voter_commitment, e.event_kind, e.identity_level, e.created_at) THEN
+               e.prev_hash, e.id, e.ballot_id, e.option_id, e.voter_commitment, e.event_kind, e.identity_level, e.cohort, e.created_at) THEN
             RETURN false;
         END IF;
         v_head := e.row_hash;
@@ -339,29 +396,64 @@ BEGIN
     RETURN v_head = v_stored;
 END $$;
 
--- True when each option's stored count equals the number of voters whose latest event chose it.
+-- True when the ballot exists and every stored count, per option and per
+-- option and cohort, equals the number of voters whose latest event chose it.
 CREATE OR REPLACE FUNCTION public.verify_tallies(p_ballot_id uuid) RETURNS boolean
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, public AS $$
     WITH latest AS (
-        SELECT DISTINCT ON (voter_commitment) option_id
+        SELECT DISTINCT ON (voter_commitment) option_id, cohort
           FROM public.vote_events WHERE ballot_id = p_ballot_id
          ORDER BY voter_commitment, seq DESC
-    ), counted AS (
+    ), by_option AS (
         SELECT option_id, count(*) AS n FROM latest GROUP BY option_id
+    ), by_cohort AS (
+        SELECT option_id, cohort, count(*) AS n FROM latest GROUP BY option_id, cohort
+    ), stored_cohort AS (
+        SELECT option_id, cohort, vote_count FROM public.civic_proposal_option_cohorts WHERE proposal_id = p_ballot_id
     )
-    SELECT NOT EXISTS (
+    SELECT EXISTS (SELECT 1 FROM public.civic_proposals WHERE id = p_ballot_id)
+       AND NOT EXISTS (
         SELECT 1 FROM public.civic_proposal_options o
-          LEFT JOIN counted c ON c.option_id = o.id
+          LEFT JOIN by_option c ON c.option_id = o.id
          WHERE o.proposal_id = p_ballot_id AND o.vote_count <> coalesce(c.n, 0))
+       AND NOT EXISTS (
+        SELECT 1 FROM stored_cohort s
+          FULL JOIN by_cohort c USING (option_id, cohort)
+         WHERE coalesce(s.vote_count, 0) <> coalesce(c.n, 0))
 $$;
 
-REVOKE ALL ON FUNCTION public.cast_vote(uuid, uuid) FROM PUBLIC, anon;
-REVOKE ALL ON FUNCTION public.cast_bill_vote(uuid, text) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.cast_vote(uuid, uuid, text) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.cast_bill_vote(uuid, text, text) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.my_bill_vote(uuid) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.verify_ballot_chain(uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.verify_tallies(uuid) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.cast_vote(uuid, uuid) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.cast_bill_vote(uuid, text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.cast_vote(uuid, uuid, text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.cast_bill_vote(uuid, text, text) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.my_bill_vote(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.verify_ballot_chain(uuid) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.verify_tallies(uuid) TO anon, authenticated;
+
+-- 8. MAINTAIN (PostgreSQL 17+). --------------------------------------------------
+-- MAINTAIN lets a role LOCK, VACUUM or REINDEX a table. The earlier grants
+-- hotfix predates it, so API roles still hold it by default. Same shape as that
+-- hotfix: existing tables, then defaults for each role that creates tables.
+DO $$
+DECLARE
+    r text;
+BEGIN
+    IF current_setting('server_version_num')::int < 170000 THEN
+        RETURN;
+    END IF;
+    EXECUTE 'REVOKE MAINTAIN ON ALL TABLES IN SCHEMA public FROM anon, authenticated';
+    EXECUTE 'ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE MAINTAIN ON TABLES FROM anon, authenticated';
+    FOREACH r IN ARRAY ARRAY['postgres', 'supabase_admin'] LOOP
+        IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = r) THEN
+            BEGIN
+                EXECUTE format(
+                    'ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public REVOKE MAINTAIN ON TABLES FROM anon, authenticated', r);
+            EXCEPTION WHEN insufficient_privilege THEN
+                RAISE NOTICE 'default privileges for role % not changed: insufficient privilege', r;
+            END;
+        END IF;
+    END LOOP;
+END $$;

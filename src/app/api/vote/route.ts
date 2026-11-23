@@ -29,6 +29,11 @@ export async function POST(req: NextRequest) {
       const code = (error as { code?: string }).code;
       if (code === 'P0002') return NextResponse.json({ message: 'That bill is not stored here' }, { status: 404 });
       if (code === 'P0001') return NextResponse.json({ message: 'Voting on this bill is closed' }, { status: 409 });
+      if (code === '55000') {
+        // The ledger has no signing secret: a server fault, not a closed ballot.
+        console.error('vote ledger is not configured', { code });
+        return NextResponse.json({ message: 'Voting is temporarily unavailable' }, { status: 503 });
+      }
       console.error('vote failed', { code });
       return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
     }

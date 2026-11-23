@@ -75,6 +75,18 @@ describe('POST /api/vote', () => {
     expect((await POST(req({ billId: BILL, vote: 'for' }) as never)).status).toBe(409);
   });
 
+  it('answers 503 and logs when the ledger is not configured, instead of calling the ballot closed', async () => {
+    requireUser.mockResolvedValue({ user: { id: USER }, accessToken: 'tok' });
+    rpc.mockResolvedValue({ data: null, error: { code: '55000', message: 'vote ledger is not configured' } });
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const POST = await load();
+    const res = await POST(req({ billId: BILL, vote: 'for' }) as never);
+    expect(res.status).toBe(503);
+    expect((await res.json()).message).not.toMatch(/closed/i);
+    expect(spy).toHaveBeenCalledWith('vote ledger is not configured', { code: '55000' });
+    spy.mockRestore();
+  });
+
   it('returns generic 500 without leaking DB error text', async () => {
     requireUser.mockResolvedValue({ user: { id: USER }, accessToken: 'tok' });
     rpc.mockResolvedValue({ data: null, error: { message: 'relation secret_table violates policy' } });

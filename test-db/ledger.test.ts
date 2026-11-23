@@ -2,13 +2,16 @@ import { describe, it, expect } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { sql, asUser, asAnon, makeUsers, makeBill, upsertVote } from './psql';
 
-const vote = async (uid: string, bill: string, choice: string) =>
-  JSON.parse((await sql(asUser(uid) + `SELECT public.cast_bill_vote('${bill}', '${choice}');`))[0]);
+const vote = async (uid: string, bill: string, choice: string, cohort?: string) =>
+  JSON.parse((await sql(asUser(uid) + `SELECT public.cast_bill_vote('${bill}', '${choice}'${cohort ? `, '${cohort}'` : ''});`))[0]);
 const ballotOf = async (bill: string) =>
   (await sql(`SELECT id FROM public.civic_proposals WHERE kind = 'bill_sentiment' AND bill_id = '${bill}';`))[0];
 const tally = (bill: string) =>
   sql(`SELECT o.option_key || '=' || o.vote_count FROM public.civic_proposal_options o
         JOIN public.civic_proposals p ON p.id = o.proposal_id WHERE p.bill_id = '${bill}' ORDER BY o.sort_order;`);
+const cohortTally = (ballot: string) =>
+  sql(`SELECT o.option_key || '/' || c.cohort || '=' || c.vote_count FROM public.civic_proposal_option_cohorts c
+        JOIN public.civic_proposal_options o ON o.id = c.option_id WHERE c.proposal_id = '${ballot}' ORDER BY o.sort_order, c.cohort;`);
 const events = (ballot: string) =>
   sql(`SELECT event_kind FROM public.vote_events WHERE ballot_id = '${ballot}' ORDER BY seq;`);
 const verified = async (ballot: string) =>
@@ -51,7 +54,7 @@ describe('vote ledger', () => {
     const ballot = await ballotOf(bill);
     await sql(`UPDATE public.civic_proposals SET vote_change_allowed = false WHERE id = '${ballot}';`);
     await expect(vote(a, bill, 'against')).rejects.toThrow(/does not allow changing/);
-    for (const close of [`closes_at = now() - interval '1 second'`, `closes_at = NULL, status = 'closed'`, `status = 'active', opens_at = now() + interval '1 day'`]) {
+    for (const close of [`opens_at = now() - interval '2 seconds', closes_at = now() - interval '1 second'`, `closes_at = NULL, status = 'closed'`, `status = 'active', opens_at = now() + interval '1 day'`]) {
       await sql(`UPDATE public.civic_proposals SET ${close} WHERE id = '${ballot}';`);
       await expect(vote(b, bill, 'for')).rejects.toThrow(/not open/);
     }
@@ -139,10 +142,135 @@ describe('vote ledger', () => {
     expect(await verified(ballot)).toBe('true/true');
   });
 
-  it('creates a lowest-level profile for every new account', async () => {
+  it('creates a lowest-level profile for every new account, and lets no API role insert one', async () => {
     const [a] = await makeUsers(1);
     expect(await sql(`SELECT identity_level FROM public.user_profiles WHERE id = '${a}';`)).toEqual(['1']);
+    await sql(`DELETE FROM public.user_profiles WHERE id = '${a}';`);
+    await expect(sql(asUser(a) + `INSERT INTO public.user_profiles (id, identity_level) VALUES ('${a}', 3);`)).rejects.toThrow(/permission denied/);
+    await expect(sql(asUser(a) + `INSERT INTO public.user_profiles (id) VALUES ('${a}');`)).rejects.toThrow(/permission denied/);
+    await sql(`INSERT INTO public.user_profiles (id) VALUES ('${a}');`);
     await expect(sql(asUser(a) + `UPDATE public.user_profiles SET identity_level = 3;`)).rejects.toThrow(/permission denied/);
+  });
+});
+
+describe('perspective cohorts', () => {
+  it('records the declared cohort, defaults to global, and keeps a tally per cohort', async () => {
+    const [a, b, c] = await makeUsers(3);
+    const bill = await makeBill();
+    expect(await vote(a, bill, 'for')).toMatchObject({ event_kind: 'cast', cohort: 'global' });
+    expect(await vote(b, bill, 'for', 'in_country')).toMatchObject({ event_kind: 'cast', cohort: 'in_country' });
+    expect(await vote(c, bill, 'against', 'displaced_diaspora')).toMatchObject({ cohort: 'displaced_diaspora' });
+    const ballot = await ballotOf(bill);
+    expect(await tally(bill)).toEqual(['for=2', 'against=1', 'unsure=0']);
+    expect(await cohortTally(ballot)).toEqual(['for/global=1', 'for/in_country=1', 'against/displaced_diaspora=1']);
+    expect(await sql(`SELECT cohort FROM public.vote_events WHERE ballot_id = '${ballot}' ORDER BY seq;`)).toEqual(['global', 'in_country', 'displaced_diaspora']);
+    expect(await sql(asAnon + `SELECT sum(vote_count) FROM public.civic_proposal_option_cohorts WHERE proposal_id = '${ballot}';`)).toEqual(['3']);
+    expect(await verified(ballot)).toBe('true/true');
+  });
+
+  it('treats a change of cohort alone as a changed vote, and a repeat of both as no change', async () => {
+    const [a] = await makeUsers(1);
+    const bill = await makeBill();
+    await vote(a, bill, 'for');
+    const moved = await vote(a, bill, 'for', 'in_country');
+    expect(moved).toMatchObject({ event_kind: 'supersede', changed: true, cohort: 'in_country' });
+    expect(await vote(a, bill, 'for', 'in_country')).toMatchObject({ changed: false, cohort: 'in_country', row_hash: moved.row_hash });
+    const ballot = await ballotOf(bill);
+    expect(await tally(bill)).toEqual(['for=1', 'against=0', 'unsure=0']);
+    expect(await cohortTally(ballot)).toEqual(['for/global=0', 'for/in_country=1']);
+    await vote(a, bill, 'against', 'displaced_diaspora');
+    expect(await events(ballot)).toEqual(['cast', 'supersede', 'supersede']);
+    expect(await tally(bill)).toEqual(['for=0', 'against=1', 'unsure=0']);
+    expect(await cohortTally(ballot)).toEqual(['for/global=0', 'for/in_country=0', 'against/displaced_diaspora=1']);
+    expect(await sql(asUser(a) + `SELECT current_cohort FROM public.vote_voter_links WHERE ballot_id = '${ballot}';`)).toEqual(['displaced_diaspora']);
+    expect(await verified(ballot)).toBe('true/true');
+    await sql(`UPDATE public.civic_proposals SET vote_change_allowed = false WHERE id = '${ballot}';`);
+    await expect(vote(a, bill, 'against', 'global')).rejects.toThrow(/does not allow changing/);
+  });
+
+  it('rejects an unknown or null cohort and records nothing', async () => {
+    const [a] = await makeUsers(1);
+    const bill = await makeBill();
+    await expect(vote(a, bill, 'for', 'refugee')).rejects.toThrow(/cohort must be/);
+    await expect(sql(asUser(a) + `SELECT public.cast_bill_vote('${bill}', 'for', NULL);`)).rejects.toThrow(/cohort must be/);
+    expect(await sql(`SELECT count(*) FROM public.vote_events e JOIN public.civic_proposals p ON p.id = e.ballot_id WHERE p.bill_id = '${bill}';`)).toEqual(['0']);
+  });
+
+  it('detects a forged cohort tally and a forged cohort on an event', async () => {
+    const [a, b] = await makeUsers(2);
+    const bill = await makeBill();
+    await vote(a, bill, 'for', 'in_country');
+    await vote(b, bill, 'for');
+    const ballot = await ballotOf(bill);
+    expect(await verified(ballot)).toBe('true/true');
+    // Totals per option stay right; only the split between cohorts is forged.
+    await sql(`UPDATE public.civic_proposal_option_cohorts SET cohort = 'displaced_diaspora' WHERE proposal_id = '${ballot}' AND cohort = 'global';`);
+    expect(await verified(ballot)).toBe('true/false');
+    await sql(`UPDATE public.civic_proposal_option_cohorts SET cohort = 'global' WHERE proposal_id = '${ballot}' AND cohort = 'displaced_diaspora';`);
+    expect(await verified(ballot)).toBe('true/true');
+    await sql(`INSERT INTO public.civic_proposal_option_cohorts (proposal_id, option_id, cohort, vote_count)
+      SELECT proposal_id, id, 'global', 5 FROM public.civic_proposal_options WHERE proposal_id = '${ballot}' AND option_key = 'unsure';`);
+    expect(await verified(ballot)).toBe('true/false');
+    await sql(`DELETE FROM public.civic_proposal_option_cohorts c USING public.civic_proposal_options o
+      WHERE o.id = c.option_id AND c.proposal_id = '${ballot}' AND o.option_key = 'unsure';`);
+    await sql(`ALTER TABLE public.vote_events DISABLE TRIGGER vote_events_append_only;
+      UPDATE public.vote_events SET cohort = 'global' WHERE ballot_id = '${ballot}' AND cohort = 'in_country';
+      ALTER TABLE public.vote_events ENABLE TRIGGER vote_events_append_only;`);
+    expect(await verified(ballot)).toBe('false/false');
+  });
+
+  it('lets no API role write a cohort tally', async () => {
+    const [a] = await makeUsers(1);
+    const bill = await makeBill();
+    await vote(a, bill, 'for');
+    for (const stmt of [
+      `UPDATE public.civic_proposal_option_cohorts SET vote_count = 99;`,
+      `DELETE FROM public.civic_proposal_option_cohorts;`,
+      `INSERT INTO public.civic_proposal_option_cohorts (proposal_id, option_id, cohort) SELECT proposal_id, option_id, 'in_country' FROM public.civic_proposal_option_cohorts LIMIT 1;`,
+    ]) {
+      await expect(sql(asUser(a) + stmt)).rejects.toThrow(/permission denied/);
+    }
+  });
+});
+
+describe('ledger audit and configuration', () => {
+  it('reports a ballot that does not exist as unverified', async () => {
+    expect(await verified(randomUUID())).toBe('false/false');
+  });
+
+  it('raises its own error code when the signing secret is missing', async () => {
+    const [a] = await makeUsers(1);
+    const bill = await makeBill();
+    // One transaction, rolled back when the vote fails: other tests never see the secret gone.
+    const attempt = sql(`BEGIN; DELETE FROM private.ledger_settings; \\set VERBOSITY verbose\n` + asUser(a) + `SELECT public.cast_bill_vote('${bill}', 'for');`);
+    await expect(attempt).rejects.toThrow(/55000[\s\S]*not configured/);
+    expect(await sql(`SELECT count(*) FROM private.ledger_settings;`)).toEqual(['1']);
+  });
+});
+
+describe('ballot columns', () => {
+  it('has one deadline column, and refuses a ballot that closes before it opens', async () => {
+    expect(await sql(`SELECT count(*) FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'civic_proposals' AND column_name = 'expires_at';`)).toEqual(['0']);
+    await expect(sql(`INSERT INTO public.civic_proposals (title, opens_at, closes_at) VALUES ('Closes before it opens', now(), now() - interval '1 hour');`)).rejects.toThrow(/civic_proposals_closes_after_opens/);
+  });
+
+  it('keeps translations as an object that only the server writes', async () => {
+    const [a] = await makeUsers(1);
+    const id = randomUUID();
+    await sql(`INSERT INTO public.civic_proposals (id, title, proposer_id) VALUES ('${id}', 'Open the budget books', '${a}');`);
+    expect(await sql(asAnon + `SELECT translations::text FROM public.civic_proposals WHERE id = '${id}';`)).toEqual(['{}']);
+    expect(await sql(asAnon + `SELECT DISTINCT translations::text FROM public.civic_proposal_options WHERE proposal_id = '${id}';`)).toEqual(['{}']);
+    await sql(`UPDATE public.civic_proposals SET translations = '{"fa": {"title": "t"}}' WHERE id = '${id}';
+      UPDATE public.civic_proposal_options SET translations = '{"fa": {"option_text": "o"}}' WHERE proposal_id = '${id}';`);
+    await expect(sql(`UPDATE public.civic_proposals SET translations = '[]' WHERE id = '${id}';`)).rejects.toThrow(/check constraint/);
+    await expect(sql(`UPDATE public.civic_proposal_options SET translations = '"fa"' WHERE proposal_id = '${id}';`)).rejects.toThrow(/check constraint/);
+    await expect(sql(asUser(a) + `INSERT INTO public.civic_proposals (title, proposer_id, translations) VALUES ('Publish the contract ledger', '${a}', '{"fa": {"title": "x"}}');`)).rejects.toThrow(/permission denied/);
+  });
+
+  it('keeps a source link unique among community proposals only', async () => {
+    const url = `https://example.test/${randomUUID()}`;
+    await sql(`INSERT INTO public.civic_proposals (title, source_url, kind) VALUES ('Data poll one', '${url}', 'data_poll'), ('Data poll two', '${url}', 'data_poll'), ('Community proposal', '${url}', 'community_proposal');`);
+    await expect(sql(`INSERT INTO public.civic_proposals (title, source_url) VALUES ('Second community proposal', '${url}');`)).rejects.toThrow(/civic_proposals_source_url_key/);
   });
 });
 

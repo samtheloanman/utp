@@ -3,6 +3,8 @@ import { supabase } from '@/lib/supabase';
 import { requireUser } from '@/lib/supabaseAuth/requireUser';
 import { createUserScopedClient } from '@/lib/supabaseAuth/userClient';
 
+// The table requires a title of at least 5 characters once trimmed.
+const MIN_TITLE = 5;
 const MAX_TITLE = 200;
 const MAX_DESCRIPTION = 2000;
 const MAX_URL = 2048;
@@ -46,8 +48,8 @@ export async function POST(req: NextRequest) {
   const b = (body && typeof body === 'object' ? body : {}) as Record<string, unknown>;
 
   const title = typeof b.title === 'string' ? b.title.trim() : '';
-  if (!title || title.length > MAX_TITLE) {
-    return NextResponse.json({ error: `Title is required (1-${MAX_TITLE} characters)` }, { status: 400 });
+  if (title.length < MIN_TITLE || title.length > MAX_TITLE) {
+    return NextResponse.json({ error: `Title is required (${MIN_TITLE}-${MAX_TITLE} characters)` }, { status: 400 });
   }
 
   const sourceUrl = optionalString(b.sourceUrl, MAX_URL);

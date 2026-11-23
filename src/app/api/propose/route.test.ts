@@ -51,7 +51,7 @@ describe('/api/propose', () => {
   it('POST without auth returns 401 and touches no DB', async () => {
     requireUser.mockResolvedValue({ error: Response.json({ message: 'Unauthorized' }, { status: 401 }) });
     const { POST } = await load();
-    const res = await POST(post({ title: 'x' }) as never);
+    const res = await POST(post({ title: 'Fix the roads' }) as never);
     expect(res.status).toBe(401);
     expect(insert).not.toHaveBeenCalled();
   });
@@ -66,26 +66,35 @@ describe('/api/propose', () => {
     expect(insert).not.toHaveBeenCalled();
   });
 
+  it('rejects a title shorter than 5 characters once trimmed, which the table would refuse', async () => {
+    const { POST } = await load();
+    for (const title of ['x', 'abcd', '  abcd  ']) {
+      expect((await POST(post({ title }) as never)).status).toBe(400);
+    }
+    expect(insert).not.toHaveBeenCalled();
+    expect((await POST(post({ title: 'abcde' }) as never)).status).toBe(201);
+  });
+
   it('stores the bill a proposal is about, and rejects a billId that is not a UUID', async () => {
     const { POST } = await load();
     const BILL = '3f2b6c1e-8a4d-4c2b-9e1f-0a1b2c3d4e5f';
-    expect((await POST(post({ title: 'x', billId: BILL }) as never)).status).toBe(201);
+    expect((await POST(post({ title: 'Fix the roads', billId: BILL }) as never)).status).toBe(201);
     expect(insert).toHaveBeenLastCalledWith(expect.objectContaining({ bill_id: BILL }));
     insert.mockClear();
-    expect((await POST(post({ title: 'x', billId: 'not-a-bill' }) as never)).status).toBe(400);
+    expect((await POST(post({ title: 'Fix the roads', billId: 'not-a-bill' }) as never)).status).toBe(400);
     expect(insert).not.toHaveBeenCalled();
   });
 
   it('answers 400 when the bill does not exist', async () => {
     single.mockResolvedValue({ data: null, error: { code: '23503' } });
     const { POST } = await load();
-    const res = await POST(post({ title: 'x', billId: '3f2b6c1e-8a4d-4c2b-9e1f-0a1b2c3d4e5f' }) as never);
+    const res = await POST(post({ title: 'Fix the roads', billId: '3f2b6c1e-8a4d-4c2b-9e1f-0a1b2c3d4e5f' }) as never);
     expect(res.status).toBe(400);
   });
 
   it('reads and writes community proposals on the ballot table', async () => {
     const { POST, GET } = await load();
-    expect((await POST(post({ title: 'x' }) as never)).status).toBe(201);
+    expect((await POST(post({ title: 'Fix the roads' }) as never)).status).toBe(201);
     expect(from).toHaveBeenLastCalledWith('civic_proposals');
     // status and other control columns are left to the database
     expect(insert.mock.calls[0][0]).not.toHaveProperty('status');
@@ -97,7 +106,7 @@ describe('/api/propose', () => {
   it('rejects a sourceUrl that is not http(s)', async () => {
     const { POST } = await load();
     for (const sourceUrl of ['javascript:alert(1)', 'ftp://x.test/a', 'not a url', 'data:text/html,hi']) {
-      const res = await POST(post({ title: 'T', sourceUrl }) as never);
+      const res = await POST(post({ title: 'Fix the roads', sourceUrl }) as never);
       expect(res.status).toBe(400);
     }
     expect(insert).not.toHaveBeenCalled();
@@ -106,7 +115,7 @@ describe('/api/propose', () => {
   it('maps a unique violation on source_url to 409', async () => {
     single.mockResolvedValue({ data: null, error: { code: '23505', message: 'duplicate key' } });
     const { POST } = await load();
-    const res = await POST(post({ title: 'T', sourceUrl: 'https://example.test/a' }) as never);
+    const res = await POST(post({ title: 'Fix the roads', sourceUrl: 'https://example.test/a' }) as never);
     expect(res.status).toBe(409);
   });
 
@@ -136,7 +145,7 @@ describe('/api/propose', () => {
     single.mockResolvedValue({ data: null, error: { code: 'XX000', message: 'secret_table exploded' } });
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const { POST } = await load();
-    const res = await POST(post({ title: 'T' }) as never);
+    const res = await POST(post({ title: 'Fix the roads' }) as never);
     expect(res.status).toBe(500);
     expect(await res.text()).not.toContain('secret_table');
     spy.mockRestore();

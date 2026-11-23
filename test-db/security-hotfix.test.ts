@@ -28,10 +28,12 @@ describe('security hotfix: API-role grants and draft visibility', () => {
   it('gives API roles no write privilege on a table created afterwards', async () => {
     const t = `grant_probe_${randomUUID().replace(/-/g, '').slice(0, 8)}`;
     await sql(`CREATE TABLE public.${t} (id uuid PRIMARY KEY DEFAULT gen_random_uuid());`);
+    // MAINTAIN (LOCK, VACUUM, REINDEX) exists from PostgreSQL 17.
+    const maintain = Number((await sql(`SHOW server_version_num;`))[0]) >= 170000 ? `, 'MAINTAIN'` : '';
     try {
       const held = await sql(`
         SELECT r || ':' || p FROM unnest(ARRAY['anon', 'authenticated']) r,
-               unnest(ARRAY['INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER']) p
+               unnest(ARRAY['INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER'${maintain}]) p
          WHERE has_table_privilege(r, 'public.${t}', p) ORDER BY 1;`);
       expect(held).toEqual([]);
     } finally {
