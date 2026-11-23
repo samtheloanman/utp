@@ -133,6 +133,14 @@ CREATE TRIGGER civic_proposals_default_options
     FOR EACH ROW WHEN (NEW.kind IN ('bill_sentiment', 'community_proposal'))
     EXECUTE FUNCTION private.add_default_ballot_options();
 
+-- Options are readable only where their proposal is: a draft's answer text
+-- stays with its proposer. The subquery runs under the caller's own
+-- row-level security on civic_proposals.
+DROP POLICY IF EXISTS "Civic proposal options are publicly readable" ON public.civic_proposal_options;
+DROP POLICY IF EXISTS "Options of readable proposals are readable" ON public.civic_proposal_options;
+CREATE POLICY "Options of readable proposals are readable" ON public.civic_proposal_options
+    FOR SELECT USING (EXISTS (SELECT 1 FROM public.civic_proposals p WHERE p.id = proposal_id));
+
 -- 3. Profiles: every account gets one. ---------------------------------------
 ALTER TABLE public.user_profiles
     ADD COLUMN IF NOT EXISTS identity_level smallint NOT NULL DEFAULT 1 CHECK (identity_level BETWEEN 1 AND 3);
@@ -223,8 +231,8 @@ CREATE INDEX idx_civic_proposal_option_cohorts_option ON public.civic_proposal_o
 ALTER TABLE public.civic_proposal_option_cohorts ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.civic_proposal_option_cohorts FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON public.civic_proposal_option_cohorts TO anon, authenticated;
-CREATE POLICY "Cohort tallies are publicly readable" ON public.civic_proposal_option_cohorts
-    FOR SELECT USING (true);
+CREATE POLICY "Cohort tallies of readable proposals are readable" ON public.civic_proposal_option_cohorts
+    FOR SELECT USING (EXISTS (SELECT 1 FROM public.civic_proposals p WHERE p.id = proposal_id));
 
 -- 5. Hashing. -------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION private.vote_row_hash(

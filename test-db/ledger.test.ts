@@ -267,6 +267,23 @@ describe('ballot columns', () => {
     await expect(sql(asUser(a) + `INSERT INTO public.civic_proposals (title, proposer_id, translations) VALUES ('Publish the contract ledger', '${a}', '{"fa": {"title": "x"}}');`)).rejects.toThrow(/permission denied/);
   });
 
+  it('shows the options of a draft proposal to its proposer only', async () => {
+    const [author, other] = await makeUsers(2);
+    const [draft, live] = [randomUUID(), randomUUID()];
+    await sql(`INSERT INTO public.civic_proposals (id, proposer_id, title, status) VALUES
+      ('${draft}', '${author}', 'Draft: unreviewed AI poll', 'draft'), ('${live}', '${author}', 'Open the budget books', 'active');`);
+    const seen = (who: string, id: string) => sql(who + `SELECT count(*) FROM public.civic_proposal_options WHERE proposal_id = '${id}';`);
+    expect(await seen(asAnon, live)).toEqual(['3']);
+    expect(await seen(asAnon, draft)).toEqual(['0']);
+    expect(await seen(asUser(other), draft)).toEqual(['0']);
+    expect(await seen(asUser(author), draft)).toEqual(['3']);
+    await sql(`INSERT INTO public.civic_proposal_option_cohorts (proposal_id, option_id, cohort)
+      SELECT proposal_id, id, 'global' FROM public.civic_proposal_options WHERE proposal_id = '${draft}';`);
+    const tallies = (who: string) => sql(who + `SELECT count(*) FROM public.civic_proposal_option_cohorts WHERE proposal_id = '${draft}';`);
+    expect(await tallies(asAnon)).toEqual(['0']);
+    expect(await tallies(asUser(author))).toEqual(['3']);
+  });
+
   it('keeps a source link unique among community proposals only', async () => {
     const url = `https://example.test/${randomUUID()}`;
     await sql(`INSERT INTO public.civic_proposals (title, source_url, kind) VALUES ('Data poll one', '${url}', 'data_poll'), ('Data poll two', '${url}', 'data_poll'), ('Community proposal', '${url}', 'community_proposal');`);
