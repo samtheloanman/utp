@@ -37,7 +37,7 @@ All new and modified `.ts`/`.tsx`/`.js`/`.mjs` and `.py` files MUST pass `.githo
 | Wallet / Web3 | Privy + Wagmi + Viem + generated ABIs (`npm run compile`) | hand-edited ABI JSON or raw untyped RPC calls |
 | Database | Typed `@supabase/supabase-js` client in `src/lib/` | string-concatenated SQL or client-side service role keys |
 | HTTP calls | `fetch` with explicit timeout (`AbortSignal.timeout`) + `res.ok` check | unbounded `fetch` ignoring non-2xx responses |
-| Smart Contracts | Solidity `0.8.33` + OpenZeppelin v5 + Hardhat tests | deploying untested contract edits or skipping ABI sync |
+| Smart Contracts | Solidity `0.8.24` + OpenZeppelin v5 + Hardhat tests | deploying untested contract edits or skipping ABI sync |
 
 ## 5. Testing & Verification Standards
 
@@ -49,7 +49,7 @@ All new and modified `.ts`/`.tsx`/`.js`/`.mjs` and `.py` files MUST pass `.githo
 
 - **Silent assumptions:** State ambiguous assumptions and tradeoffs before coding.
 - **Drive-by refactoring (Surgical Changes Only):** Touch only lines required for the task; never reformat or rewrite unrelated legacy code.
-- **Hallucinated APIs:** Verify every imported symbol against `package.json` / `package-lock.json` and `requirements.txt`.
+- **Hallucinated APIs:** Verify every imported symbol against `package.json` / `package-lock.json` and `congress_connector/requirements.txt` / `scripts/requirements.txt`.
 - **Speculative abstractions:** No unused flags, factories, or `_v2` toggles without a current caller.
 - **Silent fallbacks:** Never swallow exceptions or return hardcoded `{ ok: true }` stubs on failure.
 

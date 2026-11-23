@@ -1,6 +1,6 @@
 # UTP — Agent Entry Point
 
-Civic governance & transparency web platform with smart contracts and congressional data connectors. Stack: Next.js 15 (App Router in `src/app/`, React 19, TypeScript 5.9), Tailwind CSS, Supabase, Privy + Wagmi + Viem, Hardhat Solidity (`contracts/`, `solc 0.8.33`, OpenZeppelin v5), Vitest, ESLint 9, Python (`congress_connector/`, `scripts/`).
+Civic governance & transparency web platform with smart contracts and congressional data connectors. Stack: Next.js 15 (App Router in `src/app/`, React 19, TypeScript 5.9), Tailwind CSS, Supabase, Privy + Wagmi + Viem, Hardhat Solidity (`contracts/`, `solc 0.8.24`, OpenZeppelin v5), Vitest, ESLint 9, Python (`congress_connector/`, `scripts/`).
 
 ## Commands (Verified)
 

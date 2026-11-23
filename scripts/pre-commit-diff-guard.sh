@@ -49,18 +49,69 @@ for f in "${STAGED_FILES[@]}"; do
   esac
 done
 
-if [[ ${#TS_FILES[@]} -gt 0 ]] && [[ -x "$REPO_ROOT/node_modules/.bin/eslint" ]]; then
-  if [[ -d "$REPO_ROOT/node_modules/@typescript-eslint" || -d "$REPO_ROOT/node_modules/typescript-eslint" ]]; then
-    "$REPO_ROOT/node_modules/.bin/eslint" --no-warn-ignored \
+run_eslint_in() {
+  local base_dir="$1"
+  shift
+  local eslint_bin="$base_dir/node_modules/.bin/eslint"
+  if [[ -d "$base_dir/node_modules/@typescript-eslint" || -d "$base_dir/node_modules/typescript-eslint" ]]; then
+    (cd "$base_dir" && "$eslint_bin" --no-warn-ignored \
       --rule '@typescript-eslint/no-explicit-any: error' \
       --rule '@typescript-eslint/no-unused-vars: [error, {argsIgnorePattern: ^_, varsIgnorePattern: ^_, caughtErrorsIgnorePattern: ^_}]' \
       --rule 'no-empty: [error, {allowEmptyCatch: false}]' \
-      "${TS_FILES[@]}"
+      "$@")
   else
-    "$REPO_ROOT/node_modules/.bin/eslint" --no-warn-ignored \
+    (cd "$base_dir" && "$eslint_bin" --no-warn-ignored \
       --rule 'no-unused-vars: [error, {argsIgnorePattern: ^_, varsIgnorePattern: ^_, caughtErrorsIgnorePattern: ^_}]' \
       --rule 'no-empty: [error, {allowEmptyCatch: false}]' \
-      "${TS_FILES[@]}"
+      "$@")
+  fi
+}
+
+FALLBACK_TS_FILES=()
+if [[ ${#TS_FILES[@]} -gt 0 ]]; then
+  if [[ -x "$REPO_ROOT/node_modules/.bin/eslint" ]]; then
+    run_eslint_in "$REPO_ROOT" "${TS_FILES[@]}"
+  elif [[ -x "$REPO_ROOT/web/node_modules/.bin/eslint" ]]; then
+    WEB_TS_FILES=()
+    for f in "${TS_FILES[@]}"; do
+      if [[ "$f" == web/* ]]; then
+        WEB_TS_FILES+=("${f#web/}")
+      else
+        FALLBACK_TS_FILES+=("$f")
+      fi
+    done
+    if [[ ${#WEB_TS_FILES[@]} -gt 0 ]]; then
+      run_eslint_in "$REPO_ROOT/web" "${WEB_TS_FILES[@]}"
+    fi
+  else
+    FALLBACK_TS_FILES=("${TS_FILES[@]}")
+  fi
+fi
+
+# Deterministic fallback when ESLint is not installed (e.g., repos without ESLint or fresh worktrees)
+if [[ ${#FALLBACK_TS_FILES[@]} -gt 0 ]]; then
+  if git diff --cached -U0 -- "${FALLBACK_TS_FILES[@]}" \
+    | grep -E '^\+[^+]' \
+    | grep -Ev '^\+[[:space:]]*(//|\*)' \
+    | grep -Eq 'catch[[:space:]]*(\([^)]*\))?[[:space:]]*\{[[:space:]]*\}'; then
+    echo "[pre-commit] FAIL: Empty catch {} block detected in staged TS/JS diff. Log with context, handle, or rethrow." >&2
+    exit 1
+  fi
+
+  FALLBACK_TS_ONLY=()
+  for f in "${FALLBACK_TS_FILES[@]}"; do
+    case "$f" in
+      *.ts|*.tsx) FALLBACK_TS_ONLY+=("$f") ;;
+    esac
+  done
+  if [[ ${#FALLBACK_TS_ONLY[@]} -gt 0 ]]; then
+    if git diff --cached -U0 -- "${FALLBACK_TS_ONLY[@]}" \
+      | grep -E '^\+[^+]' \
+      | grep -Ev '^\+[[:space:]]*(//|\*)' \
+      | grep -Eq '(:[[:space:]]*any([^A-Za-z0-9_]|$)|[^A-Za-z0-9_]as[[:space:]]+any([^A-Za-z0-9_]|$))'; then
+      echo "[pre-commit] FAIL: Explicit 'any' detected in staged TypeScript diff. Use 'unknown' + narrowing/validators." >&2
+      exit 1
+    fi
   fi
 fi
 
