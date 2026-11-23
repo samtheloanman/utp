@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+if [[ -x "$REPO_ROOT/scripts/pre-commit-diff-guard.sh" ]]; then
+  PATH="/opt/homebrew/bin:$PATH" bash "$REPO_ROOT/scripts/pre-commit-diff-guard.sh"
+fi

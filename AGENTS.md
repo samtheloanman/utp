@@ -1,130 +1,44 @@
----
-ijfw_version: 1.3.2
-ijfw_schema: 1
-type: software
-primary_type: software
-secondary_types:
-  - content
-confidence: 0.898
-detected_at: 2026-08-10T07:48:43.176Z
-signals:
-  - kind: manifest
-    weight: 0.9
-    manifests: [package.json, package.json, package.json, package.json, package.json, package.json]
-  - kind: file_extension_ratio
-    weight: 0.7
-    domain: software
-    ratio: 0.858
-    count: 760
-  - kind: file_extension_ratio
-    weight: 0.7
-    domain: business
-    ratio: 0.132
-    count: 117
-  - kind: filename_pattern
-    weight: 0.2
-    domain: content
-    name: post-templates.md
-  - kind: filename_pattern
-    weight: 0.2
-    domain: content
-    name: post-templates.md
-  - kind: filename_pattern
-    weight: 0.2
-    domain: content
-    name: seo_checker.py
-  - kind: filename_pattern
-    weight: 0.2
-    domain: content
-    name: seo_checker.py
-  - kind: filename_pattern
-    weight: 0.2
-    domain: content
-    name: seo-audit-reference.md
-  - kind: filename_pattern
-    weight: 0.4
-    domain: content
-    name: brand_voice_analyzer.py
-  - kind: filename_pattern
-    weight: 0.2
-    domain: content
-    name: seo_optimizer.py
-  - kind: filename_pattern
-    weight: 0.4
-    domain: content
-    name: brand_voice_analysis_example.md
-  - kind: filename_pattern
-    weight: 0.2
-    domain: content
-    name: seo_optimization_example.md
-  - kind: filename_pattern
-    weight: 0.4
-    domain: content
-    name: brand-voice.local.md.example
-  - kind: filename_pattern
-    weight: 0.2
-    domain: content
-    name: seo-audit.md
-  - kind: filename_pattern
-    weight: 0.2
-    domain: content
-    name: seo-specialist.md
-  - kind: filename_pattern
-    weight: 0.2
-    domain: content
-    name: seo-optimizer-agent.ts
-  - kind: filename_pattern
-    weight: 0.2
-    domain: content
-    name: seo_checker.py
-  - kind: filename_pattern
-    weight: 0.4
-    domain: content
-    name: brand-voice.local.md.example
-  - kind: filename_pattern
-    weight: 0.2
-    domain: content
-    name: seo-audit.md
-  - kind: filename_pattern
-    weight: 0.2
-    domain: content
-    name: seo-vs-aeo-skills.html
-  - kind: filename_pattern
-    weight: 0.2
-    domain: content
-    name: seo-specialist.md
-  - kind: filename_pattern
-    weight: 0.2
-    domain: content
-    name: seo-optimizer-agent.ts
-  - kind: filename_pattern
-    weight: 0.2
-    domain: content
-    name: seo_checker.py
-  - kind: filename_pattern
-    weight: 0.2
-    domain: content
-    name: seo-specialist.md
----
-## graphify
+# UTP — Agent Entry Point
 
-This project has a graphify knowledge graph at graphify-out/.
+Civic governance & transparency web platform with smart contracts and congressional data connectors. Stack: Next.js 15 (App Router in `src/app/`, React 19, TypeScript 5.9), Tailwind CSS, Supabase, Privy + Wagmi + Viem, Hardhat Solidity (`contracts/`, `solc 0.8.33`, OpenZeppelin v5), Vitest, ESLint 9, Python (`congress_connector/`, `scripts/`).
 
-Rules:
-- Before answering architecture or codebase questions, read graphify-out/GRAPH_REPORT.md for god nodes and community structure
-- If graphify-out/wiki/index.md exists, navigate it instead of reading raw files
-- After modifying code files in this session, run `python3 -c "from graphify.watch import _rebuild_code; from pathlib import Path; _rebuild_code(Path('.'))"` to keep the graph current
+## Commands (Verified)
 
-## Project source of truth
+- Install: `npm ci`
+- Dev: `npm run dev`
+- Lint: `npm run lint`
+- Typecheck: `npm run typecheck` (`tsc --noEmit`)
+- Web unit tests: `npm run test:web` (`vitest run`)
+- Contract compile (+ ABI codegen): `npm run compile`
+- Contract tests: `npm run test:contracts` (`hardhat test`)
+- Standards gate: `npm run check:standards`
+- Fast verify (run before every commit): `npm run ci:fast`
+- Python lint (changed files): `ruff check congress_connector/ scripts/`
+- Enable diff-scoped pre-commit hook: `git config core.hooksPath .githooks`
 
-- Roadmap: `.gsd/ROADMAP.md` (only live roadmap) · Status: `.gsd/STATE.md` · Product: `brain/prd.md`
-- Brand: `DESIGN.md` — civic glass-teal, tokens in `src/app/globals.css`. The dark "uBTC" system and `/launch`, `/vault` pages are archived in `archive/design-dark-v1/`; never use them for new work.
-- `archive/` is reference only; it is excluded from TypeScript, ESLint and the build.
+## Architecture Map (Progressive Disclosure)
 
-<!-- IJFW-MEMORY-START -->
-Project memory at .ijfw/memory/. Call `ijfw_memory_prelude` for full context.
-<!-- IJFW-MEMORY-END -->
+- Coding standards & boundaries: `docs/CODING_STANDARDS.md` **(read before writing code)**
+- Knowledge graph: `graphify-out/GRAPH_REPORT.md` (or `graphify-out/wiki/index.md` if present); after code edits rebuild via `python3 -c "from graphify.watch import _rebuild_code; from pathlib import Path; _rebuild_code(Path('.'))"`
+- Product, threat model & brand: `brain/prd.md`, `THREAT_MODEL.md`, `DESIGN.md`
+- Superpowers specs & plans: `docs/superpowers/` (never create new `.gsd/` phase trees)
 
-<!-- IJFW-AGENTS-START -->
-No project agents yet. Run `ijfw team` to set them up.
-<!-- IJFW-AGENTS-END -->
+## Non-Negotiable Invariants
+
+- **Brand System:** Follow `DESIGN.md` (civic glass-teal tokens in `src/app/globals.css`). Never reintroduce the archived dark "uBTC" theme or `/launch` and `/vault` routes.
+- **Smart Contract & ABI Sync:** Compile contracts with `npm run compile` (triggers `postcompile` ABI generation via `scripts/generate-abis.js`). Never hand-edit generated ABIs; run `npm run test:contracts` on any contract change.
+- **Security & Threat Model:** Respect `THREAT_MODEL.md`; never expose server secrets via `NEXT_PUBLIC_` or commit private keys / `.env` values.
+- **Workspace Strictness:** Operate strictly inside this repo/worktree root; ignore IDE active-document metadata from other projects.
+- **Dependencies:** Never add packages outside `package-lock.json` without approval.
+- **Git & Merge:** Work in a dedicated `git worktree` on `<agent>/<ISSUE-KEY>-slug`. Never push directly to `master` or merge PRs directly.
+
+## Legacy Gotchas (Do Not Copy)
+
+- `archive/` & `archive/design-dark-v1/`: archived reference only (excluded from TS, ESLint, and build); never import from or copy patterns from it.
+- `.gsd/`: legacy GSD state/roadmap (read-only); new specs/plans belong in `docs/superpowers/`.
+
+## Definition of Done
+
+1. Run `npm run ci:fast` — 0 errors, 0 skipped/weakened tests.
+2. Run `clean-code-guard` on changed production code and `test-guard` on changed tests.
+3. No unused imports, `any` escapes, empty `catch` blocks, hardcoded secrets, or `"ok"` stubs.
