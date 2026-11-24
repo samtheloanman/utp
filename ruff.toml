@@ -1,0 +1,28 @@
+# Canonical Fleet Ruff Configuration (Python Preset)
+# Copy to repo root as ruff.toml or merge into pyproject.toml [tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[lint]
+select = [
+  "E",    # pycodestyle errors
+  "F",    # pyflakes (unused imports/vars)
+  "W",    # pycodestyle warnings
+  "I",    # isort
+  "B",    # flake8-bugbear
+  "SIM",  # flake8-simplify
+  "S",    # flake8-bandit (security)
+  "UP",   # pyupgrade
+  "C90",  # mccabe complexity
+]
+ignore = [
+  "E501", # handled by formatter
+]
+
+[lint.mccabe]
+max-complexity = 10
+
+[lint.per-file-ignores]
+"tests/**/*.py" = ["S101"] # allow assert in pytest
+"*_test.py" = ["S101"]
+"test_*.py" = ["S101"]
