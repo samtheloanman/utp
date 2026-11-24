@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
 import { SmoothScroll } from "@/components/ui/SmoothScroll";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 export const metadata: Metadata = {
   title: "UTP — Universal Transaction Protocol",
@@ -21,6 +23,8 @@ export default function RootLayout({
             {children}
           </SmoothScroll>
         </Providers>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

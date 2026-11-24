@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { requireUser } from '@/lib/supabaseAuth/requireUser';
 import { createUserScopedClient } from '@/lib/supabaseAuth/userClient';
+import { guardRequest } from '@/lib/edgeGuard';
 
 // The table requires a title of at least 5 characters once trimmed.
 const MIN_TITLE = 5;
@@ -36,6 +37,8 @@ function isHttpUrl(v: string): boolean {
  * the session user and vote counts are never accepted from the client.
  */
 export async function POST(req: NextRequest) {
+  const blocked = await guardRequest(req, 'propose');
+  if (blocked) return blocked;
   const auth = await requireUser(req);
   if ('error' in auth) return auth.error;
 

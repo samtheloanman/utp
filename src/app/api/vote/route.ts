@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireUser } from '@/lib/supabaseAuth/requireUser';
 import { createUserScopedClient } from '@/lib/supabaseAuth/userClient';
 import { parseVoteInput } from '@/lib/votes/parseVoteInput';
+import { guardRequest } from '@/lib/edgeGuard';
 
 /**
  * POST /api/vote
@@ -10,6 +11,8 @@ import { parseVoteInput } from '@/lib/votes/parseVoteInput';
  * is always the session user.
  */
 export async function POST(req: NextRequest) {
+  const blocked = await guardRequest(req, 'vote');
+  if (blocked) return blocked;
   const auth = await requireUser(req);
   if ('error' in auth) return auth.error;
 
