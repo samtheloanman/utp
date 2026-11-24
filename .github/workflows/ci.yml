@@ -19,6 +19,8 @@ jobs:
     runs-on: [self-hosted, linux, utp]
     steps:
       - uses: actions/checkout@v4
+      - name: Check coding standards caps
+        run: bash scripts/check-coding-standards-caps.sh
       - uses: actions/setup-node@v4
         with:
           node-version: 20

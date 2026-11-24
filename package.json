@@ -15,6 +15,7 @@
     "test:contracts": "hardhat test",
     "test:web": "vitest run",
     "check:standards": "bash scripts/check-coding-standards-caps.sh",
+    "prepare": "git config core.hooksPath .githooks",
     "ci:fast": "npm run check:standards && npm run lint && npm run typecheck && npm run test:web && npm run test:contracts",
     "deploy:local": "hardhat run scripts/deploy.cjs --network localhost",
     "deploy:rskTestnet": "hardhat run scripts/deploy.cjs --network rskTestnet",
