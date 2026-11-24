@@ -78,7 +78,7 @@ function ProposeForm() {
       <p>Put an issue in front of the community. Link the bill or article it is about so others can check it.</p>
       <form onSubmit={submit} style={{ marginTop: '1rem' }}>
         <label>Title
-          <input style={field} value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} required />
+          <input style={field} value={title} onChange={(e) => setTitle(e.target.value)} minLength={5} maxLength={200} required />
         </label>
         <label>Source link
           <input style={field} type="url" value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} placeholder="https://" />

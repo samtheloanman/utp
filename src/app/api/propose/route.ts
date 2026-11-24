@@ -3,6 +3,8 @@ import { supabase } from '@/lib/supabase';
 import { requireUser } from '@/lib/supabaseAuth/requireUser';
 import { createUserScopedClient } from '@/lib/supabaseAuth/userClient';
 
+// The table requires a title of at least 5 characters once trimmed.
+const MIN_TITLE = 5;
 const MAX_TITLE = 200;
 const MAX_DESCRIPTION = 2000;
 const MAX_URL = 2048;
@@ -46,8 +48,8 @@ export async function POST(req: NextRequest) {
   const b = (body && typeof body === 'object' ? body : {}) as Record<string, unknown>;
 
   const title = typeof b.title === 'string' ? b.title.trim() : '';
-  if (!title || title.length > MAX_TITLE) {
-    return NextResponse.json({ error: `Title is required (1-${MAX_TITLE} characters)` }, { status: 400 });
+  if (title.length < MIN_TITLE || title.length > MAX_TITLE) {
+    return NextResponse.json({ error: `Title is required (${MIN_TITLE}-${MAX_TITLE} characters)` }, { status: 400 });
   }
 
   const sourceUrl = optionalString(b.sourceUrl, MAX_URL);
@@ -68,18 +70,17 @@ export async function POST(req: NextRequest) {
   try {
     const client = createUserScopedClient(auth.accessToken);
     const { data, error } = await client
-      .from('voting_proposals')
+      .from('civic_proposals')
       .insert({
         title,
         description: description ?? '',
         source_url: sourceUrl,
         bias_score: bias ?? 'center',
         category: category ?? 'General',
-        status: 'active',
         proposer_id: auth.user.id,
         bill_id: billId,
       })
-      .select()
+      .select(PUBLIC_COLUMNS)
       .single();
 
     if (error) {
@@ -110,8 +111,9 @@ export async function GET(req: NextRequest) {
   const limit = Number.isFinite(parsed) && parsed > 0 ? Math.min(parsed, MAX_LIMIT) : DEFAULT_LIMIT;
 
   const { data, error } = await supabase
-    .from('voting_proposals')
+    .from('civic_proposals')
     .select(PUBLIC_COLUMNS)
+    .eq('kind', 'community_proposal')
     .eq('status', status)
     .order('created_at', { ascending: false })
     .limit(limit);

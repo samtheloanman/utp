@@ -4,9 +4,9 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 const push = vi.fn();
 const getSession = vi.fn();
 const ownVote = vi.fn();
-const from = vi.fn(() => ({ select: () => ({ eq: () => ({ maybeSingle: ownVote }) }) }));
+const rpc = vi.fn((..._args: unknown[]) => ownVote());
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }));
-vi.mock('@/lib/supabaseAuth/client', () => ({ createClient: () => ({ auth: { getSession }, from }) }));
+vi.mock('@/lib/supabaseAuth/client', () => ({ createClient: () => ({ auth: { getSession }, rpc }) }));
 
 import { VotePanel } from './VotePanel';
 import { ISSUES, Issue } from '@/lib/data';
@@ -17,7 +17,7 @@ const uuidIssue: Issue = { ...ISSUES[0], id: UUID, isSample: undefined };
 describe('VotePanel', () => {
   const fetchMock = vi.fn();
   beforeEach(() => {
-    push.mockReset(); getSession.mockReset(); fetchMock.mockReset(); from.mockClear();
+    push.mockReset(); getSession.mockReset(); fetchMock.mockReset(); rpc.mockClear();
     ownVote.mockReset(); ownVote.mockResolvedValue({ data: null });
     vi.stubGlobal('fetch', fetchMock);
     localStorage.clear();
@@ -32,10 +32,10 @@ describe('VotePanel', () => {
 
   it('shows the vote a signed-in user already cast', async () => {
     getSession.mockResolvedValue({ data: { session: { access_token: 'tok' } } });
-    ownVote.mockResolvedValue({ data: { vote: 'against' } });
+    ownVote.mockResolvedValue({ data: 'against' });
     render(<VotePanel issue={uuidIssue} />);
     await waitFor(() => expect(screen.getByText(/counted as/).textContent).toContain('against'));
-    expect(from).toHaveBeenCalledWith('shadow_votes');
+    expect(rpc).toHaveBeenCalledWith('my_bill_vote', { p_bill_id: UUID });
     expect(document.querySelector('.vopt.sel')?.textContent).toContain('Against');
     expect(fetchMock).not.toHaveBeenCalled();
   });

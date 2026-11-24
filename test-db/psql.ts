@@ -43,6 +43,5 @@ export async function makeBill(): Promise<string> {
 }
 
 export function upsertVote(billId: string, vote: string): string {
-  return `INSERT INTO shadow_votes(bill_id, user_id, vote) VALUES ('${billId}', auth.uid(), '${vote}')
-ON CONFLICT (bill_id, user_id) DO UPDATE SET vote = EXCLUDED.vote;\n`;
+  return `SELECT public.cast_bill_vote('${billId}', '${vote}') \\g /dev/null\n`;
 }
