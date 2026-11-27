@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withBotId } from "botid/next/config";
 
 /* ─── Server-side localStorage polyfill ─────────────────────
    wagmi/RainbowKit/MetaMask SDK access localStorage at import
@@ -56,4 +57,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withBotId(nextConfig);

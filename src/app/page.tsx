@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { SCALES, CATEGORIES, ISSUES } from '@/lib/data';
 import { TopBar, IssueCard, fmt } from '@/components/ui/Shared';
 import { Icon } from '@/components/ui/icons';
-import { HeroCanvas } from '@/components/ui/HeroCanvas';
+import { HeroCanvasLazy as HeroCanvas } from '@/components/ui/HeroCanvasLazy';
 import gsap from 'gsap';
 
 export default function FeedView() {

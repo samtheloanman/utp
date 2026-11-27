@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabaseAuth/server';
 import { safeRedirectPath } from '@/lib/supabaseAuth/redirect';
+import { guardRequest } from '@/lib/edgeGuard';
 
 /** Handles Allow/Deny submissions from src/app/oauth/consent/page.tsx. */
 export async function POST(request: Request) {
+  const blocked = await guardRequest(request, 'oauth-decision');
+  if (blocked) return blocked;
   const { origin } = new URL(request.url);
   let formData: FormData;
   try {
