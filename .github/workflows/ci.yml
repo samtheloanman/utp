@@ -44,3 +44,23 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - run: npx hardhat compile
       - run: npm run test:contracts
+
+  db:
+    if: ${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
+    name: DB integrity tests (Postgres 16)
+    runs-on: [self-hosted, linux, utp]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Locate Postgres 16 binaries
+        run: |
+          for d in /usr/lib/postgresql/16/bin /usr/local/pgsql/bin; do
+            if [ -x "$d/initdb" ]; then echo "PGBIN=$d" >> "$GITHUB_ENV"; exit 0; fi
+          done
+          if command -v initdb >/dev/null; then echo "PGBIN=$(dirname "$(command -v initdb)")" >> "$GITHUB_ENV"; exit 0; fi
+          echo "::error::Postgres 16 server binaries (initdb, pg_ctl) not found on runner. Install postgresql-16 on the utp runner host." && exit 1
+      - run: npm ci --no-audit --no-fund
+      - run: npm run test:db
