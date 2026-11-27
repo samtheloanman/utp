@@ -1,6 +1,6 @@
 # Project State
 
-Last updated: 2026-11-22
+Last updated: 2026-11-26
 
 ## References
 - Roadmap: `.gsd/ROADMAP.md` (only live roadmap)
@@ -8,7 +8,7 @@ Last updated: 2026-11-22
 - Brand: `DESIGN.md`.
 
 ## Baseline
-`master` is at `266b6fd`. Merged since `777658f`: #23 (testnet alpha: auth, DAO reader, local legislation), #24 (RSK testnet prep, security headers), #25 (chain 31 deployment manifest), #26 (OAuth form and env hardening). #22 closed as superseded. CI runs on the self-hosted Dell runner `dell-utp-1`; it does not run `test:db` or Playwright.
+`master` is at `ffcdf2a`. Merged since `777658f`: #23 (testnet alpha: auth, DAO reader, local legislation), #24 (RSK testnet prep, security headers), #25 (chain 31 deployment manifest), #26 (OAuth form and env hardening), #28 (Migration A: revoke TRUNCATE/unsafe writes, hide draft proposals), #29 (Migration B: append-only hash-chained vote ledger + API cutover), #30 (Next.js 15.5.29 patch). #22 closed as superseded. Open: #31 (BotID, rate limits, OTel), #32 (coding-standards harness), #33 (`test:db` in CI). CI runs on the self-hosted Dell runner `dell-utp-1`; Playwright is not in CI.
 
 ## Live, with evidence (read 2026-11-22)
 - Supabase project `tuajgdhslxqmiaehsend`: 11 migrations, last `20261119000200`. 567 bills, 353 bill versions, 0 ingest failures. Last successful source fetch 2026-11-22 09:00 UTC, so the daily ingest cron runs in production.
@@ -32,8 +32,11 @@ Last updated: 2026-11-22
 - Production pages were not fetched in this check.
 
 ## Next actions
+0. Confirm Migrations A and B (`20261122000000`, `20261122000100`) are applied on `tuajgdhslxqmiaehsend`.
 1. Signed-in pass on production: sign in, vote on a bill, propose from a bill, link a wallet; confirm the rows.
 2. On-chain rehearsal with 3 wallets on chain 31: delegate, propose, vote, queue, execute.
 3. Link a civic proposal to its on-chain proposal id.
 4. Home page still shows sample issues; real bills are only at `/bills`.
-5. Add `test:db` and Playwright to CI.
+5. Merge #33 (`test:db` in CI); add Playwright to CI.
+6. Fix before PR3: Legistar title still reaching debate as `sourced` summary; `/news` claims fact-checking that does not exist.
+7. Decide: user proposals default `status='active'` (no review).
