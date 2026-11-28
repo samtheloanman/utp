@@ -1,0 +1,146 @@
+{
+  "project_ref": "tuajgdhslxqmiaehsend",
+  "source_head": "28c73e8",
+  "observed": {
+    "migrations": [
+      {
+        "version": "20260123000000"
+      },
+      {
+        "version": "20260618000000"
+      },
+      {
+        "version": "20260711000000"
+      },
+      {
+        "version": "20261104000000"
+      },
+      {
+        "version": "20261104000100"
+      },
+      {
+        "version": "20261104000200"
+      },
+      {
+        "version": "20261104000300"
+      },
+      {
+        "version": "20261110000000"
+      }
+    ],
+    "rls": [
+      {
+        "name": "api_sources",
+        "rls": true
+      },
+      {
+        "name": "bill_actions",
+        "rls": true
+      },
+      {
+        "name": "bill_versions",
+        "rls": true
+      },
+      {
+        "name": "bills",
+        "rls": true
+      },
+      {
+        "name": "chain_networks",
+        "rls": true
+      },
+      {
+        "name": "civic_proposal_options",
+        "rls": true
+      },
+      {
+        "name": "civic_proposal_votes",
+        "rls": true
+      },
+      {
+        "name": "civic_proposals",
+        "rls": true
+      },
+      {
+        "name": "dao_proposals",
+        "rls": true
+      },
+      {
+        "name": "dao_votes",
+        "rls": true
+      },
+      {
+        "name": "data_sources",
+        "rls": true
+      },
+      {
+        "name": "ingest_failures",
+        "rls": true
+      },
+      {
+        "name": "jurisdictions",
+        "rls": true
+      },
+      {
+        "name": "poll_options",
+        "rls": true
+      },
+      {
+        "name": "poll_votes",
+        "rls": true
+      },
+      {
+        "name": "polls",
+        "rls": true
+      },
+      {
+        "name": "shadow_votes",
+        "rls": true
+      },
+      {
+        "name": "tracked_bills",
+        "rls": true
+      },
+      {
+        "name": "user_profiles",
+        "rls": true
+      },
+      {
+        "name": "vote_aggregates",
+        "rls": true
+      },
+      {
+        "name": "voting_proposals",
+        "rls": true
+      },
+      {
+        "name": "wallet_link_challenges",
+        "rls": true
+      },
+      {
+        "name": "wallet_links",
+        "rls": true
+      }
+    ],
+    "chains": [
+      {
+        "chain_id": 31,
+        "slug": "rsk-testnet",
+        "network_kind": "sidechain_evm",
+        "is_active": true
+      },
+      {
+        "chain_id": 31337,
+        "slug": "hardhat",
+        "network_kind": "local",
+        "is_active": true
+      }
+    ],
+    "event_trigger": [
+      {
+        "evtname": "ensure_rls",
+        "evtenabled": "O"
+      }
+    ]
+  }
+}

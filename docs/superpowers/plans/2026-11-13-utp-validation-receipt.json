@@ -1,0 +1,31 @@
+{
+  "head": "28c73e8",
+  "logs": {
+    "ci": {
+      "path": "/tmp/utp-boost-ci-20261113.log",
+      "sha256": "84c6d5a0e7092b9b25345e0aafbb3f7645b54bf2da488cd8912cf0b0a4eeb878",
+      "exit_code": 0
+    },
+    "db": {
+      "path": "/tmp/utp-boost-db-20261113.log",
+      "sha256": "385d97e2b6958538496fb27d8a435e30576b7e6cd3a935a27c34cd7d7ee3c60e",
+      "exit_code": 0
+    },
+    "build": {
+      "path": "/tmp/utp-boost-build-20261113.log",
+      "sha256": "1a74183b16f6ebd43db72dbea28d4d5b46e9aee6aa3111e5225b1306fe58525b",
+      "exit_code": 0
+    },
+    "migration": {
+      "path": "/tmp/utp-boost-migration-20261113.log",
+      "sha256": "4568397a71754e7205dae46f6178d1e72a947fc595728597c0fc8da3be65983c",
+      "exit_code": 0
+    }
+  },
+  "web_tests": 127,
+  "contract_tests": 181,
+  "database_tests": 31,
+  "remote_ci": "NOT_RUN",
+  "github_push": "BLOCKED_FORGEJO_GATE",
+  "rootstock_deployment": "BLOCKED_CREDENTIALS"
+}
